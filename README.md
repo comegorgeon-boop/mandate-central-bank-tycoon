@@ -24,6 +24,8 @@ npm install
 | `npm run preview`  | Preview the production build locally           |
 | `npm run lint`     | Run ESLint                                     |
 | `npm test`         | Run the test suite (Vitest)                    |
+| `npm run sim:demo` | Play 8 seeded meetings and print the paths      |
+| `npm run sim:sweep`| Play 900 seeded runs and report balance         |
 | `npm run deploy`   | Build and deploy to Cloudflare Workers          |
 
 ## Stack
@@ -34,6 +36,31 @@ npm install
 - ESLint
 - Vitest + Testing Library
 - Wrangler (Cloudflare Workers static assets)
+
+## Simulation engine
+
+`src/simulation/` holds the economic model. It is framework-independent by
+contract: nothing under it imports React, touches the DOM, or makes a network
+call, and its tests run in the `node` environment so that stays true. The
+interface layer talks to it only through `src/simulation/index.ts`.
+
+Two layers of state exist. The latent true economy is what the engine runs on;
+the observed information set is what a player is shown, after publication lags,
+measurement noise, missing releases and later revisions. Latent values never
+reach the interface.
+
+All coefficients, bounds, thresholds, shock distributions, instrument
+definitions and difficulty modifiers live in `src/simulation/config/`.
+Balancing means editing configuration, never engine code.
+
+`npm run sim:demo` and `npm run sim:sweep` are developer tooling. They print
+latent state and are never imported by application code.
+
+> **Open question before the UI is trusted:** the sweep currently finds that
+> doing nothing scores as well as acting on several buckets. It is not yet
+> established whether that is a flaw in the benchmark policies or in the
+> balance. See [`docs/BALANCE.md`](docs/BALANCE.md) — it lists what to watch
+> for during the first real playthrough, which is the fastest way to settle it.
 
 ## Deployment
 
