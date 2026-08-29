@@ -28,6 +28,11 @@ export interface DifficultyConfig {
   readonly eventProbability: number
   /** Multiplier on event effect sizes. */
   readonly eventSeverityScale: number
+  /**
+   * Share of the total event probability mass an upcoming risk must carry
+   * before its warning clue is published. Lower means more warnings.
+   */
+  readonly clueThreshold: number
   /** Multiplier on credibility and trust penalties. */
   readonly credibilitySensitivity: number
   /**
@@ -57,6 +62,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     publicationLagRelief: 1,
     eventProbability: 0.35,
     eventSeverityScale: 0.65,
+    clueThreshold: 0.1,
     credibilitySensitivity: 0.7,
     thresholdLeniency: 1.45,
     breachPatience: 1,
@@ -75,6 +81,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     publicationLagRelief: 0,
     eventProbability: 0.55,
     eventSeverityScale: 1.0,
+    clueThreshold: 0.15,
     credibilitySensitivity: 1.0,
     thresholdLeniency: 1.0,
     breachPatience: 0,
@@ -93,6 +100,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     publicationLagRelief: 0,
     eventProbability: 0.7,
     eventSeverityScale: 1.35,
+    clueThreshold: 0.22,
     credibilitySensitivity: 1.35,
     thresholdLeniency: 0.82,
     breachPatience: 0,

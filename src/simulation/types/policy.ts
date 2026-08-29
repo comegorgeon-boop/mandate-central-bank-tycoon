@@ -99,6 +99,12 @@ export interface PolicyPackage {
  * package alone.
  */
 export interface PolicyStance {
+  /**
+   * The policy rate the committee has voted, %, before administered-rate
+   * adjustments. The latent `policyRate` is this plus the effect of the
+   * corridor and money-market instruments.
+   */
+  readonly targetRate: number
   /** Asset purchase pace, % of GDP per year. */
   readonly assetPurchasePace: number
   /** Balance-sheet runoff pace, % of GDP per year. */

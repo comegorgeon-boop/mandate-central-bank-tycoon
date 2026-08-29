@@ -20,6 +20,7 @@ export type SeriesId =
   | 'bank_stress_proxy'
   | 'balance_sheet'
   | 'fragmentation_spread'
+  | 'regional_bank_stress'
 
 /**
  * How a number reaches the player, which decides how trustworthy it is.

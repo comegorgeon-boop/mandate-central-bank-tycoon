@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "sim:demo": "node src/simulation/dev/demo.ts",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {

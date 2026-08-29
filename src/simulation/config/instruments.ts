@@ -1,5 +1,7 @@
 import type { Difficulty, Institution } from '../types/core.ts'
 import type {
+  CommunicationChannel,
+  CommunicationCommitment,
   InstrumentDefinition,
   InstrumentId,
   InstrumentRange,
@@ -272,6 +274,36 @@ export function availableInstruments(
       instrument.availableTo.includes(institution) &&
       meetsDifficulty(difficulty, instrument.availableFrom),
   )
+}
+
+/**
+ * Which communication choices are open at each difficulty.
+ *
+ * Easy mode deliberately keeps communication simple: a statement, and at most
+ * a weak bias. The full four-channel system with binding commitments only
+ * appears on hard, where consistency is a real constraint.
+ */
+export const COMMUNICATION_AVAILABILITY: Readonly<
+  Record<
+    Difficulty,
+    {
+      readonly channels: readonly CommunicationChannel[]
+      readonly commitments: readonly CommunicationCommitment[]
+    }
+  >
+> = {
+  easy: {
+    channels: ['statement'],
+    commitments: ['none', 'weak_bias'],
+  },
+  medium: {
+    channels: ['statement', 'press_conference'],
+    commitments: ['none', 'weak_bias', 'conditional_path'],
+  },
+  hard: {
+    channels: ['statement', 'press_conference', 'speech', 'social_post'],
+    commitments: ['none', 'weak_bias', 'conditional_path', 'strong_commitment'],
+  },
 }
 
 /**
