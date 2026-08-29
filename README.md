@@ -48,6 +48,11 @@ the Workers flow).
 
 There is no custom Worker script: this is a static-assets-only Worker.
 
+There is no `public/_redirects` file — that was a Cloudflare Pages-only mechanism
+and conflicts with `not_found_handling` (Cloudflare's Workers deployment rejects it
+with an "infinite loop" error, since both try to handle the same fallback routing).
+SPA routing is handled solely by `not_found_handling` in `wrangler.toml`.
+
 ### One-time setup
 
 ```bash
@@ -65,5 +70,3 @@ npm run deploy
 This runs `npm run build` and then `npx wrangler deploy`, which uploads the contents
 of `dist/` to Cloudflare and prints the live `*.workers.dev` URL.
 
-`public/_redirects` is no longer used for routing (that was the Cloudflare Pages
-mechanism); SPA routing is now handled by `not_found_handling` in `wrangler.toml`.
