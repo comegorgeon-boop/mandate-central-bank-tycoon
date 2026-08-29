@@ -1,5 +1,7 @@
 # Mandate: Central Bank Tycoon
 
+**Live site:** https://mandate-central-bank-tycoon.comegorgeon.workers.dev
+
 Static, front-end-only browser game (React + TypeScript + Vite). Current state: technical
 skeleton only (Build 0) — no gameplay yet.
 
@@ -35,6 +37,10 @@ npm install
 
 ## Deployment
 
+**Every push to `main` automatically redeploys the live site** via Cloudflare
+Workers' Git integration — Cloudflare builds and deploys on its own; no manual
+step is needed after pushing.
+
 The app builds to a fully static `dist/` directory and deploys as a Cloudflare
 Workers static-assets site (Cloudflare's Pages onboarding flow has been replaced by
 the Workers flow).
@@ -52,6 +58,9 @@ There is no `public/_redirects` file — that was a Cloudflare Pages-only mechan
 and conflicts with `not_found_handling` (Cloudflare's Workers deployment rejects it
 with an "infinite loop" error, since both try to handle the same fallback routing).
 SPA routing is handled solely by `not_found_handling` in `wrangler.toml`.
+
+The steps below (`npm run deploy`) are only needed for a manual, ad hoc deploy from
+your machine — they are not part of the normal workflow.
 
 ### One-time setup
 
