@@ -1,7 +1,8 @@
 # Open balance question
 
-**Status: unresolved. Carried forward from build 2 (simulation engine) to the
-balancing pass.**
+**Status: diagnosed, design direction retained, calibration outstanding.**
+Carried forward from build 2 (simulation engine). The direction below is
+decided; the numbers are to be set in phase 3, against a real playthrough.
 
 The engine is correct and tested. What has *not* been established is whether
 the player's decisions materially change the outcome. This document records
@@ -34,6 +35,97 @@ it.
 banking crisis accounts for 81 of 150 failures on fed/hard and 87 of 150 on
 ecb/hard. A single catastrophe family swamping the others makes the difficulty
 feel arbitrary rather than demanding.
+
+## Retained design direction: the mandate-to-lag ratio
+
+**The central problem is not how long the lag is. It is the ratio between the
+mandate and the lag** — the number of decision → effect → correction loops a
+player can actually close before the mandate ends. Below three or four, no
+amount of skill is legible: the player acts, the mandate ends, and the
+consequence arrives after the credits.
+
+A working definition, to be refined against play:
+
+```
+loops ≈ meetingCount / (peak lag in meetings + publication lag in meetings)
+```
+
+Where the engine stands today. The kernel peak is
+`LAG_KERNEL[difficulty].peakSubsteps` in `config/time.ts`, at four sub-steps
+per meeting:
+
+| Difficulty | Meetings | Peak lag | Loops now | Target peak | Loops at target |
+| --- | --- | --- | --- | --- | --- |
+| easy | 8 | 3.5 meetings | **1.8** | 1–2 meetings | ~3.2 |
+| medium | 16 | 5.5 meetings | 2.5 | 3–4 meetings | ~3.6 |
+| hard | 32 | 7.5 meetings | 3.8 | 6–8 meetings | ~4.0 |
+
+Easy is the broken case: under two closed loops. The demo run confirms it —
+250bp of tightening across the whole mandate barely moves the output gap.
+Hard is already close to its target and needs little change.
+
+Note what the target column does: the loop count becomes roughly constant
+across difficulties. **What difficulty changes is not how many chances you
+get, but whether you can react or must anticipate.** Easy at a one-to-two
+meeting peak is a reacting game. Hard at six to eight is full realism, where
+the only workable strategy is to act on the forecast.
+
+Four decisions follow.
+
+### 1. The lag becomes a difficulty parameter, calibrated on the ratio
+
+`LAG_KERNEL` already varies by difficulty; today it varies too little and in
+the wrong proportion. Retarget it on the loop count rather than on realism per
+difficulty: peak toward one to two meetings on easy, three to four on medium,
+six to eight on hard. Only hard needs to be realistic.
+
+This is a configuration change in `config/time.ts`, not an engine change. The
+transmission test in `engine/transmission.test.ts` asserts the *shape* of the
+response, not its calibration, so it should survive — but it pins a 24-meeting
+horizon on hard and will need its thresholds rechecked.
+
+### 2. Immediate feedback comes from the fast channel, which already exists
+
+The engine already runs two speeds. Markets, the press and institutional
+standing respond within the same turn: the policy surprise moves
+`marketVolatility` and `marketTrust` on the spot, communication tone moves
+`marketExpectedRate` and `expectedInflationShort` on the spot, and a
+contradictory package costs credibility immediately. The slow channel —
+inflation, unemployment, employment — keeps its lags untouched.
+
+Nothing needs building here. It needs to be made **visible**: the fast channel
+is the player's turn-by-turn feedback, and it is currently buried in latent
+state that no panel surfaces. Work for phase 3 (make it legible) and phase 5
+(make it feel like a reaction).
+
+### 3. Fan charts deform immediately when policy changes
+
+`generateObservation` already rebuilds the forecast fan every meeting from the
+current state. A policy change moves the projected path in the same turn, even
+while the published present has not moved at all.
+
+This is the mechanism that makes a long lag playable: the player sees the
+*future* respond immediately to a decision whose *present* effect is quarters
+away. The staff forecast panel therefore carries far more of the game than its
+name suggests, and should be treated as a primary screen rather than a
+reference tab.
+
+### 4. New — legacy evaluation
+
+At the end of a mandate, advance the simulation several quarters with **no
+player input**, and fold that outcome into the score.
+
+Two reasons. It closes the exploit the long lags otherwise create: leaving with
+a crisis already primed and taking the score before it lands. And it gives the
+postmortem its natural conclusion — what the successor inherited — rather than
+stopping mid-sentence at the final meeting.
+
+Not built. To be implemented with the full scoring pass, since it changes the
+shape of `calculateScore` and adds a component to `ScoreBreakdown`. Open
+questions for that session: how many quarters (four to eight is the plausible
+range), whether the legacy period is scored on the same components or on a
+narrower set, and how heavily to weight it — enough to deter leaving a mess,
+not so much that it dominates a mandate the player actually served.
 
 ## Two competing explanations
 
@@ -82,25 +174,37 @@ plausible. Options, cheapest first:
 
 ## What to check when playing a real game (phase 3)
 
-The first genuine playthrough answers this faster than any sweep. While
-playing, look for:
+The first genuine playthrough answers this faster than any sweep, and it is
+where the lag is calibrated. While playing, look for:
 
+- **Count the closed loops.** How many times did you change policy, see the
+  consequence, and get to respond to it? Below three, the lag is too long for
+  the mandate regardless of what the sweep says. This is the number the
+  retargeting above is aiming at, and play is the only way to check it.
 - Does a deliberate, well-reasoned decision visibly change the path within the
   mandate, or does the economy arrive where it was going regardless?
+- **Did anything at all respond in the turn you acted?** If a decision feels
+  inert on the meeting it is taken, the fast channel is not surfaced well
+  enough — that is a UI problem, not a lag problem, and the fix is point 2
+  above rather than shortening the lag further.
+- Did the fan chart visibly move when you changed policy? If not, point 3 is
+  not doing its job and the long lag will feel arbitrary.
 - Does holding for eight consecutive meetings feel like a viable strategy? On
   easy it may legitimately be one — that is a training mandate — but it must
   not be on medium or hard.
 - On hard, does a banking crisis feel earned, with the warning tier giving
   usable notice, or does it arrive as the default ending?
 - Are the warning clues arriving early enough to act on, given the
-  transmission lag peaks around three quarters out?
+  transmission lag?
 
-If decisions do feel consequential in play, this whole finding was about the
-benchmark rules and can be closed.
+If decisions do feel consequential in play, the sweep finding was about the
+benchmark rules, and what remains is the lag retargeting alone.
 
 ## Levers, if tuning turns out to be needed
 
-In rough order of how much they would change:
+Secondary to the retargeting above: change `LAG_KERNEL` first, then re-run the
+sweep, because a shorter lag changes what every one of these does. In rough
+order of how much they would change:
 
 - `BANKING.tighteningSpeed` (9.0) — the dominant path into the failure that
   swamps hard mode.

@@ -56,11 +56,16 @@ Balancing means editing configuration, never engine code.
 `npm run sim:demo` and `npm run sim:sweep` are developer tooling. They print
 latent state and are never imported by application code.
 
-> **Open question before the UI is trusted:** the sweep currently finds that
-> doing nothing scores as well as acting on several buckets. It is not yet
-> established whether that is a flaw in the benchmark policies or in the
-> balance. See [`docs/BALANCE.md`](docs/BALANCE.md) — it lists what to watch
-> for during the first real playthrough, which is the fastest way to settle it.
+> **Calibration outstanding — read before building the UI.** The engine's
+> policy lags are currently long relative to the mandates they sit in: on easy,
+> a player closes under two decision → effect → correction loops before the
+> mandate ends, where three to four are needed for skill to be legible.
+> [`docs/BALANCE.md`](docs/BALANCE.md) holds the retained design direction —
+> retargeting the lag on that ratio, surfacing the engine's existing fast
+> channel as turn-by-turn feedback, leaning on fan charts that deform
+> immediately, and adding an end-of-mandate legacy evaluation — together with
+> what to watch for during the first real playthrough, which is where the
+> numbers get set.
 
 ## Deployment
 
