@@ -138,15 +138,29 @@ export function replayRun(log: DecisionLog): ReplayResult {
   const config = configFromLog(log)
   let session = startRun(config)
 
-  for (const entry of log.decisions) {
+  // Replay by meeting index rather than by walking the decisions array. A log
+  // with a gap in it — hand-edited, or truncated in transit — would otherwise
+  // slide every later decision onto an earlier meeting and silently produce a
+  // different run. A missing entry means the meeting was held and nothing was
+  // decided, so it replays as a hold.
+  const byMeeting = new Map(
+    log.decisions.map((entry) => [entry.meetingIndex, entry.package]),
+  )
+  const lastMeeting = log.decisions.reduce(
+    (highest, entry) => Math.max(highest, entry.meetingIndex),
+    -1,
+  )
+
+  for (let meeting = 0; meeting <= lastMeeting; meeting += 1) {
     if (session.outcome.status !== 'active') break
 
-    const result = submitMeeting(session, entry.package)
+    const pkg = byMeeting.get(meeting) ?? { actions: [], communication: null }
+    const result = submitMeeting(session, pkg)
     if (!result.ok) {
       const reason = result.validation.rejections[0]?.message ?? 'unknown reason'
       return {
         ok: false,
-        error: `Decision for meeting ${entry.meetingIndex} was rejected: ${reason}`,
+        error: `Decision for meeting ${meeting} was rejected: ${reason}`,
         session,
       }
     }

@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "sim:demo": "node src/simulation/dev/demo.ts",
+    "sim:sweep": "node src/simulation/dev/sweep.ts",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {

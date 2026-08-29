@@ -4,7 +4,7 @@ import type { LagBuffers, LatentState } from '../types/state.ts'
 import type { Prng } from '../rng/prng.ts'
 import type { DifficultyConfig } from '../config/difficulty.ts'
 import type { InstitutionConfig } from '../config/institutions.ts'
-import { clamp } from '../config/bounds.ts'
+import { LATENT_BOUNDS, clamp } from '../config/bounds.ts'
 import {
   ASSETS,
   BALANCE_SHEET,
@@ -53,6 +53,19 @@ import {
  * exactly.
  */
 
+/**
+ * Holds a block's target inside the range its variable is defined on.
+ *
+ * The safety clamps in config/bounds.ts are a last resort against arithmetic
+ * failure. Model blocks are expected to keep their own variables in range, so
+ * that a clamp firing always means something genuinely went wrong rather than
+ * a 0-100 index sitting at its floor during a bad enough economy.
+ */
+function boundTarget(key: keyof LatentState, value: number): number {
+  const [min, max] = LATENT_BOUNDS[key]
+  return clamp(value, min, max)
+}
+
 export interface SubstepContext {
   readonly institution: InstitutionConfig
   readonly difficulty: DifficultyConfig
@@ -95,8 +108,19 @@ export function advanceSubstep(
   for (const process of SHOCK_PROCESSES) {
     const value = latent[process.key]
     const drift = -process.meanReversion * (value - process.mean) * dt
+
+    // A process defined on a bounded index has its innovation damped toward
+    // the ends of that range, so it stays inside on its own rather than being
+    // clipped there every few steps.
+    let scale = 1
+    if (process.range) {
+      const [low, high] = process.range
+      const span = (high - low) / 2
+      scale = Math.sqrt(Math.max(0, (value - low) * (high - value))) / span
+    }
+
     const innovation =
-      process.volatility * diff.shockScale * sqrtDt * prng.gaussian()
+      process.volatility * diff.shockScale * sqrtDt * scale * prng.gaussian()
     next[process.key] = value + drift + innovation
   }
   next.fiscalImpulse =
@@ -287,7 +311,10 @@ export function advanceSubstep(
     BANKING.liquiditySupport * support -
     INSTRUMENT_EFFECTS.assetPurchases.stressRelief * purchaseFlow * purchase.multiplier
   next.bankingStress =
-    latent.bankingStress + BANKING.adjustment * (stressTarget - latent.bankingStress) * dt
+    latent.bankingStress +
+    BANKING.adjustment *
+      (boundTarget('bankingStress', stressTarget) - latent.bankingStress) *
+      dt
 
   const volatilityTarget =
     VOLATILITY.base +
@@ -302,7 +329,9 @@ export function advanceSubstep(
       : 0)
   next.marketVolatility =
     latent.marketVolatility +
-    VOLATILITY.adjustment * (volatilityTarget - latent.marketVolatility) * dt
+    VOLATILITY.adjustment *
+      (boundTarget('marketVolatility', volatilityTarget) - latent.marketVolatility) *
+      dt
 
   // ---- 10. Institution-specific transmission impairment -------------------
   if (inst.fragmentationKind === 'sovereign_spread') {
@@ -322,7 +351,9 @@ export function advanceSubstep(
         purchase.multiplier
     next.fragmentation =
       latent.fragmentation +
-      cfg.adjustment * (fragmentationTarget - latent.fragmentation) * dt
+      cfg.adjustment *
+        (boundTarget('fragmentation', fragmentationTarget) - latent.fragmentation) *
+        dt
   } else {
     const cfg = FRAGMENTATION.fed
     const regionalTarget =
@@ -333,7 +364,9 @@ export function advanceSubstep(
       INSTRUMENT_EFFECTS.discountWindow.regionalRelief * stance.discountWindowLevel
     next.fragmentation =
       latent.fragmentation +
-      cfg.adjustment * (regionalTarget - latent.fragmentation) * dt
+      cfg.adjustment *
+        (boundTarget('fragmentation', regionalTarget) - latent.fragmentation) *
+        dt
   }
 
   // ---- 11. IS curve: the output gap ---------------------------------------
@@ -354,7 +387,8 @@ export function advanceSubstep(
       IS_CURVE.exchangeRate *
         ((latent.exchangeRate - EXCHANGE.baseline) / 10) *
         inst.openness +
-      IS_CURVE.confidence * latent.confidenceShock +
+      IS_CURVE.confidence * latent.confidenceShock -
+      IS_CURVE.supply * latent.supplyShock +
       latent.demandShock -
       IS_CURVE.meanReversion * latent.outputGap) *
     dt
@@ -381,7 +415,10 @@ export function advanceSubstep(
     BALANCE_SHEET.reservesPerPurchase * (latent.balanceSheet - inst.initial.balanceSheet) -
     INSTRUMENT_EFFECTS.reverseRepo.reservesDrain * stance.reverseRepoLevel
   next.reserves =
-    latent.reserves + BALANCE_SHEET.reservesDecay * (reservesTarget - latent.reserves) * dt
+    latent.reserves +
+    BALANCE_SHEET.reservesDecay *
+      (boundTarget('reserves', reservesTarget) - latent.reserves) *
+      dt
 
   // ---- 14. Fiscal ---------------------------------------------------------
   const debtTarget =
@@ -389,7 +426,10 @@ export function advanceSubstep(
     FISCAL.debtFromImpulse * latent.fiscalImpulse * 3 +
     FISCAL.debtFromRealRate * Math.max(0, realPolicyRate(latent)) * 3
   next.debtPressure =
-    latent.debtPressure + FISCAL.debtDecay * (debtTarget - latent.debtPressure) * dt
+    latent.debtPressure +
+    FISCAL.debtDecay *
+      (boundTarget('debtPressure', debtTarget) - latent.debtPressure) *
+      dt
 
   // ---- 15. Institutional standing -----------------------------------------
   const sensitivity = diff.credibilitySensitivity
@@ -402,7 +442,10 @@ export function advanceSubstep(
     Math.min(cred.keptPromiseCap, cred.keptPromise * ctx.guidance.keptPromises) -
     cred.bankingStress * latent.bankingStress * sensitivity
   next.credibility =
-    latent.credibility + cred.adjustment * (credibilityTarget - latent.credibility) * dt
+    latent.credibility +
+    cred.adjustment *
+      (boundTarget('credibility', credibilityTarget) - latent.credibility) *
+      dt
 
   const pub = INSTITUTIONAL.publicTrust
   const publicTrustTarget =
@@ -411,7 +454,10 @@ export function advanceSubstep(
     pub.unemployment * Math.max(0, unemploymentGap(latent)) * sensitivity -
     pub.policyRate * Math.max(0, latent.policyRate - pub.policyRateTolerance)
   next.publicTrust =
-    latent.publicTrust + pub.adjustment * (publicTrustTarget - latent.publicTrust) * dt
+    latent.publicTrust +
+    pub.adjustment *
+      (boundTarget('publicTrust', publicTrustTarget) - latent.publicTrust) *
+      dt
 
   const mkt = INSTITUTIONAL.marketTrust
   const marketTrustTarget =
@@ -419,7 +465,10 @@ export function advanceSubstep(
     mkt.brokenPromise * ctx.guidance.brokenPromises * sensitivity -
     mkt.volatility * Math.max(0, latent.marketVolatility - VOLATILITY.base)
   next.marketTrust =
-    latent.marketTrust + mkt.adjustment * (marketTrustTarget - latent.marketTrust) * dt
+    latent.marketTrust +
+    mkt.adjustment *
+      (boundTarget('marketTrust', marketTrustTarget) - latent.marketTrust) *
+      dt
 
   const pol = INSTITUTIONAL.politicalPressure
   const politicalTarget =
@@ -432,7 +481,9 @@ export function advanceSubstep(
       stance.transmissionProtection
   next.politicalPressure =
     latent.politicalPressure +
-    pol.adjustment * (politicalTarget - latent.politicalPressure) * dt
+    pol.adjustment *
+      (boundTarget('politicalPressure', politicalTarget) - latent.politicalPressure) *
+      dt
 
   // ---- 16. Market-implied policy path -------------------------------------
   const benchmark = taylorBenchmark(latent, inst.id)
@@ -453,7 +504,9 @@ export function advanceSubstep(
     totalWeight
   next.marketExpectedRate =
     latent.marketExpectedRate +
-    MARKET_EXPECTATIONS.adjustment * (marketRateTarget - latent.marketExpectedRate) * dt
+    MARKET_EXPECTATIONS.adjustment *
+      (boundTarget('marketExpectedRate', marketRateTarget) - latent.marketExpectedRate) *
+      dt
 
   // ---- 17. Roll the lag buffers forward -----------------------------------
   const nextLags: LagBuffers = {

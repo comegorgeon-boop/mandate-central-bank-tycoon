@@ -49,6 +49,27 @@ const ACTION_SEPARATOR = ';'
 const COMMUNICATION_PREFIX = '!'
 const COMMUNICATION_SEPARATOR = '.'
 
+/**
+ * Marks a meeting at which the committee deliberately decided nothing.
+ *
+ * An explicit hold is a decision and must survive the round trip. Without a
+ * marker it would encode to an empty slot, decode as "no decision recorded",
+ * and shift every later decision onto the wrong meeting during replay.
+ */
+const EMPTY_PACKAGE = '-'
+
+/**
+ * Percent-encodes a seed, including the characters `encodeURIComponent`
+ * leaves alone. `~` in particular is a field separator here, so a seed
+ * containing one would otherwise split the record apart.
+ */
+function encodeSeed(seed: string): string {
+  return encodeURIComponent(seed).replace(
+    /[~!.*'()]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  )
+}
+
 /** Short codes keep challenge strings and saved logs small. */
 const INSTRUMENT_CODES: Readonly<Record<InstrumentId, string>> = {
   policy_rate: 'pr',
@@ -119,7 +140,8 @@ function encodePackage(pkg: PolicyPackage): string {
   const communication = pkg.communication
     ? COMMUNICATION_PREFIX + encodeCommunication(pkg.communication)
     : ''
-  return actions + communication
+  const encoded = actions + communication
+  return encoded.length === 0 ? EMPTY_PACKAGE : encoded
 }
 
 export function encodeDecisionLog(log: DecisionLog): string {
@@ -140,7 +162,7 @@ export function encodeDecisionLog(log: DecisionLog): string {
     log.institution,
     log.difficulty,
     log.mode,
-    encodeURIComponent(log.seed),
+    encodeSeed(log.seed),
     slots.join(MEETING_SEPARATOR),
   ].join(FIELD_SEPARATOR)
 }
@@ -170,6 +192,8 @@ function decodeCommunication(raw: string): CommunicationChoice | null {
 }
 
 function decodePackage(raw: string, meetingIndex: number): PolicyPackage | string {
+  if (raw === EMPTY_PACKAGE) return { actions: [], communication: null }
+
   const communicationAt = raw.indexOf(COMMUNICATION_PREFIX)
   const actionsPart = communicationAt >= 0 ? raw.slice(0, communicationAt) : raw
   const communicationPart =

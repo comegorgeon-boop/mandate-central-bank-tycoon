@@ -11,12 +11,17 @@
 
 /** Expectations-augmented Phillips curve, core inflation. */
 export const PHILLIPS = {
-  /** Slope on the output gap. Deliberately flat, as in modern estimates. */
-  gapSlope: 0.22,
+  /**
+   * Slope on the output gap. Flat, as in modern estimates, but not so flat
+   * that disinflation becomes impossibly expensive: this and the IS curve's
+   * rate sensitivity together set the sacrifice ratio, which is calibrated to
+   * roughly four gap-years per point of disinflation.
+   */
+  gapSlope: 0.33,
   /** Pass-through from unit labour cost pressure. */
   wagePressure: 0.25,
   /** Speed at which core inflation closes on its target level. */
-  adjustment: 1.15,
+  adjustment: 1.3,
 } as const
 
 /** Headline inflation: core plus energy, food and imported goods. */
@@ -33,12 +38,24 @@ export const EXPECTATIONS = {
   shortAdjustment: 2.2,
   /** Baseline weight on long-run expectations when anchoring is zero. */
   shortAnchorBase: 0.35,
-  /** Extra weight on long-run expectations at full anchoring. */
-  shortAnchorSlope: 0.45,
+  /**
+   * Extra weight on long-run expectations at full anchoring. Even fully
+   * anchored expectations keep some weight on realised inflation, which is
+   * what lets a sustained policy stance feed back into expectations.
+   */
+  shortAnchorSlope: 0.38,
   /** Speed of five-year expectations. Slow: they are hard to move. */
   longAdjustment: 0.45,
-  /** Baseline weight on the target when credibility is zero. */
-  longTargetBase: 0.3,
+  /**
+   * Weight on the target when credibility is zero.
+   *
+   * Deliberately small. An inflation anchor that holds regardless of
+   * credibility is not an anchor — it is a free stabiliser that would let an
+   * unattended economy drift back to target on its own, and would quietly
+   * remove the reason the institution exists. Nearly all the pull toward
+   * target has to be earned through `longTargetSlope`.
+   */
+  longTargetBase: 0.08,
   /** Extra weight on the target at full credibility and anchoring. */
   longTargetSlope: 0.65,
   /** Speed at which the anchoring index itself moves. */
@@ -54,7 +71,7 @@ export const EXPECTATIONS = {
 /** IS curve driving the output gap. */
 export const IS_CURVE = {
   /** Response to the lag-weighted real policy rate gap. */
-  rateSensitivity: 0.55,
+  rateSensitivity: 0.4,
   /** Response to the lag-weighted financial conditions gap. */
   financialConditions: 0.22,
   /** Response to the fiscal impulse. */
@@ -73,6 +90,16 @@ export const IS_CURVE = {
   balanceSheet: 0.06,
   /** Response to the confidence disturbance. */
   confidence: 0.3,
+  /**
+   * Direct contractionary effect of a cost-push shock.
+   *
+   * Without this the model would get supply shocks backwards: higher prices
+   * would raise expected inflation, lower the real rate at an unchanged
+   * nominal rate, and *stimulate* demand. A genuine terms-of-trade shock cuts
+   * real income and output, which is what makes it stagflationary and what
+   * makes it a different decision problem from a demand shock.
+   */
+  supply: 0.45,
   /** Mean reversion of the gap back to zero. */
   meanReversion: 0.55,
 } as const

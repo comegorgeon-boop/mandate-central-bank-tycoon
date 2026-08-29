@@ -57,6 +57,22 @@ export interface SeriesDefinition {
   readonly institutions: readonly Institution[]
 }
 
+/**
+ * A revision the player can see.
+ *
+ * The current reading is always a first print — a period cannot be revised
+ * before it has been published. What gets corrected is an *earlier* period,
+ * `periodsAgo` back, which is what this reports.
+ */
+export interface IndicatorRevision {
+  /** How many reference periods back the corrected reading sits. */
+  readonly periodsAgo: number
+  /** What that period was originally published at. */
+  readonly firstPrint: number
+  /** What it reads now. */
+  readonly current: number
+}
+
 export interface IndicatorObservation {
   readonly seriesId: SeriesId
   readonly label: string
@@ -67,9 +83,8 @@ export interface IndicatorObservation {
   readonly value: number | null
   /** Published value for the preceding reference period. */
   readonly previous: number | null
-  /** First print for the current period, when it has since been revised. */
-  readonly priorVintage: number | null
-  readonly revised: boolean
+  /** The most recent correction to an earlier print, if there is one. */
+  readonly revision: IndicatorRevision | null
   readonly publicationLagMeetings: number
   /** Published vintages, oldest first, for the trend sparkline. */
   readonly trend: readonly (number | null)[]

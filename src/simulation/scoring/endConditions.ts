@@ -33,15 +33,33 @@ import { realRateGap, unemploymentGap } from '../engine/indices.ts'
  *
  * `direction` says which side is bad. Easy mode moves the bar further away,
  * so a catastrophe needs a more extreme economy before it triggers.
+ *
+ * `limit` caps the result, and is required wherever the variable is itself
+ * bounded. Banking stress and market volatility are 0-100 indices, so an
+ * unbounded 1.45x leniency would push their failure thresholds past 100 and
+ * make those catastrophes literally unreachable on easy — forgiving is the
+ * intent, impossible is not.
  */
 function scaleThreshold(
   threshold: number,
   leniency: number,
   direction: 'high' | 'low',
+  limit?: number,
 ): number {
-  if (direction === 'high') return threshold * leniency
-  return threshold > 0 ? threshold / leniency : threshold * leniency
+  const scaled =
+    direction === 'high'
+      ? threshold * leniency
+      : threshold > 0
+        ? threshold / leniency
+        : threshold * leniency
+
+  if (limit === undefined) return scaled
+  return direction === 'high' ? Math.min(scaled, limit) : Math.max(scaled, limit)
 }
+
+/** Reachable ceilings for the 0-100 indices, kept just below their bound. */
+const STRESS_CEILING = 95
+const VOLATILITY_CEILING = 96
 
 interface ConditionDefinition {
   readonly id: EndConditionId
@@ -119,7 +137,12 @@ const CONDITIONS: readonly ConditionDefinition[] = [
       scaleThreshold(THRESHOLDS.bankingCrisis.watchStress, leniency, 'high'),
     fail: (latent, leniency) =>
       latent.bankingStress >
-      scaleThreshold(THRESHOLDS.bankingCrisis.failStress, leniency, 'high'),
+      scaleThreshold(
+        THRESHOLDS.bankingCrisis.failStress,
+        leniency,
+        'high',
+        STRESS_CEILING,
+      ),
     summary:
       'Stress in the banking system passed the point of self-correction and ' +
       'intermediation broke down.',
@@ -154,6 +177,7 @@ const CONDITIONS: readonly ConditionDefinition[] = [
           THRESHOLDS.currencyDysfunction.failVolatility,
           leniency,
           'high',
+          VOLATILITY_CEILING,
         ) &&
       Math.abs(latent.exchangeRate - EXCHANGE.baseline) >
         scaleThreshold(

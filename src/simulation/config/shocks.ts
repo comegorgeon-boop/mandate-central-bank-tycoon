@@ -17,6 +17,16 @@ export interface ShockProcess {
   /** Innovation standard deviation, per square root of a year. */
   readonly volatility: number
   readonly mean: number
+  /**
+   * Range for a process that lives on a bounded index rather than the whole
+   * real line. Its innovation shrinks toward zero at either end, so the
+   * process stays inside its range on its own instead of being clipped there.
+   *
+   * Without this the safety clamps fire constantly on a variable that is
+   * behaving perfectly normally, which drowns out the instability they exist
+   * to report.
+   */
+  readonly range?: readonly [number, number]
 }
 
 export const SHOCK_PROCESSES: readonly ShockProcess[] = [
@@ -31,7 +41,13 @@ export const SHOCK_PROCESSES: readonly ShockProcess[] = [
   /** Financial disturbance driving spreads and volatility. */
   { key: 'financialShock', meanReversion: 1.8, volatility: 1.0, mean: 0 },
   /** Geopolitical risk level, on a 0-100 scale around a nonzero mean. */
-  { key: 'geopoliticalRisk', meanReversion: 0.9, volatility: 12, mean: 25 },
+  {
+    key: 'geopoliticalRisk',
+    meanReversion: 0.9,
+    volatility: 14,
+    mean: 25,
+    range: [0, 100],
+  },
 ]
 
 /** Fiscal impulse follows its own process, nudged by events and debt pressure. */

@@ -2,7 +2,7 @@ import type { DiagnosticEvent } from '../types/core.ts'
 import type { EventEffect, PendingEventEffect } from '../types/events.ts'
 import type { LatentState, SimulationState } from '../types/state.ts'
 import { restorePrng } from '../rng/prng.ts'
-import { clampLatentState } from '../config/bounds.ts'
+import { LATENT_BOUNDS, clamp, clampLatentState } from '../config/bounds.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { DT, SUBSTEPS_PER_MEETING, YEARS_PER_MEETING } from '../config/time.ts'
@@ -18,7 +18,14 @@ import { buildLagKernel } from './lags.ts'
  * place exactly when the player sits down again.
  */
 
-/** Applies a set of additive effects to a latent state. */
+/**
+ * Applies a set of additive effects to a latent state.
+ *
+ * Each result is held inside the range of the variable it touches. An event
+ * that adds twelve points of stress to a system already at ninety-five is
+ * behaving normally, not producing an arithmetic failure, so it should not
+ * end up in the diagnostics that exist to report the latter.
+ */
 export function applyEffects(
   latent: LatentState,
   effects: readonly EventEffect[],
@@ -26,7 +33,8 @@ export function applyEffects(
   if (effects.length === 0) return latent
   const next = { ...latent }
   for (const effect of effects) {
-    next[effect.variable] = next[effect.variable] + effect.delta
+    const [min, max] = LATENT_BOUNDS[effect.variable]
+    next[effect.variable] = clamp(next[effect.variable] + effect.delta, min, max)
   }
   return next
 }

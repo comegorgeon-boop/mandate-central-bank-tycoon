@@ -2,6 +2,7 @@ import type {
   ForecastBand,
   ForecastFan,
   IndicatorObservation,
+  IndicatorRevision,
   ObservationContext,
   ObservationSet,
   SeriesDefinition,
@@ -143,26 +144,29 @@ function observeSeries(
   const previousPeriod = currentPeriod - 1
   const previous = readAt(previousPeriod)
 
-  // Show the first print alongside the current one when a period has been
-  // revised, so the player can see the correction rather than just its result.
-  let priorVintage: number | null = null
-  let revised = false
-  if (previousPeriod >= 0 && series.revisionLagMeetings > 0) {
-    const previousVintage = vintageOf(series, previousPeriod, meetingIndex, lag)
-    if (previousVintage > 0) {
-      const firstPrint = publishedValue(
-        state,
-        series,
-        previousPeriod,
-        0,
-        difficulty,
-        seed,
-      )
-      if (firstPrint !== null && previous !== null) {
-        const rounded = round(firstPrint, series.decimals)
-        if (rounded !== previous) {
-          priorVintage = rounded
-          revised = true
+  // A period cannot be revised before it has been published, so the reading
+  // that gets corrected is always an earlier one: exactly `revisionLag`
+  // periods back from the current slot. Showing the first print next to the
+  // corrected one lets the player see the size of the correction, not just
+  // its result.
+  let revision: IndicatorRevision | null = null
+  const revisedPeriod = currentPeriod - series.revisionLagMeetings
+  if (
+    series.revisionLagMeetings > 0 &&
+    revisedPeriod >= 0 &&
+    vintageOf(series, revisedPeriod, meetingIndex, lag) > 0 &&
+    !isMissing(series, revisedPeriod, difficulty, seed)
+  ) {
+    const firstPrint = publishedValue(state, series, revisedPeriod, 0, difficulty, seed)
+    const current = publishedValue(state, series, revisedPeriod, 1, difficulty, seed)
+    if (firstPrint !== null && current !== null) {
+      const roundedFirst = round(firstPrint, series.decimals)
+      const roundedCurrent = round(current, series.decimals)
+      if (roundedFirst !== roundedCurrent) {
+        revision = {
+          periodsAgo: series.revisionLagMeetings,
+          firstPrint: roundedFirst,
+          current: roundedCurrent,
         }
       }
     }
@@ -181,8 +185,7 @@ function observeSeries(
     category: series.category,
     value,
     previous,
-    priorVintage,
-    revised,
+    revision,
     publicationLagMeetings: lag,
     trend,
     uncertainty: round(
