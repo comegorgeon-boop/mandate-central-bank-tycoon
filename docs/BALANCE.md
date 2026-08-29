@@ -1,8 +1,10 @@
 # Open balance question
 
-**Status: diagnosed, design direction retained, calibration outstanding.**
-Carried forward from build 2 (simulation engine). The direction below is
-decided; the numbers are to be set in phase 3, against a real playthrough.
+**Status: direction retained. Point 1 implemented; points 2-4 outstanding.**
+Carried forward from build 2 (simulation engine). The lag is now calibrated on
+the mandate-to-lag ratio and pinned by tests. The separate question of whether
+the player's decisions pay is half answered — closed for the ECB, still open
+for the Fed. Final calibration happens in phase 3, against a real playthrough.
 
 The engine is correct and tested. What has *not* been established is whether
 the player's decisions materially change the outcome. This document records
@@ -14,27 +16,30 @@ the evidence so the next session does not have to rediscover it.
 three policies: a Taylor-style rule reacting to observed inflation and the
 real-time output gap, the same rule ignoring the gap, and doing nothing at all.
 
-Median score, and completion rate, from engine 1.0.0:
+Median score, and completion rate, from engine 1.0.0 after the lag
+recalibration described below:
 
 | Bucket | Taylor rule | Ignoring the gap | Doing nothing |
 | --- | --- | --- | --- |
-| fed/easy | 6815 (100 %) | 6819 (100 %) | 6793 (100 %) |
-| fed/medium | 6583 (99 %) | 6528 (98 %) | **6947 (100 %)** |
-| fed/hard | 5532 (11 %) | 5565 (9 %) | **6211 (17 %)** |
-| ecb/easy | 6900 (100 %) | 6900 (100 %) | 6771 (100 %) |
-| ecb/medium | 5399 (96 %) | 5237 (95 %) | 4919 (98 %) |
-| ecb/hard | 2902 (9 %) | 2966 (9 %) | 2947 (13 %) |
+| fed/easy | 6831 (100 %) | 6861 (100 %) | 6793 (100 %) |
+| fed/medium | 6550 (99 %) | 6498 (98 %) | **6949 (100 %)** |
+| fed/hard | 5527 (11 %) | 5605 (9 %) | **6213 (17 %)** |
+| ecb/easy | 6933 (100 %) | 6918 (100 %) | 6770 (100 %) |
+| ecb/medium | 5411 (96 %) | 5277 (95 %) | 4911 (98 %) |
+| ecb/hard | 2903 (9 %) | 2966 (9 %) | 2947 (13 %) |
 
 Two things stand out.
 
-**Doing nothing is competitive, and on fed/medium and fed/hard it wins.** A
-game in which the passive policy is the best policy has no decision problem in
-it.
+**Doing nothing is competitive, and on fed/medium and fed/hard it beats both
+of the sweep's own rules.** A game in which the passive policy is the best
+policy has no decision problem in it. Note that both sweep rules react to
+headline inflation; the rule comparison further down shows how much of this is
+their fault rather than the model's.
 
-**Hard completes only 9–11 %**, and the failures are dominated by one mode:
-banking crisis accounts for 81 of 150 failures on fed/hard and 87 of 150 on
-ecb/hard. A single catastrophe family swamping the others makes the difficulty
-feel arbitrary rather than demanding.
+**Hard completes only 9–11 %** under these rules, and the failures are
+dominated by one mode: banking crisis accounts for 81 of 150 failures on
+fed/hard and 87 of 150 on ecb/hard. A single catastrophe family swamping the
+others makes the difficulty feel arbitrary rather than demanding.
 
 ## Retained design direction: the mandate-to-lag ratio
 
@@ -52,17 +57,17 @@ loops ≈ meetingCount / (peak lag in meetings + publication lag in meetings)
 
 Where the engine stands today. The kernel peak is
 `LAG_KERNEL[difficulty].peakSubsteps` in `config/time.ts`, at four sub-steps
-per meeting:
+per meeting. Before this change, and after:
 
-| Difficulty | Meetings | Peak lag | Loops now | Target peak | Loops at target |
+| Difficulty | Meetings | Peak was | Loops were | Peak now | Loops now |
 | --- | --- | --- | --- | --- | --- |
-| easy | 8 | 3.5 meetings | **1.8** | 1–2 meetings | ~3.2 |
-| medium | 16 | 5.5 meetings | 2.5 | 3–4 meetings | ~3.6 |
-| hard | 32 | 7.5 meetings | 3.8 | 6–8 meetings | ~4.0 |
+| easy | 8 | 3.5 meetings | **1.8** | 1.5 meetings | 3.2 |
+| medium | 16 | 5.5 meetings | 2.5 | 3.5 meetings | 3.6 |
+| hard | 32 | 7.5 meetings | 3.8 | 7.0 meetings | 4.0 |
 
-Easy is the broken case: under two closed loops. The demo run confirms it —
-250bp of tightening across the whole mandate barely moves the output gap.
-Hard is already close to its target and needs little change.
+Easy was the broken case: under two closed loops. The demo run showed it —
+250bp of tightening across a whole mandate barely moved the output gap. Hard
+was already close to its target and barely moved.
 
 Note what the target column does: the loop count becomes roughly constant
 across difficulties. **What difficulty changes is not how many chances you
@@ -72,17 +77,24 @@ the only workable strategy is to act on the forecast.
 
 Four decisions follow.
 
-### 1. The lag becomes a difficulty parameter, calibrated on the ratio
+### 1. The lag becomes a difficulty parameter, calibrated on the ratio — DONE
 
-`LAG_KERNEL` already varies by difficulty; today it varies too little and in
-the wrong proportion. Retarget it on the loop count rather than on realism per
-difficulty: peak toward one to two meetings on easy, three to four on medium,
-six to eight on hard. Only hard needs to be realistic.
+`LAG_KERNEL` in `config/time.ts` is retargeted on the loop count rather than on
+realism per difficulty. Measured peaks are now 1.5, 3.5 and 7.0 meetings, for
+3.2, 3.6 and 4.0 closed loops. Only hard is realistic, and it barely moved.
 
-This is a configuration change in `config/time.ts`, not an engine change. The
-transmission test in `engine/transmission.test.ts` asserts the *shape* of the
-response, not its calibration, so it should survive — but it pins a 24-meeting
-horizon on hard and will need its thresholds rechecked.
+Configuration only; no engine change. `engine/transmission.test.ts` now pins
+the calibration directly: the kernel peak must stay inside its target band per
+difficulty, every difficulty must keep at least three loops, the loop count must
+stay within 1.5x across difficulties, and a 100bp hike must be negligible after
+one meeting and clearly readable by the end of *that difficulty's own* mandate.
+
+**This did not narrow the passive-versus-active gap, and was never going to.**
+The sweep is essentially unchanged. Passive scores move by single points —
+with no rate movement the lag buffer is flat, so the kernel barely enters the
+calculation — and the active rules gain nothing, because a faster transmission
+lands a bad decision faster too. Playability and balance are separate problems;
+this fixed the first one.
 
 ### 2. Immediate feedback comes from the fast channel, which already exists
 
@@ -159,18 +171,59 @@ itself evidence — but not proof — that explanation 1 carries more of the wei
 
 ## How to tell them apart
 
-The decisive test is a policy that is actually good, rather than two that are
-plausible. Options, cheapest first:
+### What has been measured so far
 
-1. **Play it.** This is the fastest signal and the reason it is flagged for
-   phase 3 — see below.
-2. **Grid-search the rule.** Sweep the coefficients on inflation, the gap, and
-   the smoothing term over a coarse grid, per bucket, and report the best
-   scoring rule found. If some rule beats passive comfortably, explanation 1
-   holds and the engine is fine.
-3. **Check the core-versus-headline split.** Re-run the sweep with a rule that
-   reacts to *core* inflation instead of headline. If that alone beats passive,
-   the finding was entirely about the benchmark.
+Six rules, 150 seeded runs each, after the lag recalibration. Median score,
+completion rate in brackets:
+
+| Rule | fed/medium | fed/hard | ecb/medium | ecb/hard |
+| --- | --- | --- | --- | --- |
+| doing nothing | **6949** (100 %) | **6213** (17 %) | 4911 (98 %) | 2947 (13 %) |
+| headline + gap | 6494 (99 %) | 5517 (11 %) | 5183 (96 %) | 2858 (8 %) |
+| headline only | 6501 (98 %) | 5572 (9 %) | 5109 (95 %) | 2913 (9 %) |
+| core only | 6922 (100 %) | 5957 (**19 %**) | **5346** (99 %) | **2982** (15 %) |
+| core + unemployment | 6910 (100 %) | 5965 (18 %) | 4794 (99 %) | 2920 (17 %) |
+| core + forecast | 6661 (99 %) | 5717 (11 %) | 5308 (99 %) | 2920 (12 %) |
+
+**Explanation 1 is largely confirmed.** Reacting to core inflation instead of
+headline is worth 400 points on fed/medium and **doubles hard-mode survival on
+the Fed, from 9 % to 19 %**. The original benchmark rules were chasing headline
+into supply shocks — exactly the error the engine is built to punish — and most
+of the alarming gap was theirs, not the model's.
+
+**On the ECB, acting now beats doing nothing** at both difficulties. That half
+of the finding is closed.
+
+**On the Fed it is not.** Core-only wins on survival (19 % vs 17 %) but still
+loses on score (5957 vs 6213). Something specific to the Fed remains.
+
+### Ruled out
+
+**A truncation artefact in scoring.** Path components average over the history,
+so a run that fails early averages over fewer, earlier, better meetings — which
+could have made failing early *pay*. Measured over 300 passive hard runs, it
+does not: completing scores 7027 against 6120 for failing (Fed), and 5990
+against 2887 (ECB). Failing is correctly worse. This hypothesis is dead.
+
+### Still open
+
+The remaining Fed gap points at **explanation 2, narrowed to initial
+conditions**. `engine/initialState.ts` opens the economy close to both
+objectives, so on the Fed's dual mandate there is little for policy to improve,
+while any rate movement costs something through the tightening-speed channel
+into banking stress and through the policy-steadiness component. The ECB does
+not show this because its price-stability weight and gate give policy more to
+earn.
+
+Next cheapest checks, in order:
+
+1. **Play it.** Still the fastest signal — see below.
+2. **Open further from equilibrium.** Widen the seeded spread of the opening
+   output gap and inflation in `createInitialState`, and re-run. If acting
+   starts to pay on the Fed, this was it.
+3. **Grid-search the rule** over inflation, gap and smoothing coefficients per
+   bucket, to establish the best score reachable rather than the best of six
+   hand-written guesses.
 
 ## What to check when playing a real game (phase 3)
 

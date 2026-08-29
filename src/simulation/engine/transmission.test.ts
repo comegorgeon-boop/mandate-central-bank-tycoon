@@ -1,5 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import type { Difficulty } from '../types/core.ts'
+import { MEETING_COUNT, SUBSTEPS_PER_MEETING } from '../config/time.ts'
+import { buildLagKernel } from './lags.ts'
 import {
   HOLD,
   difference,
@@ -105,6 +108,120 @@ function coeffFirstCrossing(path: readonly number[], level: number): number {
   }
   return path.length
 }
+
+/** Where the transmission kernel peaks, in meetings. */
+function peakLagMeetings(difficulty: Difficulty): number {
+  const kernel = buildLagKernel(difficulty)
+  let peak = 0
+  for (let index = 1; index < kernel.length; index += 1) {
+    if (kernel[index] > kernel[peak]) peak = index
+  }
+  return (peak + 1) / SUBSTEPS_PER_MEETING
+}
+
+/**
+ * The design decision this file exists to protect.
+ *
+ * What makes a lag playable is not its length but its ratio to the mandate:
+ * how many decision -> effect -> correction loops fit before the mandate ends.
+ * Below three, a player's skill cannot show, because the consequence of a
+ * decision lands after the credits. See docs/BALANCE.md.
+ */
+describe('the lag is calibrated on the mandate-to-lag ratio', () => {
+  const TARGET_PEAK: Readonly<Record<Difficulty, readonly [number, number]>> = {
+    easy: [1, 2],
+    medium: [3, 4],
+    hard: [6, 8],
+  }
+
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    const [low, high] = TARGET_PEAK[difficulty]
+
+    it(`peaks between ${low} and ${high} meetings on ${difficulty}`, () => {
+      const peak = peakLagMeetings(difficulty)
+      expect(peak).toBeGreaterThanOrEqual(low)
+      expect(peak).toBeLessThanOrEqual(high)
+    })
+
+    it(`leaves at least three closed loops on ${difficulty}`, () => {
+      // One publication lag on top of the transmission lag: the player cannot
+      // correct against an effect that has not been published yet.
+      const loops = MEETING_COUNT[difficulty] / (peakLagMeetings(difficulty) + 1)
+      expect(loops).toBeGreaterThanOrEqual(3)
+    })
+  }
+
+  it('holds the loop count roughly constant across difficulties', () => {
+    // Difficulty must not change how many chances the player gets. It changes
+    // whether they can react or have to anticipate.
+    const loops = (['easy', 'medium', 'hard'] as const).map(
+      (difficulty) => MEETING_COUNT[difficulty] / (peakLagMeetings(difficulty) + 1),
+    )
+    expect(Math.max(...loops) / Math.min(...loops)).toBeLessThan(1.5)
+  })
+})
+
+describe('every difficulty closes the loop inside its own mandate', () => {
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    const mandate = MEETING_COUNT[difficulty]
+    const config = testConfig('fed', difficulty, `loop-${difficulty}`)
+
+    const treatment = playWithoutEvents(config, [rateMove(100), ...holds(mandate)])
+    const control = playWithoutEvents(config, [HOLD, ...holds(mandate)])
+
+    const gapEffect = difference(
+      pathOf(treatment, 'outputGap'),
+      pathOf(control, 'outputGap'),
+    )
+    const coreEffect = difference(
+      pathOf(treatment, 'inflationCore'),
+      pathOf(control, 'inflationCore'),
+    )
+
+    describe(difficulty, () => {
+      it('has barely moved after one meeting', () => {
+        expect(Math.abs(gapEffect[1]) / Math.abs(gapEffect[mandate])).toBeLessThan(0.05)
+      })
+
+      it('has clearly moved by the end of the mandate', () => {
+        // A single 100bp hike must be worth something the player can read
+        // before their term is over, at every difficulty.
+        expect(gapEffect[mandate]).toBeLessThan(-0.2)
+        expect(coreEffect[mandate]).toBeLessThan(-0.02)
+      })
+
+      it('reaches output before it reaches inflation', () => {
+        expect(Math.abs(coreEffect[mandate])).toBeLessThan(
+          Math.abs(gapEffect[mandate]),
+        )
+      })
+
+      it('builds gradually rather than in one step', () => {
+        for (let meeting = 2; meeting <= mandate; meeting += 1) {
+          expect(gapEffect[meeting]).toBeLessThanOrEqual(gapEffect[meeting - 1] + 1e-9)
+        }
+      })
+    })
+  }
+})
+
+describe('difficulty decides whether the player reacts or anticipates', () => {
+  it('delivers more of the same hike within the same number of meetings', () => {
+    // Measured over a common eight-meeting window, so the only thing that
+    // differs is the kernel.
+    const delivered = (difficulty: Difficulty): number => {
+      const config = testConfig('fed', difficulty, 'kernel-speed')
+      const treatment = playWithoutEvents(config, [rateMove(100), ...holds(8)])
+      const control = playWithoutEvents(config, [HOLD, ...holds(8)])
+      return Math.abs(
+        difference(pathOf(treatment, 'outputGap'), pathOf(control, 'outputGap'))[8],
+      )
+    }
+
+    expect(delivered('easy')).toBeGreaterThan(delivered('medium'))
+    expect(delivered('medium')).toBeGreaterThan(delivered('hard'))
+  })
+})
 
 describe('demand and supply shocks behave differently', () => {
   const config = testConfig('fed', 'hard', 'shock-identification')

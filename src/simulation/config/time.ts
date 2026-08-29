@@ -37,14 +37,33 @@ export const MEETING_COUNT: Readonly<Record<Difficulty, number>> = {
  * Shape of the policy transmission kernel, per difficulty.
  *
  * `peakSubsteps` is where the impulse response to a rate change peaks, and
- * `scale` controls how spread out the response is. Easy mode peaks early with
- * a narrow kernel so effects are legible; hard mode peaks about a year out
- * with a broad kernel, so the player must anticipate rather than react.
+ * `scale` controls how spread out the response is.
+ *
+ * These are calibrated on the *ratio* between the mandate and the lag, not on
+ * the lag alone. What matters for playability is how many
+ * decision -> effect -> correction loops a player can close before the mandate
+ * ends:
+ *
+ *     loops ~= meetingCount / (peak lag in meetings + publication lag)
+ *
+ * Below three or four loops, skill stops being legible: the consequence of a
+ * decision lands after the mandate is over. The values below hold that count
+ * at roughly three to four across all three difficulties.
+ *
+ * So difficulty does not change how many chances the player gets. It changes
+ * whether they can react or must anticipate: at a meeting and a half, easy is
+ * a reacting game; at seven meetings, hard is realistic and the only workable
+ * strategy is to act on the forecast rather than on the published present.
+ *
+ * See docs/BALANCE.md for the derivation and the loop-count table.
  */
 export const LAG_KERNEL: Readonly<
   Record<Difficulty, { readonly peakSubsteps: number; readonly scale: number }>
 > = {
-  easy: { peakSubsteps: 14, scale: 5 }, // peak near 5 months
-  medium: { peakSubsteps: 22, scale: 7 }, // peak near 8 months
-  hard: { peakSubsteps: 30, scale: 9 }, // peak near 11 months
+  // 1.5 meetings, about 10 weeks. 8 meetings / 2.5 ~= 3.2 loops.
+  easy: { peakSubsteps: 6, scale: 2 },
+  // 3.5 meetings, about 5 months. 16 meetings / 4.5 ~= 3.6 loops.
+  medium: { peakSubsteps: 14, scale: 4.5 },
+  // 7 meetings, about 10 months: the realistic figure. 32 / 8 = 4 loops.
+  hard: { peakSubsteps: 28, scale: 9 },
 }
