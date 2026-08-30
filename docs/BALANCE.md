@@ -777,6 +777,124 @@ instrument in the game touches.
   Comfortable at easy and medium, tight at hard. If hard's `observationNoiseScale`
   or `revisionScale` rises again, this is the first thing that breaks.
 
+## Third playthrough: the two hypotheses, settled
+
+A third fed/easy mandate, played after the four fixes, reported the same thing:
+rates raised very high, inflation not falling and rising, unemployment rising.
+Two hypotheses were put, and both had to be settled before anything else.
+
+### Hypothesis 1 — the sweep and the game are not running the same thing
+
+**Refuted, and now permanently tested.** `src/pages/enginePathParity.test.tsx`
+plays the same sustained aggressive sequence twice on one seed: once driving the
+engine directly as every measurement in this file does, once through the whole
+game — setup, routing, React state, the confirmation screen, the run provider.
+It compares the *published* numbers meeting by meeting, because an observation
+is a pure function of state and seed.
+
+They agree exactly: same policy rate at every meeting, same published headline,
+core and unemployment, same mandate length. The test also pins the specific
+worry about a one-meeting offset — the rate the confirmation screen promises at
+meeting N is asserted to be the rate in force at meeting N+1.
+
+The decision path is sound. `MeetingPage` keys `MeetingScreen` on the meeting
+index, so the desk selection cannot carry over; `RunProvider.submit` applies the
+package it is given and stores the session the engine returns.
+
+### Hypothesis 2 — step 4 was not done
+
+**Confirmed, and the more important of the two.** Step 4 *was* applied — the
+Phillips curve was sped up and easy went from 8 meetings to 12 — but it was not
+enough, and this file's "After" section overclaimed. Measured in meetings until
+a hike clears the noise on the series it moves, events off:
+
+| policy | difficulty | series | material (1 sd) | readable (3 sd) | mandate |
+| --- | --- | --- | --- | --- | --- |
+| one 100bp hike, held | easy | core inflation | 7 | **14** | 12 |
+| one 100bp hike, held | easy | unemployment | 8 | **13** | 12 |
+| +100bp every meeting | easy | core inflation | 6 | 8 | 12 |
+| one 100bp hike, held | medium | core inflation | 17 | never in 40 | 16 |
+| one 100bp hike, held | hard | core inflation | 29 | never in 40 | 32 |
+
+**A single 100bp hike on easy becomes readable two meetings after the mandate
+has ended.** Only a sustained maximum-tightening stance is readable inside it.
+
+Note what the same table says about the player's own diagnosis. They inferred
+that the first link (rates → activity) works and the second (activity → prices)
+does not. **It is not so: unemployment becomes readable at meeting 13 and core
+inflation at 14.** The two links are on nearly the same clock. What differs is
+that unemployment is judged against a stable natural rate and moves
+monotonically, while inflation is simultaneously being pushed up by shocks — so
+the player sees policy's contribution to unemployment and only the *net* on
+inflation. That is the case for showing the decomposition, not evidence of a
+broken second link.
+
+### The reporting error that hid this
+
+The headline claim in the previous section — "+50bp at every meeting lands
+median headline at 2.01 %" — was measured with **procedural events off**. The
+game runs with them on. The same measurement with events on, 150 seeds:
+
+| policy | inflation still higher than at the start | median end | within 0.5pp of target |
+| --- | --- | --- | --- |
+| hold throughout | 64 % of runs | 3.15 % | 13 % |
+| +25bp every meeting | 58 % | 2.90 % | 17 % |
+| +50bp every meeting | **51 %** | 2.84 % | 15 % |
+| +75bp every meeting | 43 % | 2.42 % | 15 % |
+| +100bp every meeting | **39 %** | 2.08 % | 19 % |
+
+The player's experience is the modal one. Even under the maximum trajectory the
+instrument allows — 1200 basis points across the mandate — inflation still ends
+higher than it started in **39 % of runs**, and fewer than one run in five ends
+near target under any policy. Events-off numbers are the right tool for
+isolating a mechanism and the wrong tool for claiming a mandate is winnable.
+**Any future winnability claim in this file must be measured with events on.**
+
+### Why events-on is so much worse: the guard-rail has a hole
+
+Holding throughout, 150 seeds, after the calibration:
+
+| | after fix 3 | now |
+| --- | --- | --- |
+| drift from the shock processes | +0.06 pp | -0.11 pp |
+| drift from the event catalog | -0.01 pp | **+0.70 pp** |
+
+The catalog went back out of balance, and `events/balance.test.ts` did not
+notice, because **it counts firings by sign and not the impulse they deliver**.
+The firing counts are healthy — 67 energy spikes against 49 reliefs, 55 supply
+disruptions against 53 normalisations, 52 escalations against 49
+de-escalations. The delivered cost-push is not:
+
+| | firings | net supplyShock each | delivered |
+| --- | --- | --- | --- |
+| `energy_price_spike` | 67 | **+1.70** | +113.9 |
+| `energy_price_relief` | 49 | **-0.70** | -34.3 |
+| all cost-push-raising | | | **+206.8** |
+| all cost-push-relieving | | | **-105.7** |
+
+The spike and the relief were paired by *name* but not by *magnitude*: the
+relief's effect is capped at `-min(1.8, 0.7 + supplyShock * 0.7)` while the
+spike always delivers +1.70. That imbalance was invisible at
+`HEADLINE.supplyAmplifier` 1.8 and became a 0.70pp drift when the amplifier was
+raised to 2.4 for the shock-identification bar — one fix silently undoing
+another.
+
+`inflationImpulse` already computes the delivered impulse correctly, and the
+balance test uses it only to decide a sign. **The fix is to weight the ratio by
+impulse rather than count firings** — not yet applied, since nothing was to be
+touched until the hypotheses were settled.
+
+### Where this leaves the four fixes
+
+The first three stand and are unaffected. The fourth — the calibration — moved
+the median in the right direction but is **not sufficient**: on the numbers
+above, easy is winnable only by pressing the same button at maximum every
+meeting, which is a degenerate game rather than a decision problem. Before any
+further tuning of the rate channel, see docs/DIRECTION.md: the player's verdict
+is that the game needs a second instrument more than it needs a stronger first
+one, and communication acts on expectations directly rather than through the
+output gap, on a much shorter lag.
+
 ### What now protects each of these
 
 Every finding above is now a test rather than a paragraph.
