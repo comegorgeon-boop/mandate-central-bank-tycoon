@@ -50,7 +50,11 @@ export {
   YEARS_PER_MEETING,
 } from './config/time.ts'
 export { MAX_SCORE } from './config/scoring.ts'
-export { THRESHOLDS } from './config/thresholds.ts'
+export {
+  GUIDANCE_DELIVERY_TOLERANCE,
+  GUIDANCE_HORIZON_MEETINGS,
+  THRESHOLDS,
+} from './config/thresholds.ts'
 
 // ---- Engine ---------------------------------------------------------------
 export {

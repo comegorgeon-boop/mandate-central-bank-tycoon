@@ -28,6 +28,12 @@ describe('console hygiene', () => {
       }
       fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
       fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))
+
+      // Every meeting after the first opens on the same-day reaction screen.
+      const onward = screen.queryByRole('button', {
+        name: 'Continue to the next meeting',
+      })
+      if (onward !== null) fireEvent.click(onward)
     }
 
     fireEvent.click(screen.getByRole('button', { name: 'Replay the same seed' }))

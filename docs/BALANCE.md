@@ -1102,8 +1102,18 @@ inside the ±0.08 band with ≥30 % margin, ratios 0.91–1.29.
 `credibility_index` is now a published series (survey, exact-ish: noise 2.0
 before difficulty scaling, no lag, no revisions), so the resource the promise
 ledger spends and rebuilds is on the table like any other number, quoting the
-dismissal thresholds from config. The UI that collects the package — plain
-language, the numbers as footnotes — is the second commit of this pass.
+dismissal thresholds from config. The desk that collects the package keeps the
+register rule pinned by `statement.test.ts`: the player picks sentences —
+"We expect to go somewhat further", "A conditional commitment" — and the basis
+points appear as footnotes, never as the controls. The standing promise, its
+delivery gap and its judgment meeting are shown at the desk before every
+decision; the statement is shown verbatim before it is confirmed; the same-day
+reaction now carries the priced path answering the announced one, the
+expectations nudge, and credibility on the days a promise settles; and the
+stance strip carries standing permanently. `enginePathParity` now plays its
+whole sequence with a conditional commitment announced and delivered, so the
+interface and the engine are pinned to the same game on the communication
+channel too.
 
 ### Where this leaves the four fixes
 

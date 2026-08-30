@@ -14,6 +14,7 @@ import {
   resolveEvent,
   type PolicyPackage,
 } from '../simulation/index.ts'
+import { deriveTone } from '../features/policy/statement.ts'
 
 /**
  * The interface and the engine play the same game.
@@ -38,6 +39,31 @@ const SEED = 'PARITY'
 
 /** Sustained aggressive tightening: the hardest case for a transmission bug. */
 const MOVE_BP = 100
+
+/**
+ * And announced at full strength under a conditional commitment, delivered
+ * every meeting — so the parity path exercises the whole communication
+ * channel: the same-day market jump, the standing pull on expectations, and a
+ * promise ledger that accrues kept promises as the announced path is met.
+ */
+const SIGNAL_BP = 100
+const COMMITMENT = 'conditional_path' as const
+
+/** Exactly the package the Policy Desk assembles for these choices. */
+function packageFor(moveBp: number, signalBp: number): PolicyPackage {
+  return {
+    actions: [
+      { instrument: 'policy_rate', magnitude: moveBp },
+      { instrument: 'forward_guidance', magnitude: signalBp },
+    ],
+    communication: {
+      tone: deriveTone(moveBp, signalBp, COMMITMENT),
+      emphasis: 'inflation',
+      commitment: COMMITMENT,
+      channel: 'statement',
+    },
+  }
+}
 
 interface Published {
   readonly meeting: number
@@ -78,11 +104,7 @@ function playEngineDirectly(): Published[] {
 
   while (outcome.status === 'active') {
     record()
-    const pkg: PolicyPackage = {
-      actions: [{ instrument: 'policy_rate', magnitude: MOVE_BP }],
-      communication: null,
-    }
-    const applied = applyPolicyPackage(state, pkg)
+    const applied = applyPolicyPackage(state, packageFor(MOVE_BP, SIGNAL_BP))
     if (!applied.ok) throw new Error('the engine rejected the sequence')
     state = advanceTrueState(resolveEvent(applied.state).state)
     outcome = evaluateEndConditions(state, outcome.breachCounters)
@@ -159,6 +181,10 @@ function playThroughTheInterface(): {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     fireEvent.click(screen.getByRole('button', { name: `+${MOVE_BP} bp` }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /We expect to go materially further/ }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'A conditional commitment' }))
     fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
 
     // "Rate after the decision: X % → Y %" — capture the Y the screen promises.

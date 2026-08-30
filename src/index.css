@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+/*
+ * The page background.
+ *
+ * Every panel, border and text colour in this interface is written for a
+ * near-black page: `text-neutral-200` for body copy, `text-neutral-400` and
+ * `-500` for supporting detail, `bg-neutral-900` cards with `border-neutral-800`
+ * edges. Nothing was setting that background, so all of it rendered against the
+ * browser's default white — pale grey on white, with the panel cards washing out
+ * to mid-grey because they are semi-transparent.
+ *
+ * `color-scheme: dark` matters as much as the colour: it hands the same theme to
+ * scrollbars, form controls and the canvas the browser paints before React
+ * mounts, so there is no white flash on load and no light-mode select boxes.
+ */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: #0a0a0a;
+  color: var(--color-neutral-200, #e5e5e5);
+}

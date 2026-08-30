@@ -15,6 +15,8 @@ export function IndicatorPanel({
   seriesIds,
   observation,
   footnote,
+  references = {},
+  referenceLabel = 'objective',
 }: {
   readonly id: string
   readonly title: string
@@ -22,6 +24,9 @@ export function IndicatorPanel({
   readonly seriesIds: readonly SeriesId[]
   readonly observation: ObservationSet
   readonly footnote?: string
+  /** Per-series line to read the trend against, such as the inflation target. */
+  readonly references?: Partial<Record<SeriesId, number>>
+  readonly referenceLabel?: string
 }) {
   const rows = seriesIds
     .map((seriesId) => observation.indicators[seriesId])
@@ -41,7 +46,12 @@ export function IndicatorPanel({
       ) : (
         <ul className="mt-3">
           {rows.map((row) => (
-            <IndicatorRow key={row.seriesId} observation={row} />
+            <IndicatorRow
+              key={row.seriesId}
+              observation={row}
+              reference={references[row.seriesId] ?? null}
+              referenceLabel={referenceLabel}
+            />
           ))}
         </ul>
       )}

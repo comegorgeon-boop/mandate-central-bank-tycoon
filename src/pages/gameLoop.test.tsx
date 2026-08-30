@@ -35,11 +35,29 @@ function startRunOnSeed(seed: string): void {
   fireEvent.click(screen.getByRole('button', { name: 'Enter the first meeting' }))
 }
 
-/** Confirms a hold at the current meeting. */
-function holdThisMeeting(): void {
+/**
+ * Dismisses the same-day reaction screen that opens every meeting after the
+ * first, so the caller lands on the meeting proper.
+ */
+function passTheReaction(): void {
+  const onward = screen.queryByRole('button', { name: 'Continue to the next meeting' })
+  if (onward !== null) fireEvent.click(onward)
+}
+
+/** Confirms a move at the current meeting and lands on the next one. */
+function decideThisMeeting(move: string = 'Hold'): void {
   fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
+  if (move !== 'Hold') fireEvent.click(screen.getByRole('button', { name: move }))
   fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
   fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))
+  passTheReaction()
+}
+
+/** The policy rate currently in force, read off the permanent stance strip. */
+function policyRateInForce(): number {
+  const strip = screen.getByRole('region', { name: 'Policy stance' })
+  const match = /Policy rate\s*(-?\d+\.\d+) %/.exec(strip.textContent ?? '')
+  return Number(match?.[1])
 }
 
 describe('the playable loop', () => {
@@ -50,7 +68,7 @@ describe('the playable loop', () => {
       expect(
         screen.getByRole('heading', { name: `Meeting ${meeting} of ${MEETINGS}` }),
       ).toBeInTheDocument()
-      holdThisMeeting()
+      decideThisMeeting()
     }
 
     expect(screen.getByRole('heading', { name: 'Mandate completed' })).toBeInTheDocument()
@@ -90,30 +108,19 @@ describe('the playable loop', () => {
   it('applies a rate cut and carries the new rate into the next meeting', () => {
     startRunOnSeed('CUT')
 
-    const rateLine = screen.getByText(/Policy rate in force:/).textContent ?? ''
-    const before = Number(/(\d+\.\d+) %/.exec(rateLine)?.[1])
+    const before = policyRateInForce()
     expect(Number.isFinite(before)).toBe(true)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-    fireEvent.click(screen.getByRole('button', { name: '−25 bp' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))
+    decideThisMeeting('−25 bp')
 
     expect(screen.getByRole('heading', { name: `Meeting 2 of ${MEETINGS}` })).toBeInTheDocument()
-    expect(
-      screen.getByText(`Policy rate in force: ${(before - 0.25).toFixed(2)} %.`, {
-        exact: false,
-      }),
-    ).toBeInTheDocument()
+    expect(policyRateInForce()).toBeCloseTo(before - 0.25, 5)
   })
 
   it('resets the selected move between meetings', () => {
     startRunOnSeed('RESET')
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-    fireEvent.click(screen.getByRole('button', { name: '+50 bp' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))
+    decideThisMeeting('+50 bp')
 
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     expect(screen.getByRole('button', { name: 'Hold' })).toHaveAttribute(
@@ -129,10 +136,8 @@ describe('the playable loop', () => {
   it('offers exactly the moves the engine would accept at the lower bound', () => {
     startRunOnSeed('FLOOR')
 
+    const current = policyRateInForce()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-
-    const rateLine = screen.getByText(/Policy rate in force:/).textContent ?? ''
-    const current = Number(/(\d+\.\d+) %/.exec(rateLine)?.[1])
 
     for (const cut of [25, 50, 75, 100]) {
       const offered = screen.queryByRole('button', { name: `−${cut} bp` }) !== null
@@ -162,7 +167,7 @@ describe('route guards', () => {
 
     // Nothing navigates on confirmation: the guard notices that the URL still
     // points at meeting one while the run has moved on, and redirects.
-    holdThisMeeting()
+    decideThisMeeting()
     expect(screen.getByRole('heading', { name: `Meeting 2 of ${MEETINGS}` })).toBeInTheDocument()
   })
 })
