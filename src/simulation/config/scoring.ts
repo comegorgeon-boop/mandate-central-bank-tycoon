@@ -65,6 +65,17 @@ export const SCORE_SCALES = {
 export const POLICY_VOLATILITY_ALLOWANCE_PER_YEAR = 2.0
 
 /**
+ * Banking stress above which the financial stability component starts to bite.
+ *
+ * Named here rather than left inline in `calculateScore` because the indicator
+ * panel quotes it to the player. A threshold stated in two places is a
+ * threshold that will eventually disagree with itself — which is exactly what
+ * happened when the banking stress indicator told players the system was
+ * impaired above 50, a number no part of the engine has ever known.
+ */
+export const STRESS_PENALTY_FLOOR = 25
+
+/**
  * ECB safeguard: a persistent failure on inflation caps the total score, so
  * strong employment and growth cannot compensate for it.
  *

@@ -19,6 +19,7 @@ import {
   SCORE_SCALES,
   SCORE_WEIGHTS,
   SHOCK_RESPONSE,
+  STRESS_PENALTY_FLOOR,
 } from '../config/scoring.ts'
 import { unemploymentGap } from '../engine/indices.ts'
 
@@ -74,7 +75,7 @@ function stressPenalty(snapshot: LatentSnapshot, institution: Institution): numb
       : Math.max(0, latent.fragmentation - 35)
 
   return (
-    Math.max(0, latent.bankingStress - 25) +
+    Math.max(0, latent.bankingStress - STRESS_PENALTY_FLOOR) +
     12 * Math.max(0, latent.creditSpread - 2 * SPREADS.base) +
     0.35 * Math.max(0, latent.marketVolatility - VOLATILITY.base * 2.5) +
     fragmentationPenalty
