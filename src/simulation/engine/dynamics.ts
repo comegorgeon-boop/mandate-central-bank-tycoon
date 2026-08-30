@@ -300,9 +300,14 @@ export function advanceSubstep(
   next.assetPricePressure = latent.assetPricePressure + assetDelta
   const assetChangeAnnualised = assetDelta / dt
 
+  // Shared by the banking block and the Fed's regional-bank impairment: both
+  // are duration-loss channels driven by the same pace of tightening. Computed
+  // once, since it is now a convolution rather than a subtraction.
+  const tightening = Math.max(0, tighteningSpeed(lags, ctx.kernel))
+
   const stressTarget =
     BANKING.base +
-    BANKING.tighteningSpeed * Math.max(0, tighteningSpeed(lags)) +
+    BANKING.tighteningSpeed * tightening +
     BANKING.assetBust * Math.max(0, -assetChangeAnnualised) +
     BANKING.gapSensitivity * Math.max(0, -latent.outputGap) +
     BANKING.spreadSensitivity * Math.max(0, latent.creditSpread - SPREADS.base) +
@@ -358,7 +363,7 @@ export function advanceSubstep(
     const cfg = FRAGMENTATION.fed
     const regionalTarget =
       cfg.base +
-      cfg.tighteningSpeed * Math.max(0, tighteningSpeed(lags)) +
+      cfg.tighteningSpeed * tightening +
       cfg.assetBust * Math.max(0, -assetChangeAnnualised) +
       cfg.stressSensitivity * latent.bankingStress -
       INSTRUMENT_EFFECTS.discountWindow.regionalRelief * stance.discountWindowLevel

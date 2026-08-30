@@ -1,6 +1,11 @@
 import type { Difficulty } from '../types/core.ts'
 import type { LagBuffers } from '../types/state.ts'
-import { LAG_KERNEL, LAG_KERNEL_LENGTH } from '../config/time.ts'
+import {
+  LAG_KERNEL,
+  LAG_KERNEL_LENGTH,
+  MEETINGS_PER_YEAR,
+  SUBSTEPS_PER_MEETING,
+} from '../config/time.ts'
 
 /**
  * The distributed-lag machinery.
@@ -79,15 +84,82 @@ export function fillLag(value: number): readonly number[] {
   return new Array<number>(LAG_KERNEL_LENGTH).fill(value)
 }
 
+/** Sub-steps spanned by one year of policy history. */
+const SUBSTEPS_PER_YEAR = MEETINGS_PER_YEAR * SUBSTEPS_PER_MEETING
+
+const normaliserCache = new Map<readonly number[], number>()
+
 /**
- * How far the real rate gap has travelled over the past year.
+ * The largest reading a completed 1pp tightening cycle can produce.
+ *
+ * Differencing the transmitted stance over a one-year window only ever sees
+ * the kernel mass that fits inside that window. On easy the kernel is narrow
+ * and nearly all of it fits, so the raw reading already peaks near 1. On hard
+ * the kernel is wider than a year, so a full 1pp cycle would peak at about 0.5
+ * — which would quietly halve the banking-stress channel exactly where the
+ * design wants the dilemma at its most brutal.
+ *
+ * Dividing by this restores it. The rule the fix has to obey is that only the
+ * *timing* of the cost moves, never its size.
+ */
+function tighteningNormaliser(kernel: readonly number[]): number {
+  const cached = normaliserCache.get(kernel)
+  if (cached !== undefined) return cached
+
+  // The reading for a step made `age` sub-steps ago is the kernel mass in
+  // [age - SUBSTEPS_PER_YEAR, age). The peak is the heaviest such window.
+  let peak = 0
+  let window = 0
+  for (let age = 1; age <= kernel.length; age += 1) {
+    window += kernel[age - 1]
+    if (age > SUBSTEPS_PER_YEAR) window -= kernel[age - SUBSTEPS_PER_YEAR - 1]
+    if (window > peak) peak = window
+  }
+
+  const normaliser = peak > 0 ? peak : 1
+  normaliserCache.set(kernel, normaliser)
+  return normaliser
+}
+
+/**
+ * How far the *transmitted* real rate gap has travelled over the past year.
  *
  * Used for the duration-loss channel: what damages bank balance sheets is the
  * speed of tightening, not its level.
+ *
+ * The convolution is the whole point, and it is what this function used to be
+ * missing. Read raw — `buffer[0] - buffer[32]` — the cost of tightening lands
+ * the instant the rate moves, while its benefit crosses the same kernel *and*
+ * the Phillips curve's own partial adjustment before reaching inflation. The
+ * two sides of the central banker's dilemma then run on different clocks, and
+ * a mandate short enough shows the player only the cost. On fed/easy that made
+ * the dilemma unresolvable rather than hard: stress was up 1.8 points after one
+ * meeting while inflation had moved 0.008. See docs/BALANCE.md.
+ *
+ * Passing the one-year change through the same kernel that governs the demand
+ * channel puts them back on one clock. Note what this deliberately does *not*
+ * do: the magnitude is untouched, because `tighteningNormaliser` rescales the
+ * reading so a completed 1pp tightening cycle still registers as 1pp at every
+ * difficulty. Only the timing moves. The dilemma keeps its full force —
+ * `BANKING.tighteningSpeed` is unchanged — and becomes a choice between a
+ * delayed cost and a delayed benefit, which is the real problem, rather than an
+ * immediate cost against an invisible one.
+ *
+ * Indices older than the buffer read its oldest entry, which is the opening
+ * steady state `fillLag` seeded it with. So a run that has not moved its rate
+ * reports exactly zero rather than a startup transient.
  */
-export function tighteningSpeed(lags: LagBuffers): number {
+export function tighteningSpeed(
+  lags: LagBuffers,
+  kernel: readonly number[],
+): number {
   const buffer = lags.realRateGap
   if (buffer.length === 0) return 0
-  const yearAgoIndex = Math.min(buffer.length - 1, 32)
-  return buffer[0] - buffer[yearAgoIndex]
+
+  const change = new Array<number>(buffer.length)
+  for (let i = 0; i < buffer.length; i += 1) {
+    const yearAgo = Math.min(i + SUBSTEPS_PER_YEAR, buffer.length - 1)
+    change[i] = buffer[i] - buffer[yearAgo]
+  }
+  return convolve(change, kernel) / tighteningNormaliser(kernel)
 }

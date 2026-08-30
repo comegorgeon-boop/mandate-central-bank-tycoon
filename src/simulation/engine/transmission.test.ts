@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import type { Difficulty } from '../types/core.ts'
-import { MEETING_COUNT, SUBSTEPS_PER_MEETING } from '../config/time.ts'
-import { buildLagKernel } from './lags.ts'
+import type { LagBuffers } from '../types/state.ts'
+import { LAG_KERNEL_LENGTH, MEETING_COUNT, SUBSTEPS_PER_MEETING } from '../config/time.ts'
+import { buildLagKernel, fillLag, tighteningSpeed } from './lags.ts'
 import {
   HOLD,
   READABLE_MULTIPLE,
@@ -236,6 +237,84 @@ describe('every difficulty closes the loop inside its own mandate', () => {
       })
     })
   }
+})
+
+describe('the cost of tightening runs on the same clock as its benefit', () => {
+  /**
+   * The design decision this suite protects: the dilemma between price
+   * stability and financial stability must be a choice between a delayed cost
+   * and a delayed benefit, not between an immediate cost and an invisible one.
+   *
+   * `tighteningSpeed` used to read the raw one-year change in the real rate
+   * gap, so bank duration losses landed the instant the rate moved while the
+   * disinflation crossed the kernel *and* the Phillips curve first. On fed/easy
+   * that made the trade-off unresolvable rather than hard.
+   */
+  /** A lag buffer holding `recent` for `age` sub-steps, and `old` before that. */
+  function buffers(recent: number, old: number, age: number): LagBuffers {
+    const realRateGap = fillLag(old).map((value, index) =>
+      index < age ? recent : value,
+    )
+    return {
+      realRateGap,
+      balanceSheetImpulse: fillLag(0),
+      financialConditions: fillLag(0),
+    }
+  }
+
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    const kernel = buildLagKernel(difficulty)
+
+    it(`reports no tightening on an unchanged stance on ${difficulty}`, () => {
+      expect(tighteningSpeed(buffers(0.5, 0.5, 0), kernel)).toBeCloseTo(0, 10)
+    })
+
+    /** The strongest reading a completed 1pp tightening cycle ever produces. */
+    const peakOf = (move: number): number => {
+      let peak = 0
+      for (let age = 1; age <= LAG_KERNEL_LENGTH; age += 1) {
+        peak = Math.max(peak, tighteningSpeed(buffers(0.5 + move, 0.5, age), kernel))
+      }
+      return peak
+    }
+
+    it(`keeps the full magnitude of a completed cycle on ${difficulty}`, () => {
+      // This fix delays the cost of tightening. It must not discount it: a
+      // 1pp cycle has to still peak at 1pp, or the dilemma quietly weakens
+      // wherever the kernel is slowest — which is hard, where it should bite
+      // hardest.
+      expect(peakOf(1)).toBeCloseTo(1, 2)
+    })
+
+    it(`scales with the size of the move on ${difficulty}`, () => {
+      expect(peakOf(2)).toBeCloseTo(2 * peakOf(1), 6)
+    })
+
+    it(`has barely registered a move made this meeting on ${difficulty}`, () => {
+      expect(tighteningSpeed(buffers(1.5, 0.5, 1), kernel) / peakOf(1)).toBeLessThan(0.1)
+    })
+  }
+
+  it('delivers the cost no faster than the demand channel it shares a kernel with', () => {
+    // Measured as shares of each channel's own eventual size, so the two are
+    // comparable despite living on different scales.
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      const mandate = MEETING_COUNT[difficulty]
+      const config = testConfig('fed', difficulty, `clock-${difficulty}`)
+      const treatment = playWithoutEvents(config, [rateMove(100), ...holds(mandate)])
+      const control = playWithoutEvents(config, [HOLD, ...holds(mandate)])
+
+      const stress = difference(
+        pathOf(treatment, 'bankingStress'),
+        pathOf(control, 'bankingStress'),
+      )
+      const peakStress = Math.max(...stress.map(Math.abs))
+
+      // One meeting in, a tenth of the cost at most. Before this fix easy
+      // delivered 19 % of it on the first meeting.
+      expect(Math.abs(stress[1]) / peakStress).toBeLessThan(0.1)
+    }
+  })
 })
 
 describe('the output gap is deliberately unreadable', () => {
