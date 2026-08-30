@@ -12,24 +12,52 @@
 /** Expectations-augmented Phillips curve, core inflation. */
 export const PHILLIPS = {
   /**
-   * Slope on the output gap. Flat, as in modern estimates, but not so flat
-   * that disinflation becomes impossibly expensive: this and the IS curve's
-   * rate sensitivity together set the sacrifice ratio, which is calibrated to
-   * roughly four gap-years per point of disinflation.
+   * Slope on the output gap.
+   *
+   * This and the IS curve's rate sensitivity together set the sacrifice ratio.
+   * Raised from 0.33 — the flat end of modern estimates — to 0.45, which puts
+   * it at roughly 2.2 gap-years per point of disinflation rather than 3.0.
+   *
+   * A deliberate trade of realism for a decision problem. At 0.33 no policy
+   * trajectory could bring inflation back inside a mandate at any difficulty:
+   * eight hundred basis points of tightening across a whole fed/easy mandate
+   * bought 0.30pp of disinflation against a typical opening miss of 0.85pp, so
+   * the instrument was weaker than the problem it exists to solve. A flat
+   * Phillips curve is good economics and, at these mandate lengths, an
+   * unplayable game. See docs/BALANCE.md.
    */
-  gapSlope: 0.33,
+  gapSlope: 0.45,
   /** Pass-through from unit labour cost pressure. */
   wagePressure: 0.25,
-  /** Speed at which core inflation closes on its target level. */
-  adjustment: 1.3,
+  /**
+   * Speed at which core inflation closes on its target level.
+   *
+   * Raised from 1.3. The persistence that makes core inflation sticky comes
+   * from `expectedInflationShort` inside its target, not from this: leaving
+   * the closing speed low as well delayed the same stickiness twice over, and
+   * pushed the policy-to-inflation response past the end of every mandate.
+   */
+  adjustment: 2.2,
 } as const
 
 /** Headline inflation: core plus energy, food and imported goods. */
 export const HEADLINE = {
   /** Headline moves much faster than core. */
   adjustment: 3.0,
-  /** Supply shocks hit headline harder than core. */
-  supplyAmplifier: 1.8,
+  /**
+   * Supply shocks hit headline harder than core.
+   *
+   * Raised from 1.8 to keep the *identifying evidence* above the measurement
+   * noise. The information ladder's promise is that the name of a shock is
+   * withdrawn at higher difficulties but the evidence that identifies it is
+   * not — headline running far ahead of core, with the gap opening rather than
+   * closing. At 1.8 that wedge was 1.56pp against a combined first-print error
+   * of 2.19pp on hard, so at the difficulty where nothing is named the player
+   * was being asked to identify a shock from something indistinguishable from
+   * noise. Energy and food are a fifth of the basket and move several times
+   * core, so a wider wedge is the more realistic figure too.
+   */
+  supplyAmplifier: 2.4,
 } as const
 
 /** Adaptive, partly anchored inflation expectations. */
@@ -68,12 +96,23 @@ export const EXPECTATIONS = {
   guidancePull: 1.6,
 } as const
 
-/** IS curve driving the output gap. */
+/**
+ * IS curve driving the output gap.
+ *
+ * `rateSensitivity`, `financialConditions` and `meanReversion` were raised
+ * together by half, which leaves the *size* of the demand response to a rate
+ * change unchanged — the steady-state gap is their ratio — while making it
+ * arrive in about two years instead of three. The peak output effect of a rate
+ * change lands four to six quarters out in the estimates this is drawn from,
+ * so the faster settings are the more realistic ones as well as the playable
+ * ones. Raising the three in step is what keeps the long-run sacrifice ratio
+ * where it was.
+ */
 export const IS_CURVE = {
   /** Response to the lag-weighted real policy rate gap. */
-  rateSensitivity: 0.4,
+  rateSensitivity: 0.6,
   /** Response to the lag-weighted financial conditions gap. */
-  financialConditions: 0.22,
+  financialConditions: 0.33,
   /** Response to the fiscal impulse. */
   fiscal: 0.35,
   /** Response to credit growth above its neutral pace. */
@@ -100,8 +139,14 @@ export const IS_CURVE = {
    * makes it a different decision problem from a demand shock.
    */
   supply: 0.45,
-  /** Mean reversion of the gap back to zero. */
-  meanReversion: 0.55,
+  /**
+   * Mean reversion of the gap back to zero.
+   *
+   * Raised in step with `rateSensitivity` above, so the gap converges faster
+   * without the economy becoming more self-healing relative to policy: both
+   * the numerator and the denominator of the steady-state gap moved together.
+   */
+  meanReversion: 0.83,
 } as const
 
 /** Okun-style unemployment dynamics. */

@@ -28,7 +28,12 @@ export const LAG_KERNEL_LENGTH = 72
 
 /** Mandate length in scheduled meetings, per the difficulty design. */
 export const MEETING_COUNT: Readonly<Record<Difficulty, number>> = {
-  easy: 8, // one-year training mandate
+  // Eighteen months. Was one year, which was simply too short for a decision
+  // problem about inflation: even with the transmission recalibrated, twelve
+  // meetings is the point at which maximum tightening can just close a typical
+  // opening miss. Easy is a tutorial and must be winnable, so the mandate has
+  // to be at least as long as the instrument takes to work.
+  easy: 12,
   medium: 16, // two-year mandate
   hard: 32, // four-year full mandate
 }

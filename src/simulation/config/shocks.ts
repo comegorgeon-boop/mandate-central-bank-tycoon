@@ -36,8 +36,22 @@ export const SHOCK_PROCESSES: readonly ShockProcess[] = [
   { key: 'demandShock', meanReversion: 1.5, volatility: 1.2, mean: 0 },
   /** Household and business confidence. */
   { key: 'confidenceShock', meanReversion: 2.0, volatility: 1.4, mean: 0 },
-  /** Productivity, feeding potential growth. The slowest process. */
-  { key: 'productivityShock', meanReversion: 0.8, volatility: 0.5, mean: 0 },
+  /**
+   * Productivity, feeding potential growth. The slowest process.
+   *
+   * Ranged like the others. Without it the innovation kept its full size right
+   * at the bound, so a run that drew two `productivity_surge` events could push
+   * the process past `LATENT_BOUNDS.productivityShock` and fire a safety clamp
+   * on an economy that was behaving perfectly normally — which is precisely
+   * the noise those clamps exist not to make.
+   */
+  {
+    key: 'productivityShock',
+    meanReversion: 0.8,
+    volatility: 0.5,
+    mean: 0,
+    range: [-3, 3],
+  },
   /** Financial disturbance driving spreads and volatility. */
   { key: 'financialShock', meanReversion: 1.8, volatility: 1.0, mean: 0 },
   /** Geopolitical risk level, on a 0-100 scale around a nonzero mean. */
