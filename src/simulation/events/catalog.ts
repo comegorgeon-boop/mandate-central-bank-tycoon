@@ -70,14 +70,26 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: null,
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    baseWeight: 0.9,
+    baseWeight: 1.0,
     cooldownMeetings: 3,
     maxOccurrences: 3,
-    // Prices can only fall back if they went up in the first place.
-    isEligible: (ctx) => ctx.latent.supplyShock > 0.4,
-    weight: (ctx) => 0.5 + ctx.latent.supplyShock / 2,
+    // The counterpart to `energy_price_spike`, and deliberately as free to fire
+    // as it is. It used to be gated on `supplyShock > 0.4` and to remove only
+    // 0.8 of whatever was outstanding, so a shock reverting at 1.2/year had
+    // usually decayed below the gate before the relief could fire: it landed 6
+    // times against the spike's 62 over 150 runs. Good news that needs
+    // permission to happen is not good news the player will ever meet.
+    isEligible: () => true,
+    // Still likelier after a run-up — new supply follows high prices — but no
+    // longer impossible without one.
+    weight: (ctx) => 0.6 + Math.max(0, ctx.latent.supplyShock) / 2,
     immediate: (ctx) => [
-      { variable: 'supplyShock', delta: -Math.min(1.8, ctx.latent.supplyShock * 0.8) },
+      {
+        variable: 'supplyShock',
+        // A floor, so this is always a real move rather than a rounding error
+        // in a calm economy, and larger when there is more to give back.
+        delta: -Math.min(1.8, 0.7 + Math.max(0, ctx.latent.supplyShock) * 0.7),
+      },
       { variable: 'importPriceInflation', delta: -3.5 },
       { variable: 'confidenceShock', delta: 0.4 },
     ],
@@ -155,6 +167,42 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     followUps: [],
     requires: [],
   },
+  {
+    id: 'supply_chain_normalisation',
+    family: 'supply_chain',
+    title: 'Shipping capacity catches up with demand',
+    newswire:
+      'New vessel deliveries and reopened routes clear the backlog at the major ' +
+      'ports. Delivery times fall back to their pre-disruption range.',
+    clue: 'Container rates on the main routes have halved as new capacity comes into service.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    baseWeight: 0.9,
+    cooldownMeetings: 4,
+    maxOccurrences: 2,
+    // The mirror of `supply_chain_disruption`, and as free to fire as it is.
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, 60 - ctx.latent.geopoliticalRisk) / 60,
+    immediate: (ctx) => [
+      { variable: 'supplyShock', delta: -1.1 },
+      {
+        variable: 'importPriceInflation',
+        delta: -3.0 * (ctx.institution === 'ecb' ? 1.3 : 1),
+      },
+    ],
+    delayed: () => [
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'outputGap', delta: 0.4 },
+          { variable: 'supplyShock', delta: -0.4 },
+        ],
+      },
+      { delaySteps: THREE_MEETINGS, effects: [{ variable: 'supplyShock', delta: 0.8 }] },
+    ],
+    followUps: [],
+    requires: [],
+  },
 
   // ---- Fiscal -------------------------------------------------------------
   {
@@ -186,6 +234,42 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         effects: [
           { variable: 'outputGap', delta: 0.35 },
           { variable: 'debtPressure', delta: 4 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'fiscal_consolidation',
+    family: 'fiscal',
+    title: 'Legislature agrees a deficit reduction package',
+    newswire:
+      'A multi-year consolidation clears the legislature after a long standoff, ' +
+      'combining spending restraint with a broadening of the tax base.',
+    clue: 'Budget negotiations have converged on consolidation ahead of a debt ceiling review.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    baseWeight: 0.9,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    // The mirror of `fiscal_expansion`, and as free to fire as it is.
+    isEligible: () => true,
+    // Politically easier when the debt burden is the salient problem, which is
+    // the mirror of expansion being easier when unemployment is.
+    weight: (ctx) => 0.6 + Math.max(0, ctx.latent.debtPressure - 35) / 30,
+    immediate: () => [
+      { variable: 'fiscalImpulse', delta: -1.4 },
+      { variable: 'debtPressure', delta: -5 },
+      { variable: 'confidenceShock', delta: -0.4 },
+    ],
+    delayed: () => [
+      { delaySteps: ONE_MEETING, effects: [{ variable: 'outputGap', delta: -0.3 }] },
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'outputGap', delta: -0.35 },
+          { variable: 'debtPressure', delta: -4 },
         ],
       },
     ],
@@ -328,6 +412,43 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         effects: [
           { variable: 'outputGap', delta: -0.45 },
           { variable: 'geopoliticalRisk', delta: -8 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'geopolitical_dealescalation',
+    family: 'geopolitical',
+    title: 'Negotiated settlement eases a long-running dispute',
+    newswire:
+      'Mediated talks produce a phased rollback of trade restrictions between ' +
+      'several large economies. Risk assets rally and freight insurance falls.',
+    clue: 'Back-channel talks are reported to have reached an outline agreement.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    baseWeight: 0.9,
+    cooldownMeetings: 4,
+    maxOccurrences: 3,
+    // A dispute has to exist before it can be settled, but the bar is set at
+    // the level the risk process spends most of its time above, so this is a
+    // soft precondition rather than the kind of gate that silenced the energy
+    // relief event.
+    isEligible: (ctx) => ctx.latent.geopoliticalRisk > 15,
+    weight: (ctx) => 0.6 + ctx.latent.geopoliticalRisk / 70,
+    immediate: () => [
+      { variable: 'geopoliticalRisk', delta: -20 },
+      { variable: 'marketVolatility', delta: -7 },
+      { variable: 'supplyShock', delta: -0.7 },
+      { variable: 'confidenceShock', delta: 0.9 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'outputGap', delta: 0.45 },
+          { variable: 'geopoliticalRisk', delta: 8 },
         ],
       },
     ],
