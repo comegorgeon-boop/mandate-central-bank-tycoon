@@ -80,21 +80,37 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // times against the spike's 62 over 150 runs. Good news that needs
     // permission to happen is not good news the player will ever meet.
     isEligible: () => true,
-    // Still likelier after a run-up — new supply follows high prices — but no
-    // longer impossible without one.
-    weight: (ctx) => 0.6 + Math.max(0, ctx.latent.supplyShock) / 2,
+    // Still likelier after a run-up — new supply follows high prices — but the
+    // floor matches the spike's own likelihood, because a counterpart that
+    // fires four times for the spike's five is quietly a smaller event.
+    weight: (ctx) => 0.75 + Math.max(0, ctx.latent.supplyShock) / 2,
+    // Paired with the spike by MAGNITUDE, not just by name. The spike delivers
+    // +1.7 of supplyShock over its life no matter the state; a relief whose
+    // floor gave back only 0.7 in the calm economy it usually fires in
+    // delivered half its counterpart, and that gap — invisible to any check
+    // that counts firings — was most of the catalog's inflation drift.
+    // `events/balance.test.ts` now measures the pair in delivered impulse.
     immediate: (ctx) => [
       {
         variable: 'supplyShock',
-        // A floor, so this is always a real move rather than a rounding error
-        // in a calm economy, and larger when there is more to give back.
-        delta: -Math.min(1.8, 0.7 + Math.max(0, ctx.latent.supplyShock) * 0.7),
+        // Floor at the spike's own opening move; larger when a run-up has left
+        // more to give back. Energy overshoots in both directions.
+        delta: -Math.min(2.2, 1.4 + Math.max(0, ctx.latent.supplyShock) * 0.4),
       },
-      { variable: 'importPriceInflation', delta: -3.5 },
-      { variable: 'confidenceShock', delta: 0.4 },
+      { variable: 'importPriceInflation', delta: -4.5 * (ctx.institution === 'ecb' ? 1.3 : 1) },
+      { variable: 'confidenceShock', delta: 0.5 },
     ],
+    // The mirror of the spike's tail: the retracement keeps going, then part
+    // of it gives back as producers shut marginal supply back in.
     delayed: () => [
-      { delaySteps: ONE_MEETING, effects: [{ variable: 'inflationHeadline', delta: -0.3 }] },
+      { delaySteps: ONE_MEETING, effects: [{ variable: 'supplyShock', delta: -0.7 }] },
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'supplyShock', delta: 0.6 },
+          { variable: 'outputGap', delta: 0.35 },
+        ],
+      },
     ],
     followUps: [],
     requires: [],
@@ -182,7 +198,12 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     maxOccurrences: 2,
     // The mirror of `supply_chain_disruption`, and as free to fire as it is.
     isEligible: () => true,
-    weight: (ctx) => 0.7 + Math.max(0, 60 - ctx.latent.geopoliticalRisk) / 60,
+    // Likelier when supply is actually strained — capacity is ordered against
+    // a backlog, not against calm seas. Keying this on *low* geopolitical risk
+    // was what unbalanced the realised counts: escalations keep risk elevated
+    // for whole mandates, so the normalisation rarely outweighed a disruption
+    // whose own weight rises with that same risk.
+    weight: (ctx) => 0.9 + Math.max(0, ctx.latent.supplyShock) / 2,
     immediate: (ctx) => [
       { variable: 'supplyShock', delta: -1.1 },
       {
@@ -437,8 +458,13 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // relief event.
     isEligible: (ctx) => ctx.latent.geopoliticalRisk > 15,
     weight: (ctx) => 0.6 + ctx.latent.geopoliticalRisk / 70,
+    // Level-symmetric with the escalation: each escalation nets +14 of risk
+    // over its life, so a settlement that nets only -12 leaves the risk index
+    // ratcheting upward run after run — and since the energy spike and the
+    // shipping disruption both scale their firing weight on that index, a
+    // ratchet here quietly tilts the whole catalog inflationary.
     immediate: () => [
-      { variable: 'geopoliticalRisk', delta: -20 },
+      { variable: 'geopoliticalRisk', delta: -22 },
       { variable: 'marketVolatility', delta: -7 },
       { variable: 'supplyShock', delta: -0.7 },
       { variable: 'confidenceShock', delta: 0.9 },
@@ -669,13 +695,16 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'outputGap', delta: -0.4 },
       { variable: 'confidenceShock', delta: -0.5 },
     ],
-    // Reconstruction turns an initial contraction into later demand.
+    // Reconstruction turns an initial contraction into later demand, and
+    // restores the lost capacity in full: a disaster is a violent *transitory*
+    // supply event, not a permanent one, and leaving 0.4 of cost-push behind
+    // per firing made it a one-sided inflation tax with no counterpart.
     delayed: () => [
       {
         delaySteps: TWO_MEETINGS,
         effects: [
           { variable: 'fiscalImpulse', delta: 0.6 },
-          { variable: 'supplyShock', delta: -0.5 },
+          { variable: 'supplyShock', delta: -0.9 },
         ],
       },
       { delaySteps: THREE_MEETINGS, effects: [{ variable: 'outputGap', delta: 0.3 }] },

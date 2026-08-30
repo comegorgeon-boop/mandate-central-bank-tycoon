@@ -884,6 +884,91 @@ balance test uses it only to decide a sign. **The fix is to weight the ratio by
 impulse rather than count firings** — not yet applied, since nothing was to be
 touched until the hypotheses were settled.
 
+### The hole, plugged
+
+> **Done.** The guard now measures what the catalog delivers, and the catalog
+> now delivers what its pairs promise. Everything below is measured, and every
+> number here fails a test if it regresses.
+
+**The guard.** `events/balance.test.ts` no longer counts firings. Every firing
+is weighted by `inflationImpulse` evaluated **in the state it actually fired
+in** — judging a state-dependent relief at one stressed reference context was
+the exact blind spot — and scaled by the difficulty's severity multiplier.
+Three assertions per bucket: the gross delivered ratio stays in 0.7–1.5, the
+**net delivery per meeting** stays within ±0.08 (the ratio hides the drift
+whenever gross volumes are large: pre-fix hard ran a ratio of 1.35 while
+pouring five net units into every run), and each named shock/relief pair must
+cancel to within a third of its larger half at *both* a calm and a stressed
+context, so a magnitude mismatch fails at authoring time. Against the pre-fix
+catalog the suite fails on all six buckets and names the energy pair
+specifically; against the rebalanced one it passes with ≥19 % margin.
+
+**The catalog.** Four changes, all pairing by magnitude what was paired by
+name:
+
+- `energy_price_relief` is the spike's structural mirror: floor raised to the
+  spike's own opening move (−1.4, +0.4 per unit of outstanding shock, capped at
+  −2.2), the same continuation-then-partial-rebound tail, the same import-price
+  and confidence deltas with the ECB factor. The `supplyShock > 0` bonus keeps
+  "more to give back after a run-up" without hiding a 2:1 default underneath.
+- `supply_chain_normalisation`'s weight keys on outstanding `supplyShock`
+  rather than on *low* geopolitical risk — escalations keep that index elevated
+  for whole mandates, so the old weight quietly silenced the good news.
+- `geopolitical_dealescalation` is level-symmetric (−22 immediate against the
+  escalation's +22): each escalation used to net +14 of risk against −12 given
+  back, and since the energy spike and the shipping disruption both scale their
+  firing weight on that index, the ratchet tilted the whole catalog.
+- `natural_disaster` restores its lost capacity in full (−0.9 delayed against
+  +0.9 immediate); it is a violent transitory supply event, not a permanent
+  0.4-per-firing inflation tax.
+
+**Delivered impulse, before → after** (60 runs per bucket, ratio then net per
+meeting):
+
+| bucket | ratio | net/meeting |
+| --- | --- | --- |
+| fed/easy | 1.76 → **1.26** | +0.100 → **+0.043** |
+| fed/medium | 1.47 → **1.12** | +0.163 → **+0.051** |
+| fed/hard | 1.35 → **1.06** | +0.153 → **+0.030** |
+| ecb/easy | 1.61 → **1.15** | +0.094 → **+0.030** |
+| ecb/medium | 1.34 → **1.07** | +0.130 → **+0.031** |
+| ecb/hard | 1.35 → **1.04** | +0.140 → **+0.020** |
+
+**Realised drift, same seeds, hold throughout, 150 runs, easy.** The catalog's
+contribution to end-of-mandate headline (events on minus events off): fed
++1.00pp → **+0.58pp**, ecb +0.64pp → **+0.20pp**. The fed residual is dominated
+by `wage_round_breakout`, which under a permanent hold fires to its cap because
+the gate — a labour market left to run hot — never closes. That is a different
+kind of pressure from the old energy skew: it is *conditional on passivity*,
+and cooling the economy (or, once communication lands, holding expectations
+down) closes it. It stays, by design.
+
+**`HEADLINE.supplyAmplifier` stays at 2.4.** Verified rather than assumed: at
+1.8 the headline–core wedge on hard was 1.56pp against 2.19pp of combined print
+error — below the noise, so the identification promise was a bluff — and at 2.4
+it clears it by 26 %, which `the evidence that identifies a shock stays above
+the noise` pins. The +0.70pp drift it "introduced" was the catalog's delivered
+imbalance being amplified honestly; the imbalance is now fixed at the source,
+and the amplifier keeps doing the one job it was raised for.
+
+**Winnability, events on, fed/easy, 150 seeds** (the honest measurement, per
+the rule above):
+
+| policy | median end | still higher than start | within 0.5pp of target |
+| --- | --- | --- | --- |
+| hold | 3.15 → **2.94 %** | 64 → 58 % | 13 → 15 % |
+| +25bp every meeting | 2.90 → **2.78 %** | 58 → 53 % | 17 → 15 % |
+| +50bp every meeting | 2.84 → **2.49 %** | 51 → 47 % | 15 → 18 % |
+| +75bp every meeting | 2.42 → **2.18 %** | 43 → 41 % | 15 → 20 % |
+| +100bp every meeting | 2.08 → **2.03 %** | 39 → 43 % | 19 → 19 % |
+
+The dose–response curve is now smooth where it was flat-then-nothing, and every
+row completes 100 %. But no fixed rate policy ends within half a point of
+target more than a fifth of the time, and the best trajectories are still the
+"same button every meeting" ones. **The catalog no longer writes the outcome;
+it also does not create a decision problem.** That is the second-instrument
+question, which is docs/DIRECTION.md's territory, not further catalog tuning.
+
 ### Where this leaves the four fixes
 
 The first three stand and are unaffected. The fourth — the calibration — moved
@@ -906,5 +991,5 @@ Every finding above is now a test rather than a paragraph.
 | `difficulty decides whether one decision is legible` | easy stops being a reacting game, or medium/hard start being one |
 | `the cost of tightening runs on the same clock` | the banking channel is put back on a shorter lag than the demand channel |
 | `the evidence that identifies a shock stays above the noise` | the headline-core wedge sinks under the combined print error |
-| `events/balance.test.ts` | the realised inflationary/disinflationary firing ratio leaves 0.7-2.5 |
+| `events/balance.test.ts` | the delivered inflationary/disinflationary impulse ratio leaves 0.7-1.5, net delivery per meeting leaves ±0.08, or a shock/relief pair stops cancelling at calm and stressed states |
 | `observation/descriptions.test.ts` | indicator copy quotes a number no engine constant accounts for |
