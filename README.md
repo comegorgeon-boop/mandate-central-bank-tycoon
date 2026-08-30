@@ -2,8 +2,14 @@
 
 **Live site:** https://mandate-central-bank-tycoon.comegorgeon.workers.dev
 
-Static, front-end-only browser game (React + TypeScript + Vite). Current state: technical
-skeleton only (Build 0) — no gameplay yet.
+Static, front-end-only browser game (React + TypeScript + Vite).
+
+Current state: a complete game loop is playable end to end, on minimal styling.
+One path is implemented — Federal Reserve, easy, eight meetings, the policy rate
+as the only instrument, and four panels (Meeting Brief, Prices, Labor, Policy
+Desk). The ECB, the medium and hard difficulties, the rest of the toolkit,
+communications, persistence, local records and the visual identity are not
+built yet.
 
 ## Requirements
 
@@ -27,6 +33,24 @@ npm install
 | `npm run sim:demo` | Play 8 seeded meetings and print the paths      |
 | `npm run sim:sweep`| Play 900 seeded runs and report balance         |
 | `npm run deploy`   | Build and deploy to Cloudflare Workers          |
+
+## Verification
+
+Before a task counts as finished: `npm run build` passes, `npm test` is green,
+and there are no errors in the browser console.
+
+`src/pages/gameLoop.test.tsx` plays a whole mandate through the interface with
+no direct engine calls, and `src/pages/consoleCheck.test.tsx` opens every panel
+at every meeting and asserts the run logs no `console.error` and no
+`console.warn`.
+
+> **Deferred: the real browser console.** That last check runs in jsdom, which
+> catches React and router warnings but is not a browser engine. A pass in a
+> real browser is deliberately postponed until the screens stabilise — the
+> current build is intentionally unstyled and the surfaces are still moving.
+> **Run it at the end of the session that stabilises the screens**, before the
+> visual system is called done: `npm run dev`, play a full mandate, and read the
+> console.
 
 ## Stack
 
@@ -56,16 +80,23 @@ Balancing means editing configuration, never engine code.
 `npm run sim:demo` and `npm run sim:sweep` are developer tooling. They print
 latent state and are never imported by application code.
 
-> **Calibration outstanding — read before building the UI.** The engine's
-> policy lags are currently long relative to the mandates they sit in: on easy,
-> a player closes under two decision → effect → correction loops before the
-> mandate ends, where three to four are needed for skill to be legible.
-> [`docs/BALANCE.md`](docs/BALANCE.md) holds the retained design direction —
-> retargeting the lag on that ratio, surfacing the engine's existing fast
-> channel as turn-by-turn feedback, leaning on fan charts that deform
-> immediately, and adding an end-of-mandate legacy evaluation — together with
-> what to watch for during the first real playthrough, which is where the
-> numbers get set.
+> **Calibration: one of four points landed.** The design direction in
+> [`docs/BALANCE.md`](docs/BALANCE.md) is to judge a policy lag by its ratio to
+> the mandate it sits in — the number of decision → effect → correction loops a
+> player can close before the mandate ends — rather than by its length.
+>
+> Point 1 is done: `43bfca3` retargeted `LAG_KERNEL`, taking easy from 1.8
+> closed loops to 3.2 and holding all three difficulties near three to four.
+> The remaining three are open, and the first two are UI work the current
+> minimal build does not yet do: surfacing the engine's existing fast channel
+> (markets, press, institutional standing, which respond within the turn) as
+> turn-by-turn feedback; making fan charts that deform immediately on a policy
+> change a primary screen, which is what makes a long lag playable; and an
+> end-of-mandate legacy evaluation that advances the simulation with no player
+> input and folds the result into the score.
+>
+> The numbers still get set against real playthroughs. `docs/BALANCE.md` holds
+> the checklist, which leads with counting the closed loops.
 
 ## Deployment
 
