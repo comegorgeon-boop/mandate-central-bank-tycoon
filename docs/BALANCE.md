@@ -578,6 +578,14 @@ printed to two decimals. **The test certifies an effect three times smaller than
 the noise on the series it moves.** It measures the right quantity against a
 threshold that cannot distinguish a working instrument from a broken one.
 
+## Status: all four fixed, and what they cost
+
+> **Done.** The four corrections below were applied in order, one commit each,
+> and the results are recorded under "After" at the end of this section. Engine
+> 1.1.0. The headline outcome: on fed/easy, tightening 50bp at every meeting now
+> lands median headline inflation at 2.01 % with peak banking stress at 57.8,
+> below the 79.75 supervisory warning. **That trajectory did not exist before.**
+
 ## What to loosen, in order
 
 The instruction is: keep the dilemma, make the tutorial winnable. These are
@@ -684,3 +692,101 @@ Three things it needs, none of them obstacles:
 show the player, in the game's own numbers, that their decisions do not matter.
 Fix the transmission first; then the decomposition becomes the best explanatory
 screen in the game, because it will have something to explain.
+
+> **Now buildable, with one change to the proposal.** On engine 1.1.0 the same
+> aggressive fed/easy run decomposes to `policy -0.34, shock -0.36,
+> expectations +0.05, wages +0.04, inertia +0.44, other -0.10` against a
+> headline sitting 0.27 below target. Policy is the second-largest term and the
+> same order as the shocks, which is what makes the screen worth building.
+>
+> The change: **show the cumulative attribution, not the per-meeting one.** Per
+> meeting the policy column still reads -0.01 to -0.06 against shock swings of
+> ±0.9, because a rate decision is a slow, steady pull against fast, noisy
+> pushes — that is the true shape of the problem and no calibration removes it.
+> The sentence the player needs is "inflation is 0.27 below target; 0.34 of that
+> is your policy and 0.36 the shocks you inherited", not a meeting-by-meeting
+> delta in which policy always looks like a rounding error. The per-meeting row
+> is worth showing underneath, as the reason the cumulative number moves slowly.
+
+## After: what the four fixes actually did
+
+Engine 1.1.0, measured the same way as everything above. Events off where a
+policy effect is being isolated, on where the player's experience is.
+
+### The pincer
+
+fed/easy, 150 seeds, events off. The row that matters is the middle one.
+
+| policy | net hike | end inflation | disinflation | peak stress |
+| --- | --- | --- | --- | --- |
+| hold | 0.00 pp | 2.45 % | 0.000 | 17.1 |
+| +25bp every meeting | +3.00 pp | 2.22 % | 0.240 | 36.4 |
+| **+50bp every meeting** | **+6.00 pp** | **2.01 %** | **0.455** | **57.8** |
+| +75bp every meeting | +9.00 pp | 1.79 % | 0.666 | 77.5 |
+| +100bp every meeting | +12.00 pp | 1.57 % | 0.887 | 83.7 |
+
+**The exchange rate went from 175 index points of banking stress per point of
+disinflation to 75.** The dilemma is intact and now has an interior optimum:
+maximum tightening overshoots to 1.57 % and scores 5134, while the staff rule
+scores 6951 — so overreacting is still punished, which is the point.
+
+### The sweep
+
+| bucket | doing nothing | staff rule (core) | before, staff vs passive |
+| --- | --- | --- | --- |
+| fed/easy | 6857 (100 %) | **6951** (100 %) | lost |
+| fed/medium | 7010 (99 %) | **7054** (98 %) | won narrowly |
+| fed/hard | **6272** (24 %) | 6206 (27 %) | lost |
+| ecb/easy | 6461 (100 %) | **6574** (100 %) | won |
+| ecb/medium | 5622 (99 %) | **5992** (99 %) | won |
+| ecb/hard | 2910 (17 %) | **2952** (22 %) | won narrowly |
+
+Acting beats doing nothing on five buckets of six, against four before. **On
+fed/hard the staff rule still scores below passive** — that is this document's
+long-standing open item, it is untouched by this work, and the next check on it
+is unchanged: grid-search the rule rather than trusting one hand-written set of
+coefficients.
+
+Two things improved on hard that are not scores. The failure modes are no longer
+swamped by one family — 41 banking crises, 41 dismissals, 37 inflation spirals
+against 81/31/17 before — so a hard-mode loss now feels like a consequence
+rather than a fixed ending. And completion went from 11 % to 20-27 %.
+
+### Where the inflation comes from
+
+fed/easy, holding throughout, 150 seeds:
+
+| | before | after |
+| --- | --- | --- |
+| drift from the shock processes | +0.06 pp | +0.06 pp |
+| drift from the event catalog | **+0.97 pp** | **-0.01 pp** |
+
+The inflation problem now comes from the opening economy and from symmetric
+shocks, both of which policy can act against, rather than from a stream no
+instrument in the game touches.
+
+### Still open
+
+- **fed/hard: no rule beats doing nothing.** Pre-existing, untouched.
+- **`geopoliticalRisk` fires a safety clamp twice in 150 hard runs.** Also
+  pre-existing — it fired once at engine 1.0.0 — and it appears more often now
+  only because far more hard runs survive long enough to reach it. Not
+  diagnosed. `productivityShock`, which clamped for a clear reason, is fixed:
+  it was the only bounded shock process without innovation damping.
+- **The headline-core wedge clears the noise on hard by 26 %, at meeting three.**
+  Comfortable at easy and medium, tight at hard. If hard's `observationNoiseScale`
+  or `revisionScale` rises again, this is the first thing that breaks.
+
+### What now protects each of these
+
+Every finding above is now a test rather than a paragraph.
+
+| Guard | Fails when |
+| --- | --- |
+| `engine/transmission.test.ts` | any effect-size claim stops holding in units of that series' published noise |
+| `the instrument is stronger than the problem` | maximum tightening cannot close a typical opening miss |
+| `difficulty decides whether one decision is legible` | easy stops being a reacting game, or medium/hard start being one |
+| `the cost of tightening runs on the same clock` | the banking channel is put back on a shorter lag than the demand channel |
+| `the evidence that identifies a shock stays above the noise` | the headline-core wedge sinks under the combined print error |
+| `events/balance.test.ts` | the realised inflationary/disinflationary firing ratio leaves 0.7-2.5 |
+| `observation/descriptions.test.ts` | indicator copy quotes a number no engine constant accounts for |
