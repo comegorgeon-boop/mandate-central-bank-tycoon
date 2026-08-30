@@ -40,8 +40,16 @@ import { NEUTRAL_BAND, classifyEvent, inflationImpulse } from './inflationImpuls
  * It exists so the next batch of events cannot reintroduce the skew silently.
  */
 
-/** Seeded passive runs per bucket. Enough that the sums are not a draw. */
-const RUNS = 60
+/**
+ * Seeded passive runs per bucket.
+ *
+ * 150, not 60: the net-per-meeting statistic below carries roughly ±0.04 of
+ * sampling variance at 60 runs, which is the same size as the band it is
+ * checked against — the engine version bump reseeded every draw and moved the
+ * 60-run readings by exactly that much. At 150 the sampling error is well
+ * inside the margin.
+ */
+const RUNS = 150
 
 /**
  * The band the realised ratio of delivered impulse must stay inside.
@@ -209,6 +217,7 @@ describe('shock/relief pairs are paired by magnitude, not by name', () => {
     ['supply_chain_disruption', 'supply_chain_normalisation'],
     ['geopolitical_escalation', 'geopolitical_dealescalation'],
     ['fiscal_expansion', 'fiscal_consolidation'],
+    ['currency_pressure', 'currency_appreciation'],
   ]
 
   /** How far from cancelling a pair may be, as a share of its larger half. */

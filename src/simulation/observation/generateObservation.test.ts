@@ -245,6 +245,7 @@ describe('the observation set exposes no latent state', () => {
   it('carries only the documented published fields', () => {
     expect(Object.keys(observeAt(hardRun, HORIZON)).sort()).toEqual([
       'clues',
+      'diagnosis',
       'forecasts',
       'indicators',
       'meetingIndex',
@@ -253,18 +254,68 @@ describe('the observation set exposes no latent state', () => {
     ])
   })
 
+  it('names the shock on easy and withholds the name on hard', () => {
+    expect(observeAt(hardRun, HORIZON).diagnosis).toBeNull()
+    const easy = observeAt(easyRun, 8).diagnosis
+    expect(easy).not.toBeNull()
+    expect(easy!.evidence.length).toBeGreaterThan(0)
+  })
+
   it('publishes no series for a latent variable the player must infer', () => {
     const published = Object.keys(observeAt(hardRun, HORIZON).indicators)
     for (const hidden of [
       'anchoring',
       'credibility',
-      'neutralRealRate',
       'potentialGrowth',
       'naturalUnemployment',
       'supplyShock',
       'demandShock',
     ]) {
       expect(published).not.toContain(hidden)
+    }
+  })
+})
+
+/**
+ * The neutral rate is the one structural constant the player is given, because
+ * without it the words "restrictive" and "accommodative" have no referent. It
+ * is given as an estimate, never as the truth: the run's own r* stays hidden
+ * behind a fixed error the player never gets to learn.
+ */
+describe('the neutral rate reaches the player only as an estimate', () => {
+  it('is published, so policy stance can be stated in words', () => {
+    expect(observeAt(hardRun, HORIZON).indicators.neutral_rate_estimate?.value).toBeTypeOf(
+      'number',
+    )
+  })
+
+  it('never equals the run’s true neutral rate', () => {
+    const estimate = observeAt(hardRun, HORIZON).indicators.neutral_rate_estimate!.value
+    expect(estimate).not.toBe(hardRun.latent.neutralRealRate)
+  })
+
+  it('holds the same error all run, rather than jittering around the truth', () => {
+    const readings = [8, 12, 16, 20, HORIZON].map(
+      (meeting) => observeAt(hardRun, meeting).indicators.neutral_rate_estimate!.value,
+    )
+    expect(new Set(readings).size).toBe(1)
+  })
+
+  // The realised error is a single draw and would make a flaky comparison, so
+  // this pins the band the player is *told* about, which is deterministic.
+  it('declares a far narrower error band on easy than on hard', () => {
+    const easyBand = observeAt(easyRun, 8).indicators.neutral_rate_estimate!.uncertainty
+    const hardBand = observeAt(hardRun, HORIZON).indicators.neutral_rate_estimate!
+      .uncertainty
+    expect(easyBand).toBeGreaterThan(0)
+    expect(easyBand).toBeLessThan(hardBand)
+  })
+
+  it('is never missing, unlike the statistics around it', () => {
+    for (let meeting = 0; meeting <= HORIZON; meeting += 1) {
+      expect(observeAt(hardRun, meeting).indicators.neutral_rate_estimate?.missing).toBe(
+        false,
+      )
     }
   })
 })

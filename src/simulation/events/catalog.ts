@@ -518,6 +518,47 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     followUps: [],
     requires: [],
   },
+  {
+    id: 'currency_appreciation',
+    family: 'exchange_rate',
+    title: 'Currency rallies on safe-haven inflows',
+    newswire:
+      'The currency climbs against its main partners as investors seek a ' +
+      'stable home for capital. Importers pass the savings into shelf prices; ' +
+      'exporters warn about lost competitiveness.',
+    clue: 'Speculative positioning in favour of the currency has reached a multi-year extreme.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.9,
+    cooldownMeetings: 4,
+    maxOccurrences: 3,
+    // The mirror of `currency_pressure`, paired by magnitude throughout. It
+    // was the one direction the exchange rate could not move: every other
+    // family had its counterpart, and the missing one showed up as exactly
+    // the residual inflation tilt the balance guard flags on medium.
+    isEligible: () => true,
+    // Inflows favour the currency of a calm, credible bloc — the mirror of
+    // pressure building when volatility runs above its base.
+    weight: (ctx) =>
+      (ctx.institution === 'ecb' ? 1.4 : 0.9) +
+      Math.max(0, VOLATILITY.base - ctx.latent.marketVolatility) / 40,
+    immediate: (ctx) => [
+      { variable: 'exchangeRate', delta: 7 },
+      { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? -6 : -3.5 },
+      { variable: 'marketVolatility', delta: -3 },
+    ],
+    delayed: (ctx) => [
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? -0.35 : -0.15 },
+        ],
+      },
+      { delaySteps: THREE_MEETINGS, effects: [{ variable: 'outputGap', delta: -0.2 }] },
+    ],
+    followUps: [],
+    requires: [],
+  },
 
   // ---- Wages --------------------------------------------------------------
   {

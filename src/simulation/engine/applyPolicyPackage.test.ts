@@ -76,8 +76,21 @@ describe('an action is rejected when it is unavailable', () => {
       codesFor(easy, only([{ instrument: 'asset_purchases', magnitude: 2 }])),
     ).toEqual(['unavailable_at_difficulty'])
     expect(
-      codesFor(easy, only([{ instrument: 'forward_guidance', magnitude: 50 }])),
+      codesFor(easy, only([{ instrument: 'balance_sheet_runoff', magnitude: 1 }])),
     ).toEqual(['unavailable_at_difficulty'])
+  })
+
+  it('opens forward guidance from easy, at its narrower easy range', () => {
+    // The second instrument of the easy mode: available from the start, but
+    // capped at ±100bp like the policy rate itself. See docs/DIRECTION.md.
+    const easy = stateFor('fed', 'easy')
+    expect(
+      validatePolicyPackage(easy, only([{ instrument: 'forward_guidance', magnitude: 50 }]))
+        .ok,
+    ).toBe(true)
+    expect(
+      codesFor(easy, only([{ instrument: 'forward_guidance', magnitude: 125 }])),
+    ).toEqual(['above_maximum'])
   })
 
   it('accepts the same instrument once its difficulty is reached', () => {

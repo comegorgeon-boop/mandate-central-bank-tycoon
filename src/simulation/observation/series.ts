@@ -302,6 +302,32 @@ export const SERIES: readonly SeriesDefinition[] = [
     decimals: 1,
     institutions: BOTH,
   },
+  {
+    id: 'credibility_index',
+    label: 'Institutional credibility',
+    unit: 'index',
+    definition:
+      'Survey of forecasters and market participants on whether this ' +
+      'institution will do what it says. It is the exchange rate between ' +
+      'your words and their effect: every announcement is discounted by it.',
+    meaning:
+      'A rise means promises about the rate path move expectations and ' +
+      'market prices more; a fall means the same words do less. Keeping a ' +
+      'published promise builds it, breaking or quietly rewriting one costs ' +
+      `it. Below ${THRESHOLDS.dismissal.watchCredibility} the institution is ` +
+      `considered damaged, and a collapse held below ` +
+      `${THRESHOLDS.dismissal.failCredibility} for ` +
+      `${THRESHOLDS.dismissal.meetingsToFail} consecutive meetings ends the ` +
+      'mandate. Forgiving difficulties move both of those bars further out.',
+    read: (latent) => latent.credibility,
+    category: 'survey',
+    publicationLagMeetings: 0,
+    revisionLagMeetings: 0,
+    baseNoiseSd: 2.0,
+    baseRevisionSd: 0,
+    decimals: 0,
+    institutions: BOTH,
+  },
 
   // ---- Policy and markets. Observed exactly: these are prices. ------------
   {

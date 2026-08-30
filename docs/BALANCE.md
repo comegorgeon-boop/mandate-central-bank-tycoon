@@ -969,6 +969,142 @@ target more than a fifth of the time, and the best trajectories are still the
 it also does not create a decision problem.** That is the second-instrument
 question, which is docs/DIRECTION.md's territory, not further catalog tuning.
 
+---
+
+# The second instrument: communication and guidance
+
+Engine 1.2.0. Built to the direction in docs/DIRECTION.md after the plan was
+validated: guidance and a binding commitment open from easy, the market answers
+words the day they are said, and credibility finally moves. Everything below is
+measured, and `engine/guidance.test.ts` pins all of it.
+
+## The mechanism: three clocks and a promise ledger
+
+A package now carries, besides the rate, an **announced path** (forward
+guidance, ±100bp from the new rate on easy) and a **commitment strength**
+(`none` / `weak_bias` / `conditional_path` — the first binding rung, opened at
+easy because without it a commitment is never a promise and the credibility
+mechanic is unreachable). Three clocks:
+
+- **The same day.** `applyPolicyPackage` jumps `marketExpectedRate` toward the
+  announced path by `guidanceMarketJump × credibility × commitment × reach`.
+  Measured: **+0.16pp** for a +100bp announcement at credibility 71 under a
+  conditional commitment — readable at once on a series published exactly.
+- **Between meetings.** The standing announcement pulls one-year expectations
+  through `EXPECTATIONS.guidancePull` (sensitivity raised 0.25 → 0.5).
+  Measured, one announcement never renewed: −0.10pp after two meetings,
+  −0.19pp after eight, and **−0.15pp of headline by the end of the mandate** —
+  the head start over the rate channel, which must first cross the output gap.
+- **At maturity.** A promise describes the rate "roughly a year out", so at
+  `GUIDANCE_HORIZON_MEETINGS` (8 = one year) it comes due: delivered within
+  0.5pp, or broken — then it expires either way, because a promise about next
+  year cannot pull expectations three years later.
+
+**The promise ledger** is what makes talk an advance rather than a gift.
+Five exploits were closed while building it, the last two found by the guards
+themselves:
+
+1. Holding forever under a hawkish promise used to *accrue* kept-promise
+   credit. Now only a delivered step toward the path earns credit.
+2. A promise to stop (announced path = current rate) had no sign and could
+   never be broken. Now judged by distance: any move off a promised pause
+   breaks it — and an overshoot past a promised path is judged like an
+   abandonment, in either direction.
+3. Restating a promise every meeting reset its clock, so it never matured.
+   A restatement within tolerance now keeps the original clock.
+4. Walking a promise back *with words* — rewriting the path by more than the
+   delivery tolerance, or withdrawing the commitment while the path is
+   undelivered — is a broken promise, same as a contrary move. But a promise
+   the rate has already reached is settled **kept** when replaced: stepping
+   down after arriving is mission accomplished, not a walk-back. (The first
+   version got this wrong and punished the honest rule for converging.)
+5. The shock-justification escape hatch used a flat bar, and a year of
+   ordinary economic weather drifts past it — so nearly every default at
+   maturity was excused. The bar now scales with the promise's age: an old
+   promise is only excused by a genuine upheaval, not by the year having
+   happened.
+
+## The falsifiable criterion, and its verdict
+
+The commitment made before building: **a staff rule announcing its own
+intentions honestly must beat the same rule staying silent, and the same rule
+announcing a path it never delivers must lose to silence — or the axis is
+cosmetic and does not ship.** `policy/guidedStaffRule.ts` implements the three
+modes; the comparison is paired per seed, events on, 120 seeds, so the shocks
+are identical inside each pair and the difference is caused by the words alone.
+
+| easy bucket | honest − silent, paired | bluff − silent, paired |
+| --- | --- | --- |
+| fed | **+33.3** (se 4.6), wins 84 % | **−152.3** (se 20.4) |
+| ecb | **+50.0** (se 6.9), wins 74 % | **−164.1** (se 34.8) |
+
+The unpaired medians (+5 on fed) understate the honest gain badly — seed
+variance swamps it — which is why the pinned test asserts the paired mean.
+The ledger separates the two for the right reason: the honest rule breaks 0.1
+promises per mandate and keeps 4; the bluffer defaults about three times and
+pays each one. Bluffing also degrades through the *existing* surprise channel:
+a market that priced the promised path is negatively surprised at every
+meeting the delivery fails to arrive.
+
+Both halves of the criterion **pass**, with margins pinned at less than a third
+of the measured effects (`the falsifiable criterion` in guidance.test.ts).
+
+## The sweep, engine 1.2.0
+
+150 seeds per bucket. `with honest guidance` is the new column.
+
+| bucket | doing nothing | staff rule | staff + honest guidance |
+| --- | --- | --- | --- |
+| fed/easy | 6816 (100 %) | 6848 (100 %) | **6904** (100 %) |
+| fed/medium | **7163** (99 %) | 7073 (99 %) | 7118 (99 %) |
+| fed/hard | 6261 (27 %) | 6122 (30 %) | 6512 (**3 %**) |
+| ecb/easy | 6464 (100 %) | 6637 (100 %) | **6687** (100 %) |
+| ecb/medium | 5985 (99 %) | 6149 (99 %) | **6328** (99 %) |
+| ecb/hard | 2892 (19 %) | 2927 (23 %) | 3234 (**3 %**) |
+
+Three findings:
+
+- **The guided rule outscores the silent one on all six buckets.** The second
+  instrument is worth points everywhere, not just where the criterion demanded
+  it.
+- **fed/medium regressed to passive-dominant** (7163 against 7118). The
+  rebalanced catalog leaves less inflation to correct, which re-exposes the
+  long-standing structural finding on the Fed: an opening near both objectives
+  gives policy little to earn. This is the pre-existing open item, not a
+  regression of this build; the recorded next check (open the economy further
+  from equilibrium) is unchanged, and DIRECTION.md's designed openings are the
+  real answer.
+- **On hard, honest conditional commitment is a death sentence: 3 % completion,
+  27 of 40 failures by dismissal, 3.3 broken promises per run.** Hard's
+  observation noise (×1.7) makes the rule's own target jump between meetings,
+  so it keeps verbally rewriting a binding promise and bleeds credibility at
+  8.1 a break. This is emergent and *correct* — committing firmly to a path
+  read off data you cannot trust should be lethal, and it makes commitment
+  strength a real skill decision at high difficulty — but it means any future
+  hard-mode advisor must modulate commitment with uncertainty, and hard's
+  balance work must not treat the honest-guided rule as a safe benchmark.
+
+## Collateral of the version bump
+
+Bumping to 1.2.0 reseeds every measured guard. The balance suite's
+net-per-meeting statistic moved by its own sampling error (±0.04 at 60 runs)
+and exposed two things: the test needed 150 runs for its band to mean anything,
+and **medium had a real residual tilt of +0.07 to +0.10 per meeting hiding
+under the old seeds — traced to `currency_pressure`, the one medium+ event
+with no counterpart.** The currency could only ever fall. `currency_appreciation`
+is its magnitude-exact mirror (safe-haven inflows: import prices down, later
+headline down, exports pinched), added to the paired-magnitude check. Measured
+at 150 runs the six buckets now sit at −0.049 to +0.054 net per meeting,
+inside the ±0.08 band with ≥30 % margin, ratios 0.91–1.29.
+
+## What the player sees
+
+`credibility_index` is now a published series (survey, exact-ish: noise 2.0
+before difficulty scaling, no lag, no revisions), so the resource the promise
+ledger spends and rebuilds is on the table like any other number, quoting the
+dismissal thresholds from config. The UI that collects the package — plain
+language, the numbers as footnotes — is the second commit of this pass.
+
 ### Where this leaves the four fixes
 
 The first three stand and are unaffected. The fourth — the calibration — moved
@@ -993,3 +1129,4 @@ Every finding above is now a test rather than a paragraph.
 | `the evidence that identifies a shock stays above the noise` | the headline-core wedge sinks under the combined print error |
 | `events/balance.test.ts` | the delivered inflationary/disinflationary impulse ratio leaves 0.7-1.5, net delivery per meeting leaves ±0.08, or a shock/relief pair stops cancelling at calm and stressed states |
 | `observation/descriptions.test.ts` | indicator copy quotes a number no engine constant accounts for |
+| `engine/guidance.test.ts` | words stop moving markets the day they are said, distrust stops discounting them, any promise-ledger exploit reopens, honest guidance stops beating silence, or bluffing stops costing |

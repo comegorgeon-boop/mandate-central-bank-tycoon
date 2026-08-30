@@ -1,8 +1,11 @@
 # Design direction, from the phase-3 playthroughs
 
-Recorded after three full Fed/easy mandates. **Nothing here is implemented.**
-This file exists so the findings survive while they are fresh; the balancing
-work in docs/BALANCE.md is separate and must not be confused with it.
+Recorded after three full Fed/easy mandates. **Nothing here was implemented
+when recorded; point 1's engine side is now built** — see "The second
+instrument" in docs/BALANCE.md for the mechanism, the measurements and the
+falsifiable criterion it shipped against. This file exists so the findings
+survive while they are fresh; the balancing work in docs/BALANCE.md is
+separate and must not be confused with it.
 
 The order below is the player's, not a priority ranking imposed afterwards.
 

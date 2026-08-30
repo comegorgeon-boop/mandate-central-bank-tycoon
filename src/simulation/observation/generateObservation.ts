@@ -17,6 +17,7 @@ import { YEARS_PER_MEETING } from '../config/time.ts'
 import { taylorBenchmark } from '../engine/indices.ts'
 import { runSeedString } from '../engine/initialState.ts'
 import { FORECAST_SERIES, getSeries, seriesFor } from './series.ts'
+import { diagnoseShock } from './diagnose.ts'
 
 /**
  * The observation layer: everything the player is allowed to see.
@@ -33,8 +34,17 @@ import { FORECAST_SERIES, getSeries, seriesFor } from './series.ts'
  * print never silently changes once it has been published.
  */
 
-/** Published vintages kept for the trend sparkline. */
-const TREND_LENGTH = 6
+/**
+ * Published vintages kept for the trend chart.
+ *
+ * The whole mandate, because in macroeconomics the direction of travel carries
+ * more than the level: a single number shows no trend at all, and a window
+ * shorter than the mandate hides the turn the player is being judged on.
+ * Periods before the run opened come back as nulls and simply do not plot.
+ */
+function trendLength(state: SimulationState): number {
+  return state.config.meetingCount + 1
+}
 
 /** Standard normal quantiles for the fan chart bands. */
 const Z_10 = 1.2816
@@ -84,7 +94,10 @@ function publishedValue(
 
   const noiseSd =
     series.baseNoiseSd * difficulty.observationNoiseScale * (vintage === 0 ? 1 : 0.3)
-  const noise = hashGaussian(0, noiseSd, seed, 'noise', series.id, referencePeriod, vintage)
+  // A persistent error is drawn once for the run, so every period of the
+  // series is wrong by the same unknown amount rather than jittering.
+  const noisePeriod = series.persistentError === true ? 0 : referencePeriod
+  const noise = hashGaussian(0, noiseSd, seed, 'noise', series.id, noisePeriod, vintage)
 
   const bias =
     vintage === 0
@@ -110,6 +123,9 @@ function isMissing(
 ): boolean {
   // A market price is always there. Only statistics and estimates go missing.
   if (series.category === 'market_data') return false
+  // A standing structural estimate is always on the table: it is carried over
+  // from the last review rather than re-published each meeting.
+  if (series.persistentError === true) return false
   if (difficulty.missingObservationProbability <= 0) return false
   return (
     hashUnit(seed, 'missing', series.id, referencePeriod) <
@@ -173,7 +189,7 @@ function observeSeries(
   }
 
   const trend: (number | null)[] = []
-  for (let back = TREND_LENGTH - 1; back >= 0; back -= 1) {
+  for (let back = trendLength(state) - 1; back >= 0; back -= 1) {
     trend.push(readAt(currentPeriod - back))
   }
 
@@ -182,6 +198,7 @@ function observeSeries(
     label: series.label,
     unit: series.unit,
     definition: series.definition,
+    meaning: series.meaning,
     category: series.category,
     value,
     previous,
@@ -278,7 +295,7 @@ export function generateObservation(
     if (fan) forecasts.push(fan)
   }
 
-  return {
+  const published: ObservationSet = {
     meetingIndex: context.meetingIndex,
     indicators,
     forecasts,
@@ -288,5 +305,14 @@ export function generateObservation(
       taylorBenchmark(state.latent, state.config.institution),
       2,
     ),
+    diagnosis: null,
+  }
+
+  // The diagnosis reads the latent state to name the shock, so it is built
+  // last, from the published set, and only where the difficulty allows it.
+  if (!difficulty.namesShocks) return published
+  return {
+    ...published,
+    diagnosis: diagnoseShock(state.latent, published, state.config.institution),
   }
 }

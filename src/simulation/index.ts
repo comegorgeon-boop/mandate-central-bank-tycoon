@@ -84,6 +84,21 @@ export { buildEventContext, eligibleEvents, resolveEvent } from './events/resolv
 // ---- Observation ----------------------------------------------------------
 export { generateObservation } from './observation/generateObservation.ts'
 export { FORECAST_SERIES, SERIES, getSeries, seriesFor } from './observation/series.ts'
+export { diagnoseShock } from './observation/diagnose.ts'
+export {
+  readStance,
+  readStanceChange,
+  stanceAfterMove,
+  type StanceChange,
+  type StanceLabel,
+  type StanceReading,
+} from './observation/stance.ts'
+
+// ---- Policy ---------------------------------------------------------------
+export {
+  staffRecommendation,
+  type StaffRecommendation,
+} from './policy/staffRule.ts'
 
 // ---- Scoring --------------------------------------------------------------
 export { calculateScore, scoreBucketKey } from './scoring/calculateScore.ts'

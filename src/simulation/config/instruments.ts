@@ -103,7 +103,16 @@ export const INSTRUMENTS: readonly InstrumentDefinition[] = [
     max: 200,
     increment: 25,
     availableTo: BOTH,
-    availableFrom: 'medium',
+    // From easy, deliberately: the phase-3 playthroughs found a one-instrument
+    // game with nothing to decide, and guidance is the second axis — what you
+    // say about the path, against what you do to the rate. It also acts on
+    // expectations directly, on a much shorter lag than the rate channel, so
+    // easy without it is the mode where the only working instrument is the
+    // slowest one. See docs/DIRECTION.md.
+    availableFrom: 'easy',
+    rangeByDifficulty: {
+      easy: { min: -100, max: 100, increment: 25 },
+    },
     channels: ['expectations', 'interest_rate'],
     lagMeetings: [0, 3],
     label: {
@@ -279,9 +288,13 @@ export function availableInstruments(
 /**
  * Which communication choices are open at each difficulty.
  *
- * Easy mode deliberately keeps communication simple: a statement, and at most
- * a weak bias. The full four-channel system with binding commitments only
- * appears on hard, where consistency is a real constraint.
+ * Easy keeps the *surface* simple — one channel, and the tone derived from the
+ * decision rather than chosen — but the commitment ladder reaches the first
+ * binding rung. Without `conditional_path` a commitment is never a promise,
+ * promises can never be kept or broken, and the whole credibility mechanic is
+ * unreachable: the second instrument would be a label, not a lever. The
+ * strongest commitment, and the freedom to say one thing while doing another,
+ * stay where consistency is a real constraint.
  */
 export const COMMUNICATION_AVAILABILITY: Readonly<
   Record<
@@ -294,7 +307,7 @@ export const COMMUNICATION_AVAILABILITY: Readonly<
 > = {
   easy: {
     channels: ['statement'],
-    commitments: ['none', 'weak_bias'],
+    commitments: ['none', 'weak_bias', 'conditional_path'],
   },
   medium: {
     channels: ['statement', 'press_conference'],

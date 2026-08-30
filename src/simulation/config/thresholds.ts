@@ -83,3 +83,24 @@ export const THRESHOLDS = {
  * combined inflation and output-gap surprise.
  */
 export const GUIDANCE_REVERSAL_JUSTIFICATION = 1.8
+
+/**
+ * Meetings before published guidance comes due.
+ *
+ * Guidance describes the rate "roughly a year out", and eight meetings is one
+ * year at every difficulty. At maturity a binding promise is judged — the rate
+ * is within tolerance of the announced path or the promise was broken — and
+ * the guidance expires either way: a promise about next year cannot go on
+ * pulling expectations three years later. Refreshing an unchanged path keeps
+ * the original clock, so a promise cannot be kept young forever by restating
+ * it.
+ */
+export const GUIDANCE_HORIZON_MEETINGS = 8
+
+/**
+ * How far, in percentage points, the delivered rate may sit from the announced
+ * path and still count as keeping the promise — at maturity, and equally when
+ * a new announcement replaces a standing one, where a larger walk-back is a
+ * broken promise made with words instead of with the rate.
+ */
+export const GUIDANCE_DELIVERY_TOLERANCE = 0.5

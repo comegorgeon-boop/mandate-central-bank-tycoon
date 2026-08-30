@@ -446,12 +446,36 @@ export const COMMUNICATION = {
     reassuring: -0.1,
     alarmed: 0.15,
   },
-  /** Inflation-expectation response per point of guided rate stance. */
-  guidanceInflationSensitivity: 0.25,
+  /**
+   * Inflation-expectation response per point of guided rate stance.
+   *
+   * Raised from 0.25 when communication became a real instrument. The product
+   * `guidancePull × credibility × commitment × this` is the annual pull on
+   * one-year expectations per point of announced-versus-current rate gap: at
+   * credibility 60 under a conditional commitment it is now ~0.31pp/year,
+   * which makes a credible, delivered guidance worth the same order as the
+   * rate channel on an easy mandate — arriving two to four meetings sooner,
+   * because it skips the output gap. That head start is the whole reason the
+   * second instrument exists; below ~0.15pp/year it is cosmetic.
+   */
+  guidanceInflationSensitivity: 0.5,
   /** Immediate expectations nudge from tone at full credibility, pp. */
-  toneExpectationImpact: 0.12,
+  toneExpectationImpact: 0.2,
   /** Immediate market-path nudge from tone at full credibility, pp. */
   toneMarketImpact: 0.25,
+  /**
+   * Share of the gap between the priced path and a newly announced one that
+   * markets close on the day of the announcement, at full credibility and
+   * commitment, before channel reach.
+   *
+   * This is what makes the market answer *words* on the day they are said:
+   * announcing "we expect to go further" repositions `marketExpectedRate`
+   * immediately, exactly as tone already nudges it, but sized by how much of
+   * a path was announced and how much the announcer is believed. At
+   * credibility 60 under a conditional commitment, a +100bp announced path
+   * moves the priced rate by roughly +0.35pp the same day.
+   */
+  guidanceMarketJump: 0.6,
   /** Credibility lost when the words contradict the decision. */
   inconsistencyCost: 4.5,
   /** Public trust gained by a reassuring tone while the system is stressed. */

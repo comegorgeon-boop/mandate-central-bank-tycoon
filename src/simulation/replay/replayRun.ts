@@ -29,6 +29,25 @@ export interface RunSession {
   readonly state: SimulationState
   /** What the player can see at the current meeting. */
   readonly observation: ObservationSet
+  /**
+   * What the player saw at the previous meeting. Null at the first.
+   *
+   * Kept rather than recomputed, so "what changed since last time" is a
+   * comparison against the numbers actually on the table then, including the
+   * measurement error they carried.
+   */
+  readonly previousObservation: ObservationSet | null
+  /**
+   * The economy an instant after the last decision was confirmed, before any
+   * time passed. Null at the first meeting.
+   *
+   * Markets, the press and the institution's standing respond within the same
+   * turn, while inflation and unemployment take quarters. Publishing this
+   * snapshot is what makes that first channel visible: differencing it against
+   * `previousObservation` isolates what the decision itself moved, with none of
+   * the intervening economy mixed in.
+   */
+  readonly onTheDay: ObservationSet | null
   readonly outcome: EndConditionResult
   /** Ordered decisions so far, ready to be serialised. */
   readonly decisions: readonly DecisionLogEntry[]
@@ -54,6 +73,23 @@ function observe(
   })
 }
 
+/**
+ * Rewrites the current meeting's history snapshot from the live latent state.
+ *
+ * Used only to observe an intra-meeting moment — between the decision and the
+ * passage of time — and never fed back into the run: the state that advances is
+ * always the untouched one, so this cannot alter the trajectory or the replay.
+ */
+function withRestatedSnapshot(state: SimulationState): SimulationState {
+  const last = state.history.at(-1)
+  if (last === undefined || last.meetingIndex !== state.meetingIndex) return state
+
+  return {
+    ...state,
+    history: [...state.history.slice(0, -1), { ...last, latent: state.latent }],
+  }
+}
+
 /** Opens a run at its first meeting. */
 export function startRun(config: RunConfig): RunSession {
   const state = createInitialState(config)
@@ -61,6 +97,8 @@ export function startRun(config: RunConfig): RunSession {
   return {
     state,
     observation: observe(state, [], []),
+    previousObservation: null,
+    onTheDay: null,
     outcome,
     decisions: [],
     newswire: [],
@@ -100,6 +138,18 @@ export function submitMeeting(
 
   const meetingIndex = session.state.meetingIndex
 
+  // Captured before any time passes, so it holds the decision's own same-day
+  // effect on markets and nothing else.
+  //
+  // The observation layer reads `history`, not `latent` — a published figure
+  // describes a reference period, and the period it describes is the snapshot.
+  // `applyPolicyPackage` moves `latent` without touching `history`, so observing
+  // the applied state directly would report every zero-lag series at its
+  // pre-decision value and the reaction would always look inert. Restating the
+  // current meeting's snapshot from the post-decision latent is what makes the
+  // same-day channel observable at all.
+  const onTheDay = observe(withRestatedSnapshot(applied.state), [], [])
+
   // Events happen between meetings, on top of the confirmed decision.
   const resolution = resolveEvent(applied.state)
   const advanced = advanceTrueState(resolution.state)
@@ -115,6 +165,8 @@ export function submitMeeting(
     session: {
       state: advanced,
       observation: observe(advanced, newswire, resolution.clues),
+      previousObservation: session.observation,
+      onTheDay,
       outcome,
       decisions: [...session.decisions, { meetingIndex, package: pkg }],
       newswire,

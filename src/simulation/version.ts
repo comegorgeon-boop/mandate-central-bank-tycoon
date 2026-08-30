@@ -8,7 +8,7 @@
  * Local records are bucketed by this value, so runs produced by different
  * engine versions are never compared against each other.
  */
-export const SIMULATION_VERSION = '1.1.0'
+export const SIMULATION_VERSION = '1.2.0'
 
 /**
  * Version of the scoring formula only.

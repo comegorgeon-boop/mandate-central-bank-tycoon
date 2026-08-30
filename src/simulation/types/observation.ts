@@ -5,6 +5,8 @@ export type SeriesId =
   | 'headline_inflation'
   | 'core_inflation'
   | 'inflation_expectations'
+  | 'inflation_expectations_1y'
+  | 'neutral_rate_estimate'
   | 'wage_growth'
   | 'import_prices'
   | 'unemployment'
@@ -12,8 +14,10 @@ export type SeriesId =
   | 'real_growth'
   | 'output_gap_estimate'
   | 'consumer_confidence'
+  | 'credibility_index'
   | 'policy_rate'
   | 'market_expected_rate'
+  | 'market_volatility'
   | 'credit_spread'
   | 'exchange_rate'
   | 'asset_valuation'
@@ -40,8 +44,17 @@ export interface SeriesDefinition {
   readonly id: SeriesId
   readonly label: string
   readonly unit: string
-  /** Plain-English tooltip shown next to the indicator. */
+  /** Plain-English tooltip shown next to the indicator: what it measures. */
   readonly definition: string
+  /**
+   * What a rise or a fall in it means for the player.
+   *
+   * Kept separate from `definition` because knowing what a series measures and
+   * knowing what to do about it are different pieces of knowledge, and a
+   * player who has only the first cannot act on the second. No technical term
+   * appears here that the definition has not already introduced.
+   */
+  readonly meaning: string
   /** Pulls the true value out of the latent state. */
   readonly read: (latent: LatentState) => number
   readonly category: ReleaseCategory
@@ -55,6 +68,18 @@ export interface SeriesDefinition {
   readonly baseRevisionSd: number
   readonly decimals: number
   readonly institutions: readonly Institution[]
+  /**
+   * Draws the measurement error once for the whole run instead of once per
+   * reference period.
+   *
+   * For a slow-moving structural estimate — the neutral rate above all — fresh
+   * noise every meeting would be wrong twice over. It would imply the staff
+   * re-estimate from scratch each time, and it would make the number jitter
+   * around a truth that is not moving, which reads as information when it is
+   * not. A persistent error is the honest shape: the estimate is wrong by a
+   * fixed amount the player never learns, exactly as in reality.
+   */
+  readonly persistentError?: boolean
 }
 
 /**
@@ -78,6 +103,8 @@ export interface IndicatorObservation {
   readonly label: string
   readonly unit: string
   readonly definition: string
+  /** What a rise or a fall means for the player. See SeriesDefinition. */
+  readonly meaning: string
   readonly category: ReleaseCategory
   /** Latest published value; null when this release is missing. */
   readonly value: number | null
@@ -109,6 +136,31 @@ export interface ForecastFan {
   readonly bands: readonly ForecastBand[]
 }
 
+/** The family of disturbance currently dominating the economy. */
+export type ShockKind =
+  | 'supply'
+  | 'demand'
+  | 'financial'
+  | 'productivity'
+  | 'confidence'
+  | 'none'
+
+/**
+ * A named shock and the published evidence for it.
+ *
+ * Published only where the difficulty grants it. The name is the easy
+ * mandate's teaching aid; the evidence is the part that has to survive its
+ * removal, so both are assembled together and the evidence is never empty.
+ */
+export interface ShockDiagnosis {
+  readonly kind: ShockKind
+  readonly label: string
+  /** What this kind of shock does to the two halves of the mandate. */
+  readonly summary: string
+  /** Observable tells, each quoting the published series that shows it. */
+  readonly evidence: readonly string[]
+}
+
 /** Everything the player is allowed to see at one meeting. */
 export interface ObservationSet {
   readonly meetingIndex: number
@@ -123,6 +175,12 @@ export interface ObservationSet {
    * uniquely correct policy.
    */
   readonly taylorBenchmark: number
+  /**
+   * The shock in progress, named. Null wherever the difficulty withholds it,
+   * which is every difficulty above easy: reading the economy unaided is the
+   * skill the easy mandate exists to teach.
+   */
+  readonly diagnosis: ShockDiagnosis | null
 }
 
 /** Context handed to the observation layer. */

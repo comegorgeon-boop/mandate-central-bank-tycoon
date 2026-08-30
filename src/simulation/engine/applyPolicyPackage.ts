@@ -18,7 +18,11 @@ import {
   getInstrumentRange,
 } from '../config/instruments.ts'
 import { BANKING, COMMUNICATION, INSTITUTIONAL, VOLATILITY } from '../config/model.ts'
-import { GUIDANCE_REVERSAL_JUSTIFICATION } from '../config/thresholds.ts'
+import {
+  GUIDANCE_DELIVERY_TOLERANCE,
+  GUIDANCE_HORIZON_MEETINGS,
+  GUIDANCE_REVERSAL_JUSTIFICATION,
+} from '../config/thresholds.ts'
 import { effectivePolicyRate } from './initialState.ts'
 
 /**
@@ -410,47 +414,126 @@ export function applyPolicyPackage(
     }
   }
 
-  // ---- Guidance consistency ----------------------------------------------
+  // ---- The promise ledger --------------------------------------------------
+  // Guidance is a promise about where the rate will be roughly a year out,
+  // and a binding promise is judged three ways: by the moves made under it, by
+  // what replaces it, and at maturity. Three exploits this block closes, each
+  // of which made talk free: holding forever under a hawkish promise used to
+  // accrue kept-promise credit without a single delivered move; a promise of
+  // "no further moves" had no sign and so could never be broken; and restating
+  // a promise every meeting reset its clock, so it never came due.
   const prior = state.guidance
   let brokenPromises = prior.brokenPromises
   let keptPromises = prior.keptPromises
+  let carried: GuidanceState = prior
 
-  if (
-    prior.impliedRatePath !== null &&
-    COMMUNICATION.commitmentWeight[prior.commitment] >= 0.65
-  ) {
-    const promisedRemaining = prior.impliedRatePath - previousRate
-    const contradicts =
-      Math.abs(actualMove) >= 0.2 &&
-      Math.sign(promisedRemaining) !== 0 &&
-      Math.sign(actualMove) !== Math.sign(promisedRemaining)
+  const breakPromise = (): void => {
+    // The escape hatch scales with the promise's age: `shockSince` measures
+    // total drift since issuance, and a year of ordinary economic weather
+    // already drifts past the immediate-reversal bar, so a flat bar would
+    // excuse nearly every default at maturity. An old promise is only excused
+    // by a genuine upheaval, not by the year having happened.
+    const age = state.meetingIndex - prior.issuedAtMeeting
+    const bar =
+      GUIDANCE_REVERSAL_JUSTIFICATION * (1 + age / GUIDANCE_HORIZON_MEETINGS)
+    if (shockSince(state, prior.issuedAtMeeting) >= bar) return
+    brokenPromises += 1
+    latent.credibility -= INSTITUTIONAL.credibility.brokenPromise * sensitivity
+    latent.marketTrust -= INSTITUTIONAL.marketTrust.brokenPromise
+  }
 
-    if (contradicts) {
-      const justified =
-        shockSince(state, prior.issuedAtMeeting) >= GUIDANCE_REVERSAL_JUSTIFICATION
-      if (!justified) {
-        brokenPromises += 1
-        latent.credibility -=
-          INSTITUTIONAL.credibility.brokenPromise * sensitivity
-        latent.marketTrust -= INSTITUTIONAL.marketTrust.brokenPromise
+  const priorPath = prior.impliedRatePath
+  if (priorPath !== null) {
+    const binding = COMMUNICATION.commitmentWeight[prior.commitment] >= 0.65
+    const matured =
+      state.meetingIndex - prior.issuedAtMeeting >= GUIDANCE_HORIZON_MEETINGS
+
+    if (matured) {
+      // The promise comes due, today's decision included, and then expires
+      // either way: a promise about next year cannot go on pulling
+      // expectations three years later. An unbinding bias expires unjudged.
+      if (binding) {
+        if (Math.abs(newRate - priorPath) <= GUIDANCE_DELIVERY_TOLERANCE) {
+          keptPromises += 1
+        } else {
+          breakPromise()
+        }
       }
-    } else {
-      keptPromises += 1
+      carried = { ...prior, impliedRatePath: null }
+    } else if (binding && Math.abs(actualMove) >= 0.2) {
+      // Before maturity only moves are judged: a step toward the announced
+      // path is a delivery, a step away from it repudiates it — in either
+      // direction, because a path overshot is as unannounced as one abandoned
+      // — and holding is neither. The credit for a promise comes from
+      // delivering it, not from sitting under it.
+      const before = Math.abs(previousRate - priorPath)
+      const after = Math.abs(newRate - priorPath)
+      if (after > before + 1e-9) breakPromise()
+      else keptPromises += 1
     }
   }
 
   const guidanceMove = magnitudeOf(pkg, 'forward_guidance')
-  const guidance: GuidanceState =
-    guidanceMove === undefined
-      ? { ...prior, brokenPromises, keptPromises }
-      : {
-          impliedRatePath: newRate + guidanceMove / 100,
-          commitment: communication?.commitment ?? 'weak_bias',
-          tone: communication?.tone ?? 'neutral',
-          issuedAtMeeting: state.meetingIndex,
-          brokenPromises,
-          keptPromises,
-        }
+  let guidance: GuidanceState
+  if (guidanceMove === undefined) {
+    guidance = { ...carried, brokenPromises, keptPromises }
+  } else {
+    const announcedPath = newRate + guidanceMove / 100
+    const commitment = communication?.commitment ?? 'weak_bias'
+
+    // Replacing an unexpired binding promise is judged by what was left of
+    // it. A promise the rate has already reached is settled — kept — and the
+    // new announcement starts a fresh one: stepping down the commitment after
+    // arriving is mission accomplished, not a walk-back. A promise still
+    // outstanding can be restated within tolerance, keeping the original
+    // clock so maturity cannot be postponed forever; rewriting it further
+    // than that, or withdrawing the commitment while the path is undelivered,
+    // is the promise broken with words instead of with the rate.
+    let issuedAt = state.meetingIndex
+    const carriedPath = carried.impliedRatePath
+    if (
+      carriedPath !== null &&
+      COMMUNICATION.commitmentWeight[carried.commitment] >= 0.65
+    ) {
+      const outstanding = Math.abs(carriedPath - newRate)
+      const rewritten = Math.abs(announcedPath - carriedPath)
+      const withdrawn = COMMUNICATION.commitmentWeight[commitment] < 0.65
+      if (outstanding <= GUIDANCE_DELIVERY_TOLERANCE) {
+        keptPromises += 1
+      } else if (rewritten > GUIDANCE_DELIVERY_TOLERANCE || withdrawn) {
+        breakPromise()
+      } else {
+        issuedAt = carried.issuedAtMeeting
+      }
+    }
+
+    guidance = {
+      impliedRatePath: announcedPath,
+      commitment,
+      tone: communication?.tone ?? 'neutral',
+      issuedAtMeeting: issuedAt,
+      brokenPromises,
+      keptPromises,
+    }
+  }
+
+  // ---- The priced path answers the announced one, the same day -------------
+  // Sized by how much of a path was announced and how much the announcer is
+  // believed — with the credibility the announcement itself just cost, so a
+  // volte-face is discounted the moment it is made.
+  if (guidanceMove !== undefined && guidance.impliedRatePath !== null) {
+    const reach = communication ? COMMUNICATION.channelReach[communication.channel] : 1
+    const jump = clamp(
+      COMMUNICATION.guidanceMarketJump *
+        (latent.credibility / 100) *
+        COMMUNICATION.commitmentWeight[guidance.commitment] *
+        reach,
+      0,
+      1,
+    )
+    latent.marketExpectedRate +=
+      jump * (guidance.impliedRatePath - latent.marketExpectedRate)
+  }
 
   // ---- Cost of an internally contradictory package ------------------------
   let contradictionCost = 0

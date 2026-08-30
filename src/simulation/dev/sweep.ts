@@ -24,6 +24,8 @@ import { POLICY_RATE_FLOOR } from '../config/instruments.ts'
 import { createRunConfig } from '../engine/initialState.ts'
 import { calculateScore } from '../scoring/calculateScore.ts'
 import { playRun } from '../replay/replayRun.ts'
+import { staffRecommendation } from '../policy/staffRule.ts'
+import { guidedStaffPackage } from '../policy/guidedStaffRule.ts'
 
 /** Seeded runs per institution and difficulty. */
 const RUNS_PER_BUCKET = 150
@@ -74,6 +76,32 @@ function reactionRule(
   }
 }
 
+/**
+ * The rule the staff actually advise from, played as a policy.
+ *
+ * Same module the Policy Desk uses, so the recommendation the player is shown
+ * is the recommendation measured here. docs/BALANCE.md previously reported
+ * results for a core-targeting rule that had never been committed; this is it,
+ * and from here its performance is a fact rather than a recollection.
+ */
+function staffRule(
+  session: RunSession,
+  institution: Institution,
+  difficulty: Difficulty,
+): PolicyPackage {
+  const advice = staffRecommendation(session.observation, institution, difficulty)
+  const magnitude = advice?.basisPoints ?? 0
+  return {
+    actions: magnitude === 0 ? [] : [{ instrument: 'policy_rate', magnitude }],
+    communication: {
+      tone: magnitude > 0 ? 'hawkish' : magnitude < 0 ? 'dovish' : 'neutral',
+      emphasis: 'data_dependence',
+      commitment: 'weak_bias',
+      channel: 'statement',
+    },
+  }
+}
+
 function quantile(sorted: readonly number[], fraction: number): number {
   if (sorted.length === 0) return 0
   const index = Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))
@@ -101,11 +129,15 @@ function main(): void {
       const scores: number[] = []
       const smoothedScores: number[] = []
       const passiveScores: number[] = []
+      const staffScores: number[] = []
+      const guidedScores: number[] = []
       const outcomes = new Map<EndConditionId, number>()
       const clampedVariables = new Map<string, number>()
       let completed = 0
       let smoothedCompleted = 0
       let passiveCompleted = 0
+      let staffCompleted = 0
+      let guidedCompleted = 0
 
       for (let index = 0; index < RUNS_PER_BUCKET; index += 1) {
         const config = createRunConfig({
@@ -142,6 +174,22 @@ function main(): void {
         passiveScores.push(calculateScore(passive.state, passive.outcome).score)
         if (passive.outcome.status === 'completed') passiveCompleted += 1
 
+        // The rule the staff advise from in game, targeting core inflation.
+        const staff = playRun(config, (current) =>
+          staffRule(current, institution, difficulty),
+        )
+        staffScores.push(calculateScore(staff.state, staff.outcome).score)
+        if (staff.outcome.status === 'completed') staffCompleted += 1
+
+        // The same rule announcing its own intentions honestly — the second
+        // instrument played straight. guidance.test.ts pins that this beats
+        // the silent rule on easy and that bluffing loses to it.
+        const guided = playRun(config, (current) =>
+          guidedStaffPackage(current, institution, difficulty, 'honest'),
+        )
+        guidedScores.push(calculateScore(guided.state, guided.outcome).score)
+        if (guided.outcome.status === 'completed') guidedCompleted += 1
+
         const outcome = session.outcome.triggered
         if (outcome) outcomes.set(outcome, (outcomes.get(outcome) ?? 0) + 1)
       }
@@ -149,6 +197,8 @@ function main(): void {
       scores.sort((a, b) => a - b)
       smoothedScores.sort((a, b) => a - b)
       passiveScores.sort((a, b) => a - b)
+      staffScores.sort((a, b) => a - b)
+      guidedScores.sort((a, b) => a - b)
       const completionRate = completed / RUNS_PER_BUCKET
 
       const summary = [...outcomes.entries()]
@@ -169,22 +219,33 @@ function main(): void {
 
       const passiveRate = passiveCompleted / RUNS_PER_BUCKET
       const smoothedRate = smoothedCompleted / RUNS_PER_BUCKET
+      const staffRate = staffCompleted / RUNS_PER_BUCKET
+      const guidedRate = guidedCompleted / RUNS_PER_BUCKET
       const activeMedian = quantile(scores, 0.5)
       const smoothedMedian = quantile(smoothedScores, 0.5)
       const passiveMedian = quantile(passiveScores, 0.5)
+      const staffMedian = quantile(staffScores, 0.5)
+      const guidedMedian = quantile(guidedScores, 0.5)
 
       console.log(
         `${' '.repeat(14)} ignoring the noisy gap: ${String(smoothedMedian).padEnd(6)}` +
           ` (${(smoothedRate * 100).toFixed(0)} %)   doing nothing: ${String(passiveMedian).padEnd(6)}` +
           ` (${(passiveRate * 100).toFixed(0)} %)`,
       )
+      console.log(
+        `${' '.repeat(14)} staff rule (core):      ${String(staffMedian).padEnd(6)}` +
+          ` (${(staffRate * 100).toFixed(0)} %)   with honest guidance: ${String(guidedMedian).padEnd(6)}` +
+          ` (${(guidedRate * 100).toFixed(0)} %)`,
+      )
 
       // A difficulty must be winnable when played well and losable when not.
-      if (completionRate === 0 && smoothedRate === 0) {
+      if (completionRate === 0 && smoothedRate === 0 && staffRate === 0 && guidedRate === 0) {
         console.log(`      ! ${institution}/${difficulty}: never survived under any rule. Unwinnable as configured.`)
         warnings += 1
       }
-      if (Math.max(activeMedian, smoothedMedian) <= passiveMedian) {
+      if (
+        Math.max(activeMedian, smoothedMedian, staffMedian, guidedMedian) <= passiveMedian
+      ) {
         console.log(`      ! ${institution}/${difficulty}: no rule scores better than doing nothing.`)
         warnings += 1
       }

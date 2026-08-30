@@ -46,6 +46,22 @@ export interface DifficultyConfig {
   readonly scoreMultiplier: number
   /** Whether estimated direction-of-effect hints are shown during the run. */
   readonly showsPolicyHints: boolean
+  /**
+   * Whether the shock in progress is named outright.
+   *
+   * The evidence that identifies a shock is published at every difficulty; only
+   * the name is withheld. That ordering is deliberate — a player who learned
+   * the name without the evidence would have learned nothing transferable.
+   */
+  readonly namesShocks: boolean
+  /**
+   * Whether the staff put a recommendation to the committee before it decides.
+   *
+   * At easy the rule is reliable. When the higher difficulties are built it
+   * stays on the same noisy published data as the player, so it becomes a
+   * fallible colleague rather than an oracle that has to be taken away.
+   */
+  readonly showsStaffRecommendation: boolean
   /** Whether a communication package is required at each meeting. */
   readonly requiresCommunication: boolean
 }
@@ -68,6 +84,8 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     breachPatience: 1,
     scoreMultiplier: 0.85,
     showsPolicyHints: true,
+    namesShocks: true,
+    showsStaffRecommendation: true,
     requiresCommunication: false,
   },
   medium: {
@@ -87,6 +105,8 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     breachPatience: 0,
     scoreMultiplier: 1.0,
     showsPolicyHints: false,
+    namesShocks: false,
+    showsStaffRecommendation: false,
     requiresCommunication: true,
   },
   hard: {
@@ -106,6 +126,8 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     breachPatience: 0,
     scoreMultiplier: 1.15,
     showsPolicyHints: false,
+    namesShocks: false,
+    showsStaffRecommendation: false,
     requiresCommunication: true,
   },
 }

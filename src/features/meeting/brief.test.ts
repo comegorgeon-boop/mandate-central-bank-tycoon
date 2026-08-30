@@ -21,6 +21,7 @@ function indicator(
     label: seriesId,
     unit: '%',
     definition: 'test series',
+    meaning: 'a rise means more, a fall means less',
     category: 'official_statistic',
     value,
     previous,
@@ -40,6 +41,7 @@ function observation(overrides: Partial<ObservationSet> = {}): ObservationSet {
     newswire: [],
     clues: [],
     taylorBenchmark: 3,
+    diagnosis: null,
     ...overrides,
   }
 }
