@@ -5,11 +5,15 @@ import { MEETING_COUNT, SUBSTEPS_PER_MEETING } from '../config/time.ts'
 import { buildLagKernel } from './lags.ts'
 import {
   HOLD,
+  READABLE_MULTIPLE,
   difference,
   holds,
+  invisibleEffect,
   pathOf,
   playWithoutEvents,
+  publishedNoiseSd,
   rateMove,
+  readableEffect,
   testConfig,
 } from '../testing/harness.ts'
 
@@ -20,6 +24,19 @@ import {
  * shares its seed. Because the number of random draws per sub-step does not
  * depend on the state, the two runs see exactly the same shock sequence, so
  * every difference between them is caused by the intervention under test.
+ *
+ * **Every claim about whether an effect is visible or negligible is stated in
+ * multiples of that series' own published error, never as a bare number.** A
+ * bare threshold cannot tell a working instrument from a broken one: this file
+ * used to require a 100bp hike to move core inflation by 0.02pp over a whole
+ * mandate, which is a third of the measurement noise on core inflation, and it
+ * passed on an economy where the policy rate did essentially nothing. See
+ * `publishedNoiseSd` in the harness, and docs/BALANCE.md.
+ *
+ * The bar is deliberately demanding — three standard deviations of a *single*
+ * print. A player reading several consecutive prints does better than that by
+ * roughly the square root of their number, so an effect that clears this bar is
+ * comfortably legible, and one that does not is a coin flip.
  */
 
 /**
@@ -54,7 +71,8 @@ describe('policy acts with a lag, not instantly', () => {
   })
 
   it('barely moves core inflation after one meeting', () => {
-    expect(Math.abs(coreEffect[1])).toBeLessThan(0.05)
+    // Invisible means invisible *to the player*: below the error on the print.
+    expect(Math.abs(coreEffect[1])).toBeLessThan(invisibleEffect('core_inflation', 'hard'))
   })
 
   it('barely moves the output gap after one meeting', () => {
@@ -63,7 +81,7 @@ describe('policy acts with a lag, not instantly', () => {
 
   it('has clearly tightened by the end of the horizon', () => {
     expect(gapEffect[HORIZON]).toBeLessThan(-1)
-    expect(coreEffect[HORIZON]).toBeLessThan(-0.25)
+    expect(coreEffect[HORIZON]).toBeLessThan(-readableEffect('core_inflation', 'hard'))
   })
 
   it('has barely started after one meeting relative to where it ends', () => {
@@ -75,8 +93,9 @@ describe('policy acts with a lag, not instantly', () => {
 
   it('has still not fully reached inflation after one year', () => {
     // Eight meetings is a full year of holding the stance. Inflation should
-    // have moved, but only slightly, and by much less than output.
-    expect(Math.abs(coreEffect[8])).toBeLessThan(0.1)
+    // have moved, but by much less than output — and by much less than it
+    // eventually will.
+    expect(Math.abs(coreEffect[8])).toBeLessThan(Math.abs(coreEffect[HORIZON]) * 0.6)
     expect(Math.abs(coreEffect[8])).toBeLessThan(Math.abs(gapEffect[8]))
   })
 
@@ -177,6 +196,10 @@ describe('every difficulty closes the loop inside its own mandate', () => {
       pathOf(treatment, 'inflationCore'),
       pathOf(control, 'inflationCore'),
     )
+    const headlineEffect = difference(
+      pathOf(treatment, 'inflationHeadline'),
+      pathOf(control, 'inflationHeadline'),
+    )
 
     describe(difficulty, () => {
       it('has barely moved after one meeting', () => {
@@ -184,10 +207,20 @@ describe('every difficulty closes the loop inside its own mandate', () => {
       })
 
       it('has clearly moved by the end of the mandate', () => {
-        // A single 100bp hike must be worth something the player can read
-        // before their term is over, at every difficulty.
+        // A single 100bp hike must be worth something the player can *read*
+        // before their term is over, at every difficulty — which means it has
+        // to clear the error on the print, not merely differ from zero.
+        //
+        // This is the assertion that used to read `toBeLessThan(-0.02)` and
+        // certified an effect a third the size of the noise on the series it
+        // moves. It is the reason the easy-mode deadlock reached a playthrough.
         expect(gapEffect[mandate]).toBeLessThan(-0.2)
-        expect(coreEffect[mandate]).toBeLessThan(-0.02)
+        expect(coreEffect[mandate]).toBeLessThan(
+          -readableEffect('core_inflation', difficulty),
+        )
+        expect(headlineEffect[mandate]).toBeLessThan(
+          -readableEffect('headline_inflation', difficulty),
+        )
       })
 
       it('reaches output before it reaches inflation', () => {
@@ -201,6 +234,81 @@ describe('every difficulty closes the loop inside its own mandate', () => {
           expect(gapEffect[meeting]).toBeLessThanOrEqual(gapEffect[meeting - 1] + 1e-9)
         }
       })
+    })
+  }
+})
+
+describe('the output gap is deliberately unreadable', () => {
+  /**
+   * The one series the readability rule does not govern, pinned so the
+   * exclusion stays a decision rather than an oversight.
+   *
+   * Potential output is inferred, not measured. Drowning the real-time gap
+   * estimate in noise is what reproduces the Orphanides critique the whole
+   * engine is built around, and `staffRule.ts` targets core inflation with no
+   * gap term precisely because of it. Requiring a policy effect to clear the
+   * gap estimate's own noise would demand a 2.9pp move on easy and destroy the
+   * information problem on purpose.
+   */
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    it(`keeps the gap estimate noisier than any policy effect on ${difficulty}`, () => {
+      const mandate = MEETING_COUNT[difficulty]
+      const config = testConfig('fed', difficulty, `gap-noise-${difficulty}`)
+      const treatment = playWithoutEvents(config, [rateMove(100), ...holds(mandate)])
+      const control = playWithoutEvents(config, [HOLD, ...holds(mandate)])
+      const gapEffect = difference(
+        pathOf(treatment, 'outputGap'),
+        pathOf(control, 'outputGap'),
+      )
+
+      // Noisier than the effect it is supposed to reveal: that is the point.
+      expect(publishedNoiseSd('output_gap_estimate', difficulty)).toBeGreaterThan(
+        Math.abs(gapEffect[mandate]),
+      )
+    })
+  }
+
+  it('keeps the gap estimate the noisiest number on the table', () => {
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      for (const other of ['headline_inflation', 'core_inflation', 'unemployment'] as const) {
+        expect(publishedNoiseSd('output_gap_estimate', difficulty)).toBeGreaterThan(
+          publishedNoiseSd(other, difficulty),
+        )
+      }
+    }
+  })
+})
+
+describe('the instrument can reach the target inside the mandate', () => {
+  /**
+   * The winnability bar, as distinct from the legibility bar above.
+   *
+   * The player does not run a single 100bp hike; they run a stance. So the
+   * question this asks is the one the fed/easy playthrough failed: with the
+   * instrument used to the limit the difficulty allows, can inflation be moved
+   * by an amount that matters against the size of a typical miss?
+   *
+   * Measured as a maximum tightening trajectory against the same seed held
+   * flat, so it is the whole rate channel and nothing else.
+   */
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    const mandate = MEETING_COUNT[difficulty]
+
+    it(`moves inflation readably under maximum tightening on ${difficulty}`, () => {
+      const config = testConfig('fed', difficulty, `potency-${difficulty}`)
+      const maximum = Array.from({ length: mandate }, () => rateMove(100))
+      const treatment = playWithoutEvents(config, maximum)
+      const control = playWithoutEvents(config, holds(mandate))
+      const headlineEffect = difference(
+        pathOf(treatment, 'inflationHeadline'),
+        pathOf(control, 'inflationHeadline'),
+      )
+
+      // Comfortably clear, not marginally: a player who has to max out the
+      // instrument to produce a barely-readable effect has no room to steer.
+      expect(headlineEffect[mandate]).toBeLessThan(
+        -2 * readableEffect('headline_inflation', difficulty),
+      )
     })
   }
 })
@@ -255,7 +363,7 @@ describe('demand and supply shocks behave differently', () => {
   })
 
   it('moves output and inflation opposite ways after a supply shock', () => {
-    expect(supplyCore[2]).toBeGreaterThan(0.1)
+    expect(supplyCore[2]).toBeGreaterThan(readableEffect('core_inflation', 'hard'))
     expect(supplyGap[2]).toBeLessThan(0)
     expect(Math.sign(supplyGap[2])).not.toBe(Math.sign(supplyCore[2]))
   })
@@ -276,4 +384,52 @@ describe('demand and supply shocks behave differently', () => {
     )
     expect(supplyHeadline[1]).toBeGreaterThan(supplyCore[1])
   })
+})
+
+describe('the evidence that identifies a shock stays above the noise', () => {
+  /**
+   * The information ladder's central promise, made testable.
+   *
+   * docs/BALANCE.md: "the evidence is what persists down the ladder; the name
+   * is what gets withdrawn". A player taught only the label learns to obey a
+   * label; a player taught that headline running far ahead of core *is* a
+   * supply shock can still read the economy at hard, where nothing is named.
+   *
+   * That promise is empty unless the wedge between headline and core is
+   * actually bigger than the combined error on the two prints it is read from.
+   * If it is not, then at hard — where `namesShocks` is false — the player is
+   * being asked to identify a shock from evidence that is indistinguishable
+   * from measurement error, and the ladder's bottom rung is a bluff.
+   */
+  const LARGE_SUPPLY_SHOCK = 2.5
+
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    it(`keeps the headline-core wedge readable on ${difficulty}`, () => {
+      const config = testConfig('fed', difficulty, `wedge-${difficulty}`)
+      const control = playWithoutEvents(config, holds(4))
+      const supply = playWithoutEvents(config, holds(4), (latent) => ({
+        ...latent,
+        supplyShock: latent.supplyShock + LARGE_SUPPLY_SHOCK,
+      }))
+
+      const headline = difference(
+        pathOf(supply, 'inflationHeadline'),
+        pathOf(control, 'inflationHeadline'),
+      )
+      const core = difference(
+        pathOf(supply, 'inflationCore'),
+        pathOf(control, 'inflationCore'),
+      )
+
+      // Reading a wedge means reading two prints, so it carries both errors.
+      const wedgeNoise = Math.sqrt(
+        publishedNoiseSd('headline_inflation', difficulty) ** 2 +
+          publishedNoiseSd('core_inflation', difficulty) ** 2,
+      )
+
+      // Two meetings in: early enough that the player can still act on it.
+      const wedge = headline[2] - core[2]
+      expect(wedge).toBeGreaterThan(READABLE_MULTIPLE * wedgeNoise)
+    })
+  }
 })
