@@ -1,18 +1,21 @@
 # Reprise — where this session stopped
 
-Written at the end of the session that gave easy mode a story: violent named
-events, a healthy opening, markets that answer words during a crisis, and a
-written mandate postmortem. To be read before the next one.
+Written at the end of a two-chantier session: first, a story for easy mode
+(violent named events, a healthy opening, markets that answer words during a
+crisis, a written postmortem); second, fixing the score so sabotage actually
+costs and a mandate can genuinely be lost. To be read before the next one.
 `docs/BALANCE.md` and `docs/DIRECTION.md` are the permanent record; this file
 is a handoff and can be deleted once its open items are folded into those
 two.
 
 ## Branch state
 
-`balance/easy-mode-transmission`, five commits ahead of last session's
+`balance/easy-mode-transmission`, seven commits ahead of last session's
 stopping point, tree clean:
 
 ```
+9d1b08f Make sabotage actually cost, and make it possible to lose
+3adb16c Record tonight's stopping point: a story, listenable markets, a postmortem
 a249ef0 Mark DIRECTION.md point 4 built, now that the postmortem report exists
 d2e38b5 Write the mandate postmortem: what happened, what you did, why this score
 8b5d6b7 Re-verify winnability and the symmetry guard, write up the findings
@@ -20,109 +23,109 @@ d2e38b5 Write the mandate postmortem: what happened, what you did, why this scor
 edd6602 Give easy mode a story: a healthy opening, a named crisis, living news
 ```
 
-`npm run build`, `npm test` (415 tests, up from 392), and `npm run
-sim:sweep` all green as of this commit. `main` is untouched. Not merged.
-Verified end to end in a real browser too (Playwright driven directly
-against the Vite dev server — no project run-skill existed for this app; a
-future session may want `/run-skill-generator` to capture that setup).
+`npm run build`, `npm test` (425 tests, up from 392 at the start of the
+night), and `npm run sim:sweep` all green as of this commit. `main` is
+untouched. Not merged. Verified end to end in a real browser both times
+tonight (Playwright driven directly against the Vite dev server — still no
+project run-skill for this app; worth `/run-skill-generator` if a third
+session ends up doing this again).
 
-## What the four chantiers did
+## Chantier 1: a story, and markets that answer it
 
-The user's brief, in one sentence each: nothing happened in easy mode, so
-nothing said mattered either. Fixed in the stated order.
+Six major named crises, one guaranteed at meeting 1 on easy (on an economy
+that now opens healthy instead of "moderately damaged"), a living "story so
+far" dispatch log, and communication that lands up to ~2.6x harder once
+markets are keyed up — reassurance only pays when backed by action, silence
+and hollow reassurance both cost during a real crisis. Re-verified: both
+fed/easy and ecb/easy still complete 100% of the time for competent play
+(never trapped), while medians fell 200-900 points and tails widened
+sharply — real stakes where there were none. Full writeup: docs/BALANCE.md,
+"Violent named events, and markets that answer them."
 
-1. **Violent named events.** Six major crises (`events/catalog.ts`, `tier:
-   'major'`, `easy`-only) — a geopolitical crisis, a domestic political
-   shock, a bank failure, a housing crash, a supply rupture, a market panic
-   — each 2-4x a comparable minor event, arced shock → complication →
-   uneasy stabilisation. One fires unconditionally at the first meeting of
-   every easy mandate (`events/openingCrisis.ts`), on an economy that now
-   opens healthy (`initialState.ts`'s `OPENING_PERTURBATION_SCALE`, 0.15 on
-   easy). Titles and full newswire finally reach the player — previously
-   dead data — in a dedicated `MajorEventPanel`, with a "story so far" log
-   fed by scripted dispatch lines and derived purely from `eventLog`.
-2. **Markets that answer words hard in a crisis.** `crisisIntensity(latent)`
-   in `applyPolicyPackage.ts` scales the whole communication channel by up
-   to ~2.6x at the intensity one major event produces on its own.
-   Reassurance now scales smoothly with crisis intensity and only pays when
-   backed by an actual action; hollow reassurance and silence during a real
-   crisis both cost. A "markets right now" hint on the desk, read from
-   published data only.
-3. **Re-verified, not diluted.** Both fed/easy and ecb/easy stayed at 100 %
-   completion under every rule `sim:sweep` measures, while medians fell
-   200-900 points and tails widened sharply (ecb/easy's p10: >6000 → 2554).
-   Aggressive over-tightening into the new crises now risks a real
-   banking-crisis failure (1-3/60 seeds at +100bp every meeting) where it
-   previously only raised stress modestly. The symmetry guard
-   (`events/balance.test.ts`) and the guidance falsifiable criterion both
-   hold with comfortable margins, re-measured exactly.
-4. **The written postmortem.** `features/result/report.ts`, deterministic
-   templates in `brief.ts`'s style, assembled from a finished session's own
-   data. `ResultPage.tsx` now leads with it; the score and component table
-   are a demoted "Scorecard" below.
+## Chantier 2: sabotage now costs, and you can lose
 
-Full mechanism, every measured number, and what now guards each finding as
-a test: docs/BALANCE.md, "Violent named events, and markets that answer
-them". docs/DIRECTION.md points 1, 2 (easy column) and 4 are now marked
-built; point 3 (market as a channel of play) has a first real instance.
+The player played two mandates on chantier 1's build: seriously (~7000),
+then deliberately sabotaging with alternating ±100bp and contrary
+announcements (~5500) — only 21% apart, and the mandate always completed.
+Diagnosed first, as instructed, before any fix: the transmission lag kernel
+smooths alternation almost to nothing before it reaches the real economy;
+nothing tracked a *pattern* of contradiction, only an isolated instant hit;
+and the components that stayed high regardless were over half the score's
+weight. Fixed with three easy-only mechanisms — a running contradiction
+tally, an escalating reversal cost (with a free-pivot allowance, or it broke
+the honest guided rule), and a new multiplicative conduct gate mirroring the
+ECB's existing price-stability gate. Sabotage now scores 442-640 (target
+<1500) and dismisses in 100% of seeds (target: majority), at every
+commitment level tested — an order of magnitude below serious play. A first,
+difficulty-unscoped attempt broke medium/hard badly and was caught and fixed
+before committing. Full writeup: docs/BALANCE.md, "Conduct has to cost,
+independent of the economy."
 
-## What is deliberately NOT done
+**One deliberate non-fix, worth knowing before touching this area again:**
+`features/policy/statement.ts`'s `deriveTone` discards the announced path
+when `commitment === 'none'` — a prior session's considered design ("a mere
+remark, never recorded"), not a bug. Sabotage at `commitment: 'none'` still
+dismisses reliably (the reversal cost doesn't depend on commitment level at
+all), so this was left exactly as it was.
 
-- **`SIMULATION_VERSION` was not bumped**, despite the project's own
-  convention calling for it (easy's opening and `applyPolicyPackage.ts`'s
-  coefficients both changed in ways that would replay a recorded run
-  differently). Bumping reseeds everything and pushes
-  `events/balance.test.ts`'s **ecb/medium** net-per-meeting to +0.111
-  (band ±0.08) — a bucket nothing in this session touches. The identical
-  failure mode happened once before at the 1.1.0→1.2.0 bump and turned out
-  to be a real hidden tilt (`currency_pressure` missing its mirror), not
-  noise, despite the suite's 150-seed sample. Medium is out of scope for
-  the sessions that built this; diagnosing which this is needs its own
-  investigation. Recorded in docs/BALANCE.md, not silently dropped. **The
-  version bump is still owed** — do it whenever medium-difficulty balance
-  is next in scope, immediately after (or alongside) whatever fixes that
-  ecb/medium finding.
-- **Medium and hard untouched everywhere**, exactly as instructed: no new
-  catalog content reaches them (`maxDifficulty: 'easy'`), no threshold or
-  lag constant was touched, `docs/DIRECTION.md`'s hard-mode "damaged
-  opening, no identifiable culprit" column remains unbuilt.
-- **The market is not yet a channel the player reads and times a step
-  ahead of the decision** — `docs/DIRECTION.md` point 3's fuller vision.
-  Tonight's crisis-scaled communication is a same-meeting mechanic only.
-- **DIRECTION.md points 5-6** (a summary tab; showing only what's
+## What is NOT done
+
+- **Doctrines**, and three smaller ideas (a dated objective, a press
+  conference with a question to answer, a committee no-confidence vote), are
+  written up in full in `docs/DIRECTION.md` but **not implemented**, per this
+  session's explicit instruction. That document has the design, the open
+  questions, and why doctrines specifically (tying the game to the French
+  ESH prépa syllabus the player is studying).
+- **`SIMULATION_VERSION` was not bumped**, despite real replay-affecting
+  changes across both chantiers tonight. Bumping reseeds everything and
+  exposes a pre-existing ecb/medium balance fragility unrelated to tonight's
+  work (recorded in detail under chantier 1's writeup in docs/BALANCE.md).
+  Still owed, not tonight.
+- **Medium and hard untouched** everywhere, both chantiers, as instructed
+  both times: no new catalog content reaches them, no threshold or lag
+  constant was touched, and the new conduct mechanisms are explicitly
+  gated off outside easy.
+- The market is still not a channel the player reads and times a step ahead
+  of the decision (`docs/DIRECTION.md` point 3's fuller vision) — chantier
+  1's crisis-scaled communication is a same-meeting mechanic only.
+- `docs/DIRECTION.md` points 5-6 (a summary tab; showing only what's
   actionable on easy) untouched.
-- No new balance levers were pulled beyond the event magnitudes themselves
-  — winnability held without needing `thresholdLeniency`, `breachPatience`,
-  or `MEETING_COUNT.easy` touched, so none of the "adjust elsewhere"
-  fallback options in the plan were exercised.
 
 ## Next session
 
-1. Play a fed/easy mandate (and an ecb/easy one) on this branch. This is
-   the first session where a violent, named crisis and a genuinely
-   different report screen exist together — the natural next check is
-   whether it *reads* as dramatic in play, the way the numbers say it is.
-2. If it plays well: merge to `main`, then decide between (a) medium/hard's
-   designed openings (`docs/DIRECTION.md` point 2's hard column), (b) the
-   deeper market-as-channel vision (point 3), or (c) the version-bump/
-   ecb-medium investigation, before it gets stale.
-3. If it doesn't: the plan's own fallback levers are listed above and
-   untouched, so there is room to tune without new content work.
+1. **Play fed/easy and ecb/easy again on this branch.** Two things changed
+   enough since the last playthrough to be worth re-checking in play, not
+   just in the sweep: does the opening crisis + the new stakes read as
+   *fair* when you lose (the postmortem should make the reason legible, not
+   just the number), and does an *honest* mistake (not deliberate sabotage —
+   a legitimate pivot, or getting caught out by noisy data) ever feel
+   punished the way sabotage is? The free allowances were tuned against
+   `guidedStaffPackage`'s own behaviour, not a human's.
+2. If it plays well: merge to `main`, then pick up doctrines
+   (`docs/DIRECTION.md`) — it's the largest, most differentiating idea on
+   the table and the one explicitly tied to why the player is building this
+   at all.
+3. If something still doesn't sit right: both chantiers' docs sections list
+   exactly what was measured and where the remaining looseness is (the
+   passive-vs-competent gap in chantier 2 is still only ~4%, noted but not
+   touched since the criterion only asked for "clearly below").
 
 ## Reproducing tonight's numbers
 
 ```bash
-npm test -- src/simulation/events/openingCrisis.test.ts   # the opener: determinism, scope, RNG isolation
-npm test -- src/simulation/engine/initialState.test.ts    # the healthy easy opening
-npm test -- src/simulation/events/balance.test.ts         # the symmetry guard, majors included
-npm test -- src/simulation/engine/guidance.test.ts         # the falsifiable criterion, re-verified
-npm test -- src/simulation/engine/applyPolicyPackage.test.ts  # crisis-scaled communication
-npm test -- src/features/result/report.test.ts            # the written postmortem
-npm run sim:sweep                                          # the six-bucket table
+npm test -- src/simulation/events/openingCrisis.test.ts        # the opener
+npm test -- src/simulation/engine/initialState.test.ts          # the healthy easy opening
+npm test -- src/simulation/events/balance.test.ts                # the symmetry guard, majors included
+npm test -- src/simulation/engine/applyPolicyPackage.test.ts     # crisis-scaled communication + conduct pricing
+npm test -- src/simulation/scoring/calculateScore.test.ts        # the conduct gate
+npm test -- src/simulation/engine/guidance.test.ts                # the falsifiable criterion, twice re-verified tonight
+npm test -- src/features/result/report.test.ts                   # the written postmortem, both chantiers
+npm run sim:sweep                                                 # the six-bucket table
 ```
 
 The worst-case-passive-stress probes, the aggressive-tightening failure
-rates, and the exact falsifiable-criterion numbers in docs/BALANCE.md were
-one-off measurement scripts, not committed — reproduce by adapting
-`events/balance.test.ts`'s `deliveredImpulses` or `engine/guidance.test.ts`'s
-criterion loop with `playRun`/`console.log` in place of `expect`.
+rates, the exact falsifiable-criterion numbers, and the sabotage/serious/
+passive comparison table were all one-off measurement scripts, not
+committed — reproduce by adapting `events/balance.test.ts`'s
+`deliveredImpulses` or `engine/guidance.test.ts`'s criterion loop with
+`playRun`/`console.log` in place of `expect`.
