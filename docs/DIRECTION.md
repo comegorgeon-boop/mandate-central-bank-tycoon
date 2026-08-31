@@ -1,12 +1,13 @@
 # Design direction, from the phase-3 playthroughs
 
 Recorded after three full Fed/easy mandates. **Nothing here was implemented
-when recorded; point 1 is now built, engine and desk**, and **point 2's easy
-column is now built** — see "The second instrument" and "Violent named
-events, and markets that answer them" in docs/BALANCE.md for the
-mechanisms, the measurements and what each shipped against. This file
-exists so the findings survive while they are fresh; the balancing work in
-docs/BALANCE.md is separate and must not be confused with it.
+when recorded; point 1 is now built, engine and desk**, **point 2's easy
+column is now built**, and **point 4 is now built** — see "The second
+instrument" and "Violent named events, and markets that answer them" in
+docs/BALANCE.md for the mechanisms, the measurements and what each shipped
+against. This file exists so the findings survive while they are fresh; the
+balancing work in docs/BALANCE.md is separate and must not be confused with
+it.
 
 The order below is the player's, not a priority ranking imposed afterwards.
 
@@ -109,10 +110,20 @@ the decision, which is what "a real channel of play" ultimately means. That
 remains open. Full mechanism and measurements in docs/BALANCE.md, "Violent
 named events, and markets that answer them."
 
-## 4. The final screen should be a written account of the mandate
+## 4. The final screen should be a written account of the mandate — built
 
 What happened, what the player did well, what they got wrong, and **why they
 have the score they have**. Numbers in support, not as the headline.
+
+`features/result/report.ts` assembles this from a finished session's own
+data (`eventLog` for what happened, each score component's own prose
+`explanation` for the verdict, the guidance ledger, the causal chain on a
+failure) with the same deterministic-template discipline as
+`features/meeting/brief.ts`. `pages/ResultPage.tsx` now leads with it,
+directly under the header; the score number and component table are
+demoted to a "Scorecard" section below. Verified in a real browser end to
+end, zero console errors. Full detail in docs/BALANCE.md, "Violent named
+events, and markets that answer them."
 
 ## 5. A summary tab is missing
 
