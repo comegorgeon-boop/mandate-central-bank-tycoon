@@ -161,20 +161,47 @@ function describeWhatWentWrong(state: SimulationState, score: ScoreBreakdown): r
   return paragraphs
 }
 
+/** Below this, the conduct gate is treated as the dominant story, not a footnote. */
+const CONDUCT_GATE_DOMINANT = 0.5
+
 function describeWhyThisScore(
+  state: SimulationState,
   score: ScoreBreakdown,
   institution: Institution,
 ): readonly string[] {
   const inst = getInstitution(institution)
   const paragraphs: string[] = []
 
+  // A conduct gate this severe explains the score on its own — component
+  // percentages that still look reasonable would otherwise read as
+  // contradicting a score this low, when the two are actually independent.
+  if (score.conductGate < CONDUCT_GATE_DOMINANT) {
+    const reasons: string[] = []
+    if (state.reversalCount > 0) {
+      reasons.push(`the rate reversed direction ${state.reversalCount} time(s)`)
+    }
+    if (state.contradictionCost > 0) {
+      reasons.push('the statement repeatedly contradicted the decision')
+    }
+    if (state.guidance.brokenPromises > 0) {
+      reasons.push(`${state.guidance.brokenPromises} guidance promise(s) were broken`)
+    }
+    paragraphs.push(
+      `The mandate scored ${score.score.toLocaleString('en-US')}, most of it lost to conduct ` +
+        `rather than the economy: ${reasons.join(', ')}. Erratic, self-contradictory policy is ` +
+        `judged independently of how the economy happened to absorb it — the whole score was ` +
+        `scaled by a further ×${score.conductGate.toFixed(2)} for it, on top of everything below.`,
+    )
+  }
+
   const biggestGap = [...score.components].sort(
     (a, b) => b.weight * (1 - b.raw) - a.weight * (1 - a.raw),
   )[0]
 
   paragraphs.push(
-    `The mandate scored ${score.score.toLocaleString('en-US')}. The largest single gap between ` +
-      `this mandate and a perfect one was ${biggestGap.label.toLowerCase()}: ${biggestGap.explanation}`,
+    `${score.conductGate < CONDUCT_GATE_DOMINANT ? 'Among the components, the' : 'The'} largest ` +
+      `single gap between this mandate and a perfect one was ${biggestGap.label.toLowerCase()}: ` +
+      biggestGap.explanation,
   )
 
   paragraphs.push(inst.mandateSummary)
@@ -200,6 +227,6 @@ export function buildMandateReport(
     whatHappened: describeWhatHappened(state, outcome, institution),
     whatWentWell: describeWhatWentWell(state, score),
     whatWentWrong: describeWhatWentWrong(state, score),
-    whyThisScore: describeWhyThisScore(score, institution),
+    whyThisScore: describeWhyThisScore(state, score, institution),
   }
 }

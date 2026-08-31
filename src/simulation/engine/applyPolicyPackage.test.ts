@@ -10,6 +10,7 @@ import type { SimulationState } from '../types/state.ts'
 import { POLICY_RATE_FLOOR, availableInstruments } from '../config/instruments.ts'
 import { createInitialState } from '../engine/initialState.ts'
 import { testConfig } from '../testing/harness.ts'
+import { advanceTrueState } from './advanceTrueState.ts'
 import { applyPolicyPackage, validatePolicyPackage } from './applyPolicyPackage.ts'
 
 /**
@@ -570,5 +571,98 @@ describe('markets answer words harder during a crisis', () => {
     // Below `silenceCrisisThreshold`, saying nothing costs no more market
     // trust than a neutral, substance-free statement would.
     expect(held.state.latent.marketTrust).toBeCloseTo(spoken.state.latent.marketTrust, 6)
+  })
+})
+
+describe('conduct is priced independently of the economy, on easy', () => {
+  /** `{ openingEvent: false }`: a clean baseline, not a random crisis. */
+  function calmState(difficulty: Difficulty = 'easy'): SimulationState {
+    return createInitialState(testConfig('fed', difficulty, 'conduct'), {
+      openingEvent: false,
+    })
+  }
+
+  function hike(bp: number): PolicyPackage {
+    return { actions: [{ instrument: 'policy_rate', magnitude: bp }], communication: null }
+  }
+
+  const CONTRARY_HIKE: PolicyPackage = {
+    actions: [{ instrument: 'policy_rate', magnitude: 100 }],
+    communication: {
+      tone: 'dovish',
+      emphasis: 'inflation',
+      commitment: 'weak_bias',
+      channel: 'statement',
+    },
+  }
+
+  /** A full meeting: apply, then let time pass — `history` only grows this way. */
+  function step(state: SimulationState, pkg: PolicyPackage): SimulationState {
+    const applied = applyPolicyPackage(state, pkg)
+    if (!applied.ok) throw new Error('test package rejected')
+    return advanceTrueState(applied.state)
+  }
+
+  it('accumulates contradiction cost across meetings, and never resets it', () => {
+    let state = calmState()
+    for (let i = 0; i < 3; i += 1) state = step(state, CONTRARY_HIKE)
+    expect(state.contradictionCost).toBeGreaterThan(0)
+    // Three contradictory meetings must have cost more than one.
+    const single = step(calmState(), CONTRARY_HIKE)
+    expect(state.contradictionCost).toBeGreaterThan(single.contradictionCost)
+  })
+
+  it('gives the first few reversals for free, then escalates', () => {
+    // Alternating +100/-100bp: every meeting after the first reverses.
+    let state = calmState()
+    const credibilityAfter: number[] = []
+    for (let i = 0; i < 5; i += 1) {
+      state = step(state, hike(i % 2 === 0 ? 100 : -100))
+      credibilityAfter.push(state.latent.credibility)
+    }
+    // Meeting 0 has nothing to reverse; meetings 1-4 each flip direction from
+    // the one before, so all four register as reversals.
+    expect(state.reversalCount).toBe(4)
+    // `freeReversals` (2) absorbs the first two: the credibility drop from
+    // meeting 1 to 2 is the free case, so the *billed* drop from meeting 3 to
+    // 4 (the second escalated reversal) must be strictly larger than it.
+    const drop = (i: number) => credibilityAfter[i - 1] - credibilityAfter[i]
+    expect(drop(4)).toBeGreaterThan(drop(2))
+  })
+
+  it("tracks contradictions and reversals on medium/hard without easy's escalated cost", () => {
+    for (const difficulty of ['medium', 'hard'] as const) {
+      let contrary = calmState(difficulty)
+      let alternating = calmState(difficulty)
+      for (let i = 0; i < 5; i += 1) {
+        contrary = step(contrary, CONTRARY_HIKE)
+        alternating = step(alternating, hike(i % 2 === 0 ? 100 : -100))
+      }
+      // Tracked regardless of difficulty (contradictionCost/reversalCount are
+      // universal bookkeeping), but not billed at easy's escalated rate —
+      // `calculateScore`'s conduct gate, which reads them, is easy-only.
+      expect(contrary.contradictionCost).toBeGreaterThan(0)
+      expect(alternating.reversalCount).toBeGreaterThan(0)
+    }
+  })
+
+  it('reversalCost adds nothing on medium: a reversal leaves credibility untouched', () => {
+    // With no communication in the package, nothing else in
+    // `applyPolicyPackage` touches `latent.credibility` at all — so on
+    // medium, where `reversalCost` does not engage, a reversing move must
+    // leave the *instant* post-decision credibility exactly where it was.
+    const afterFirstHike = step(calmState('medium'), hike(100))
+
+    const reversed = applyPolicyPackage(afterFirstHike, hike(-100))
+    expect(reversed.ok).toBe(true)
+    if (!reversed.ok) return
+
+    expect(reversed.state.latent.credibility).toBeCloseTo(
+      afterFirstHike.latent.credibility,
+      9,
+    )
+    // The reversal was genuinely seen (history had two entries to compare),
+    // it just was not billed.
+    expect(reversed.state.reversalCount).toBe(1)
   })
 })

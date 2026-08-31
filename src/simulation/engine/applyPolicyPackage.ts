@@ -610,14 +610,49 @@ export function applyPolicyPackage(
   }
 
   // ---- Cost of an internally contradictory package ------------------------
-  let contradictionCost = 0
+  let packageContradictionCost = 0
   for (const contradiction of validation.contradictions) {
-    contradictionCost += contradiction.severity
+    packageContradictionCost += contradiction.severity
   }
-  if (contradictionCost > 0) {
-    latent.credibility -=
-      COMMUNICATION.inconsistencyCost * contradictionCost * sensitivity
-    latent.marketTrust -= COMMUNICATION.inconsistencyCost * contradictionCost
+  if (packageContradictionCost > 0) {
+    const inconsistencyCost = COMMUNICATION.inconsistencyCost[state.config.difficulty]
+    latent.credibility -= inconsistencyCost * packageContradictionCost * sensitivity
+    latent.marketTrust -= inconsistencyCost * packageContradictionCost
+  }
+
+  // ---- Cost of reversing the previous meeting's direction -----------------
+  // Independent of the words: whipsawing the rate erodes confidence in the
+  // institution's own judgement even when nothing said about it contradicts
+  // anything. `history` holds one snapshot per meeting already sat through,
+  // so the last two entries are exactly "walking into this meeting" and
+  // "walking into the previous one" — their difference is last meeting's move.
+  //
+  // The count itself is tracked at every difficulty (cheap, and a natural
+  // extension point later), but the credibility/trust cost is easy-only —
+  // see `COMMUNICATION.reversalCost`'s doc comment for why.
+  const sinceLast = state.history.at(-1)
+  const sinceTwoAgo =
+    state.history.length >= 2 ? state.history[state.history.length - 2] : undefined
+  let reversalCount = state.reversalCount
+  if (sinceLast !== undefined && sinceTwoAgo !== undefined) {
+    const previousMove = sinceLast.latent.policyRate - sinceTwoAgo.latent.policyRate
+    if (
+      Math.sign(previousMove) !== 0 &&
+      Math.sign(actualMove) !== 0 &&
+      Math.sign(previousMove) !== Math.sign(actualMove)
+    ) {
+      reversalCount += 1
+      if (state.config.difficulty === 'easy') {
+        // The first `freeReversals` are a genuine pivot's benefit of the
+        // doubt; the cost escalates with how many have already happened.
+        const billedAt = reversalCount - COMMUNICATION.freeReversals
+        if (billedAt > 0) {
+          const reversed = Math.min(Math.abs(actualMove), Math.abs(previousMove))
+          latent.credibility -= COMMUNICATION.reversalCost * reversed * billedAt * sensitivity
+          latent.marketTrust -= COMMUNICATION.reversalCost * reversed * billedAt
+        }
+      }
+    }
   }
 
   const diagnostics: DiagnosticEvent[] = []
@@ -631,6 +666,10 @@ export function applyPolicyPackage(
       latent: clamped,
       stance,
       guidance,
+      // Accumulated across the mandate, never reset — see
+      // `SimulationState.contradictionCost`'s own doc comment for why.
+      contradictionCost: state.contradictionCost + packageContradictionCost,
+      reversalCount,
       diagnostics:
         diagnostics.length > 0
           ? [...state.diagnostics, ...diagnostics]

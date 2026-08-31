@@ -476,8 +476,60 @@ export const COMMUNICATION = {
    * moves the priced rate by roughly +0.35pp the same day.
    */
   guidanceMarketJump: 0.6,
-  /** Credibility lost when the words contradict the decision. */
-  inconsistencyCost: 4.5,
+  /**
+   * Credibility and market-trust lost when the words contradict the
+   * decision, per unit of contradiction severity. Easy only raised from 4.5
+   * (medium/hard unchanged) — see the doc comment on `reversalCost` below
+   * for why this is difficulty-scoped at all.
+   *
+   * A single contradictory meeting was survivable by design — committees do
+   * sometimes mean it — but a *pattern* of it, repeated every meeting, was
+   * barely denting credibility by the end of a mandate: mean-reversion
+   * pulled it back up between hits faster than an occasional 2-3 point loss
+   * could keep it down. This is deliberately large enough that saying the
+   * opposite of what you do, meeting after meeting, drives credibility
+   * toward dismissal territory on its own. See docs/BALANCE.md, "Conduct has
+   * to cost, independent of the economy".
+   */
+  inconsistencyCost: { easy: 15, medium: 4.5, hard: 4.5 },
+  /**
+   * Credibility and market-trust cost of sharply reversing the *previous*
+   * meeting's rate move, per point of the smaller of the two moves reversed,
+   * per reversal beyond `freeReversals` — independent of what was said about
+   * either one, and escalating with the count so far this mandate. Easy
+   * only: this whole mechanism, `inconsistencyCost`'s raise, and the
+   * conduct gate in `config/scoring.ts` are all scoped to easy, and for the
+   * same reason. They were built and tuned against easy's own, comparatively
+   * calm observation noise (`observationNoiseScale` 0.35). Measured directly
+   * on medium and hard, whose noise is 1.0x and 1.7x: the staff rule's own
+   * target legitimately jumps far more often at that noise level — already
+   * documented in docs/BALANCE.md as *correct*, hard-mode behaviour — and
+   * these mechanisms, calibrated for easy's quieter data, read that
+   * legitimate jumpiness as sabotage. fed/hard completion fell from 22-27%
+   * to 7% and credibility hit its clamp 41 times in 150 seeded runs before
+   * this was scoped. Medium and hard are out of scope for the session that
+   * built this; their conduct-related credibility dynamics are exactly what
+   * they were before it.
+   *
+   * Priced separately from `inconsistencyCost` on purpose: a package whose
+   * words never contradict its own action can still whipsaw the rate meeting
+   * after meeting, and a committee that cannot hold a direction erodes
+   * confidence in its own judgement regardless of how honestly each
+   * individual meeting was described.
+   *
+   * Escalating rather than flat because a flat cost cannot tell a genuine
+   * pivot from a pattern of whiplash: the staff rule itself reverses once or
+   * twice across a typical mandate, reacting to real data, and a flat cost
+   * large enough to matter for sabotage was large enough to make that rule
+   * lose to silence — the exact inversion `engine/guidance.test.ts` exists to
+   * catch. `freeReversals` gives every mandate the same benefit of the
+   * doubt a real committee would get; the cost only engages once the pattern
+   * itself is the story. See docs/BALANCE.md, "Conduct has to cost,
+   * independent of the economy".
+   */
+  reversalCost: 10.0,
+  /** Reversals per mandate before `reversalCost` starts charging for them. */
+  freeReversals: 2,
   /** Public trust gained by an earned reassurance, per unit of crisis intensity, before reach. */
   reassuranceTrust: 6.0,
   /** Market volatility added by an alarmed tone, before the crisis amplifier. */

@@ -32,6 +32,13 @@ export interface ScoreBreakdown {
    * the Fed's coequal dual mandate.
    */
   readonly priceStabilityGate: number
+  /**
+   * Both institutions, 0..1. Erratic, self-contradictory policy — heavy
+   * churn, a pattern of words contradicting decisions, broken guidance
+   * promises — caps the total independent of how the real economy absorbed
+   * it. See `config/scoring.ts`'s `CONDUCT_GATE`.
+   */
+  readonly conductGate: number
   readonly difficultyMultiplier: number
   /** institution:difficulty:simulationVersion. Records never mix buckets. */
   readonly bucketKey: string

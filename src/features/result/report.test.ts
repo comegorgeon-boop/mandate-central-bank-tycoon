@@ -107,6 +107,44 @@ describe('the mandate report', () => {
     expect(text).toContain('Rapid tightening imposed duration losses.')
   })
 
+  it('leads "why this score" with conduct when the conduct gate is the dominant story', () => {
+    const config = createRunConfig({
+      institution: 'fed',
+      difficulty: 'easy',
+      seed: 'report-sabotage',
+      simulationVersion: SIMULATION_VERSION,
+    })
+    // Alternating +/-100bp, announcing the opposite of the move each time —
+    // the same pattern events/openingCrisis.test.ts and this session's
+    // diagnostic work used to falsify the score-discrimination fix.
+    const session = playRun(config, (current) => {
+      const meetingIndex = current.state.meetingIndex
+      const up = meetingIndex % 2 === 0
+      const moveBp = up ? 100 : -100
+      const signalBp = up ? -100 : 100
+      return {
+        actions: [
+          { instrument: 'policy_rate', magnitude: moveBp },
+          { instrument: 'forward_guidance', magnitude: signalBp },
+        ],
+        communication: {
+          tone: signalBp > 0 ? 'hawkish' : 'dovish',
+          emphasis: 'inflation',
+          commitment: 'weak_bias',
+          channel: 'statement',
+        },
+      }
+    })
+    const score = calculateScore(session.state, session.outcome)
+    expect(score.conductGate).toBeLessThan(0.5)
+    expect(session.outcome.status).toBe('failed')
+
+    const report = buildMandateReport(session.state, session.outcome, score)
+    const text = report.whyThisScore.join(' ')
+    expect(text).toMatch(/conduct/)
+    expect(text).toMatch(/reversed direction/)
+  })
+
   it('never claims the full mandate was served when it was not', () => {
     const { state, score } = completedSession('report-early-end')
     const failed: EndConditionResult = {

@@ -88,6 +88,54 @@ export const PRICE_STABILITY_GATE = {
 } as const
 
 /**
+ * The conduct gate: erratic, self-contradictory policy guts the whole score,
+ * independent of how the real economy happened to absorb it.
+ *
+ * The engine's own transmission lag is a low-pass filter: a policy rate that
+ * alternates sign every meeting mostly cancels inside the kernel before it
+ * ever reaches inflation or output, so a churning, contradictory mandate can
+ * leave every path-based component looking almost as good as a steady one —
+ * measured directly, alternating +/-100bp left the post-kernel real-rate gap
+ * within 0.1-0.15pp of a flat hold's, on the same seed. Every *other*
+ * component in this file measures the economy; this is the one that measures
+ * the decisions themselves, the same way `PRICE_STABILITY_GATE` measures one
+ * objective directly rather than trusting the weighted blend to notice it.
+ *
+ * Three independent exponential factors — churn beyond the free allowance,
+ * accumulated contradiction severity beyond `freeContradictionCost`, and
+ * broken guidance promises beyond `freeBrokenPromises` — each at the scale
+ * where the *billed* excess alone would pull the gate to roughly 37%. They
+ * multiply, so genuinely incoherent conduct (bad on more than one axis at
+ * once, which alternating-and-lying is) is punished harder than any single
+ * axis implies. `floor` keeps the gate a steep slope rather than a hard wall
+ * at zero, matching every other `performance`-shaped component in this file.
+ *
+ * The free allowances matter as much as the scales. `guidedStaffPackage`'s
+ * own honest mode — the falsifiable criterion's "communication is a real
+ * instrument" benchmark — breaks roughly 0.1-0.15 promises per mandate on
+ * easy as a normal artefact of its target shifting on noisy data, exactly as
+ * intended and already priced elsewhere (docs/BALANCE.md, "the honest rule
+ * breaks 0.1 promises per mandate and keeps 4"). Measured directly: one
+ * broken promise with `freeBrokenPromises` at 0 cut a seed's score from
+ * ~6600 to 3250 on its own, which was severe enough to invert the whole
+ * falsifiable criterion in `engine/guidance.test.ts` — communication looked
+ * like it no longer paid, when what had actually happened was this gate
+ * punishing an already-priced, already-acceptable rate of normal slippage.
+ * `churnScale` needed no equivalent fix: `POLICY_VOLATILITY_ALLOWANCE_PER_YEAR`
+ * already gives churn its own free allowance upstream of this gate.
+ */
+export const CONDUCT_GATE = {
+  churnScale: 4.0,
+  contradictionScale: 10.0,
+  /** Contradiction severity forgiven before the contradiction factor bites. */
+  freeContradictionCost: 0.7,
+  brokenPromiseScale: 3.0,
+  /** Broken promises forgiven before the broken-promise factor bites. */
+  freeBrokenPromises: 1,
+  floor: 0.03,
+} as const
+
+/**
  * Shock-response scoring.
  *
  * The engine rewards the textbook distinction: a demand shock should be

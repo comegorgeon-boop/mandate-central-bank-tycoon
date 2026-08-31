@@ -162,6 +162,8 @@ export default function ResultPage() {
           multiplier ×{score.difficultyMultiplier.toFixed(2)}
           {score.priceStabilityGate < 1 &&
             `, price-stability gate ×${score.priceStabilityGate.toFixed(2)}`}
+          {score.conductGate < 1 &&
+            `, conduct gate ×${score.conductGate.toFixed(2)}`}
           . Scoring formula v{score.scoringVersion}, engine v{score.simulationVersion}.
         </p>
       </section>

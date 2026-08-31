@@ -1356,3 +1356,169 @@ tonight, and not silently.
 | `events/balance.test.ts` | (unchanged in mechanism) the majors' random firings push the delivered ratio or net-per-meeting outside their bands |
 | `applyPolicyPackage.test.ts`, "markets answer words harder during a crisis" | crisis-scaled tone/guidance effects stop exceeding their calm-weather size, earned reassurance stops paying, hollow reassurance or silence stop costing during a real crisis, or any of this starts firing in calm weather |
 | `engine/guidance.test.ts` | (unchanged bounds) the falsifiable criterion stops holding once a common-mode opening shock is paired into every comparison |
+
+---
+
+# Conduct has to cost, independent of the economy
+
+Played after the previous session's work: a full fed/easy mandate played
+seriously scored ~7000; the same mandate played as deliberate sabotage —
+alternating ±100bp every meeting, announcing the opposite of every move —
+scored ~5500. **21% between playing well and actively destroying the
+economy.** The player's own diagnosis: "if sabotage costs so little, nothing
+I do matters, which is why I click without reading. I don't even know, after
+a good mandate, how I could have done better." Demanded before any fix: a
+falsifiable criterion — sabotage under 1500 and a premature end in the
+majority of seeds, passive clearly below competent, an order-of-magnitude
+gap, not 20% — and a diagnosis of *why* the gap was so small before touching
+anything.
+
+## The diagnosis
+
+Reproduced directly: alternating +100/-100bp with contrary announcements,
+120 seeds (60 fed/easy, 60 ecb/easy), against `guidedStaffPackage(honest)`
+as "serious." Three compounding causes, in the order they matter:
+
+**1. The lag kernel is a low-pass filter, and alternation is a high-frequency
+signal.** The post-convolution real-rate gap from alternating ±100bp came out
+within 0.1-0.15pp of a flat hold's, on the same seed (measured: -0.19 vs
+-0.28 fed, -1.09 vs -1.24 ecb). A signal that flips sign every meeting mostly
+cancels inside the kernel's own window before it ever reaches inflation or
+output. Sabotage-by-alternation barely dents the real economy at all — which
+is *why* nothing the player did seemed to matter: mechanically, most of it
+didn't.
+
+**2. Nothing tracked contradictions.** `detectContradictions` priced a
+contradictory package instantly, into credibility and market trust, and then
+forgot it happened. Unlike broken guidance promises (`guidance.brokenPromises`,
+a running tally), a *pattern* of "say the opposite of what you do" left no
+persistent trace for the score or the end conditions to see, beyond whatever
+was left of one instant hit after mean-reversion pulled credibility back up.
+
+**3. The components that stayed high were the majority of the weight.**
+Because the real economy barely moved (#1), `employment_output`,
+`financial_stability` and `anchoring` — over half the weight on both
+institutions — sat at 91-100% raw even under sustained sabotage. The one
+component built for exactly this, `policy_volatility`, correctly crashed to
+0.1% raw — but it is only 3-4% weight, so crushing it to zero removes at most
+4 points off 100. ECB's `price_stability` genuinely cratered to 5.9% raw, and
+its 38% weight plus the price-stability gate *still* only pulled the total
+down ~10%, because everything else propped it back up. None of the eight end
+conditions got remotely close either: final credibility landed at 40-63%
+against a ~17%-sustained-for-four-meetings bar, so completion paid out 100%
+regardless, every time, in 60 of 60 seeds.
+
+In short: **the game had no mechanism at all for punishing incoherent conduct
+that the real economy happened to absorb gracefully** — which is exactly what
+alternating-and-lying is.
+
+## The fix
+
+**Contradictions are now tracked, not just priced and forgotten.**
+`SimulationState.contradictionCost` — a running sum of every confirmed
+package's contradiction severity, mirroring `guidance.brokenPromises`'s
+existing pattern exactly — lets the score and (via the credibility it costs)
+the end conditions see a *pattern*, not just the isolated instant hit.
+
+**A new `reversalCount`, and an escalating cost for whiplash.** Sharply
+reversing the *previous* meeting's rate direction now costs credibility and
+market trust on its own, independent of what was said about it — a committee
+that cannot hold a direction erodes confidence in its own judgement whether
+or not its words ever contradict its actions. This cannot be a flat cost:
+the staff rule itself legitimately reverses once or twice across a typical
+mandate, reacting to real data (most often an artefact of its own
+quarter-step smoothing overshooting a nearby target), and a flat cost large
+enough to matter for sabotage was large enough to make the *honest* rule
+lose to silence — inverting `engine/guidance.test.ts`'s falsifiable criterion
+outright the first time this was tried (measured: -310.8pp on fed, -97.2pp
+on ecb, against a needed >+10/+20). `COMMUNICATION.freeReversals` (2) gives
+every mandate the same benefit of the doubt a real committee would get; the
+cost escalates with the count only once the pattern itself is the story.
+
+**A new conduct gate, `CONDUCT_GATE` in `config/scoring.ts`, both
+institutions.** Multiplicative on the whole score, the same mechanism shape
+as the existing ECB-only price-stability gate: three independent exponential
+factors — churn beyond its existing free allowance, contradiction severity
+beyond a new free allowance, broken promises beyond a new free allowance —
+so genuinely incoherent conduct (bad on more than one axis at once, which
+alternating-and-lying is) is punished harder than any single axis implies.
+The free allowances matter as much as the scales: measured directly, a
+*single* broken promise — `guidedStaffPackage`'s honest mode breaks 0.1-0.15
+per mandate as an already-priced, already-acceptable artefact of its target
+shifting on noisy data (see "The falsifiable criterion" above) — cut a
+seed's score from ~6600 to 3250 with no free allowance, which was severe
+enough to invert the falsifiable criterion a second time before the
+allowance was added.
+
+**All three mechanisms are scoped to easy.** The first attempt applied them
+at every difficulty and broke medium and hard badly: fed/hard completion fell
+from 22-27% to 7%, and credibility hit its safety clamp 41 times in 150
+seeded runs. Medium and hard's own observation noise (1.0x and 1.7x against
+easy's 0.35x) makes the staff rule's own target legitimately jump far more
+often — already documented above as *correct*, hard-mode behaviour, not a
+bug — and these mechanisms, tuned against easy's quieter data, read that
+legitimate jumpiness as sabotage. `inconsistencyCost` is now a per-difficulty
+record (medium/hard unchanged at the pre-existing 4.5); `reversalCost` and
+the conduct gate are gated on `difficulty === 'easy'` outright.
+Contradictions and reversals are still *tracked* at every difficulty — cheap
+bookkeeping, and a natural extension point — just not *billed* outside easy.
+
+## What was measured, final
+
+**The falsifiable criterion, sixty seeds per institution, both commitment
+levels a player might reach for when trying to announce the opposite of an
+action (`weak_bias` and, separately verified, `conditional_path`):**
+
+| | fed/easy | ecb/easy |
+| --- | --- | --- |
+| serious (guided honest staff) | 6624 (100% complete) | 6494 (100% complete) |
+| passive (hold everything) | 6372 (100% complete) | 6225 (100% complete) |
+| sabotage, `weak_bias` | **442**, dismissed 60/60 | **458**, dismissed 60/60 |
+| sabotage, `none` commitment | **640**, dismissed 60/60 | **589**, dismissed 60/60 |
+
+All under the 1500 bar with room, all dismissed in 100% of seeds (the
+criterion asked for a majority), and serious/sabotage is a 10-15x gap —
+genuinely an order of magnitude, on every combination measured. `none`
+commitment sabotage now dismisses too: the escalating reversal cost fires on
+churn alone, independent of whether contradictions can register (they
+structurally cannot under `commitment: 'none'` — see below), so the fix does
+not depend on which button a sabotaging player happens to reach for.
+
+**Passive stays clearly below competent**, unchanged by any of this (passive
+has zero churn, zero contradictions, zero reversals, so none of the three new
+mechanisms touch it): 6372 vs 6624 fed, 6225 vs 6494 ecb. This gap was not
+widened — nothing in today's fix targets it, and the falsifiable criterion
+did not ask for more than "clearly below," which it already was.
+
+**Medium and hard, confirmed restored exactly:** `npm run sim:sweep`
+before and after this fix's difficulty-scoping produced the same three
+pre-existing warnings (fed/medium passive-dominant, fed/hard and ecb/hard
+`geopoliticalRisk` safety clamps — both already recorded earlier in this
+file) and no others. The credibility-clamp warnings the unscoped first
+attempt introduced are gone.
+
+**The falsifiable criterion in `engine/guidance.test.ts`, re-verified
+passing** after the free-allowance fixes, with its original margins intact.
+
+## One deliberate non-fix
+
+`deriveTone` (`features/policy/statement.ts`) discards the announced path
+entirely when `commitment === 'none'` — "a mere remark, never recorded" —
+so a package announcing the opposite of its own action while at the default,
+unbound commitment level cannot mechanically register as a contradiction,
+by design, with its own test (`statement.test.ts`, "ignores a path that a
+mere remark never records") and its own docstring predating tonight. This
+was considered and deliberately **not** reversed: it is a prior session's
+considered design choice, not a bug tonight's work happened to trip over,
+and reversing it was not necessary — the escalating reversal cost alone
+(which does not depend on commitment level at all) already reaches 100%
+dismissal for `commitment: 'none'` sabotage on its own, per the table above.
+
+## What now protects each of these
+
+| Guard | Fails when |
+| --- | --- |
+| `applyPolicyPackage.test.ts`, "conduct is priced independently of the economy, on easy" | contradiction cost stops accumulating, reversals stop being free up to `freeReversals` then escalating, or any of it starts being billed on medium/hard |
+| `calculateScore.test.ts`, "the conduct gate" | the gate stops being 1 for a clean mandate or for conduct within the free allowances, stops crushing heavy contradiction/broken-promise conduct on easy, or fires at all on medium/hard |
+| `features/result/report.test.ts`, "leads why this score with conduct..." | the written postmortem stops naming conduct as the dominant story when the gate is severe |
+| `engine/guidance.test.ts` | (unchanged bounds, re-verified) honest guidance stops beating silence now that a single ordinary broken promise sits inside the conduct gate's free allowance |

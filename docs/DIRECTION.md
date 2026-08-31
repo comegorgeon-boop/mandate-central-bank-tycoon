@@ -160,3 +160,91 @@ further tuning of the rate channel.
 
 **Do not spend more effort tuning the rate channel in isolation before this is
 decided.**
+
+---
+
+# Design direction, from the session that fixed score discrimination
+
+Recorded after the session that made sabotage actually cost something (see
+docs/BALANCE.md, "Conduct has to cost, independent of the economy"). **Not
+implemented.** The instruction for that session was explicit: write this
+direction down for the next one, build none of it today.
+
+## Doctrines
+
+The player adopts a school of monetary-policy thought at the start of a
+mandate — a Taylor rule, strict inflation targeting, Keynesian discretion,
+credibility-first, monetarism — and it shapes the whole mandate:
+
+- **A reading grid.** Which published indicators the doctrine puts in front
+  of the player first — a monetarist's brief leads with money and credit
+  aggregates, a Keynesian's with the output gap and unemployment, an
+  inflation-targeter's with the inflation print and expectations.
+- **A recommended reaction function.** The doctrine's own version of the
+  Policy Desk's staff advice (`policy/staffRule.ts` is the obvious base to
+  branch from) — what *this* school of thought would do with the published
+  data, not the single hand-written rule every difficulty currently shares.
+- **Its own score weighting.** A doctrine-specific variant of
+  `SCORE_WEIGHTS` (`config/scoring.ts`) — a credibility-first doctrine
+  should weight the credibility component far more than a strict
+  inflation-targeter's price-stability-above-all weighting, for instance.
+
+**Switching doctrine mid-mandate costs credibility** — declaring a school of
+thought and then abandoning it partway through a mandate is itself a kind of
+broken promise, thematically continuous with tonight's conduct gate and the
+existing guidance promise ledger, and probably reusable machinery from both.
+
+**The score judges two axes, not one: the outcome, and consistency with the
+announced doctrine.** A player who commits to monetarism and then reacts like
+a Keynesian discretionist every meeting should be marked down for the
+incoherence independent of how the economy turned out — the same principle
+tonight's conduct gate applies to reversals and contradictions, generalised
+from "did you contradict your own words" to "did you contradict your own
+declared framework."
+
+**The postmortem compares.** At the end of a mandate, the written report
+(`features/result/report.ts`) should show what the *other* doctrines would
+have scored on the identical seed — the same shocks, the same starting
+economy, a different reaction function applied throughout — and, separately,
+how the mandate compares to a real historical episode the played path
+resembles. This is the single biggest lift in the idea: it means being able
+to *replay* a finished mandate's seed under a different policy end to end,
+which the engine can already do in principle (`playRun` takes a policy
+callback and a seed-derived `RunConfig`) but which has never been asked to
+run four or five times over for one result screen, still within a
+static-only, no-network, no-LLM build.
+
+**Why this, specifically.** In the player's own words: make the game "both
+fun and grounded in the ESH curriculum" — the French classes préparatoires
+economics syllabus, where these named schools of monetary thought (Taylor,
+monetarist, Keynesian, etc.) are literally the material. A doctrine system
+is the first design idea recorded in this file that ties the game mechanics
+directly to that syllabus rather than to central banking in the abstract.
+
+Open questions for whichever session picks this up: how many doctrines ship
+first (five is the player's list, but even two or three with real
+differentiation would prove the mechanic before building all five); whether
+doctrines are available from easy or gated to medium/hard, given easy is
+still explicitly a single-instrument, single-rule tutorial per the sessions
+that built it; and how "consistency with the doctrine" is actually measured
+mechanically (nearness to the doctrine's own recommended reaction function,
+each meeting? a cumulative drift measure, closer to how the conduct gate
+reads `contradictionCost`?).
+
+## Three smaller ideas, recorded but not designed
+
+- **A dated objective, announced at every meeting.** Not just a rate path
+  (`forward_guidance` already covers that) but a public, time-bound target —
+  "2% inflation by meeting 8" — that the postmortem can later judge as met,
+  missed, or abandoned. Distinct from the existing guidance promise ledger,
+  which is about the *rate*, not the *objective* the rate is meant to serve.
+- **A press conference after the decision.** A pointed, uncomfortable
+  question and a multiple-choice response — the natural next step for the
+  desk beyond the current single statement, and a second, harder-edged
+  instance of the plain-language "sentences, not parameters" register rule
+  the communication desk already uses.
+- **A committee vote that can unseat the player.** Distinct from the
+  existing `dismissed` end condition (a sustained collapse in credibility,
+  evaluated automatically): a committee that can vote no confidence gives
+  the institution's *other* members a voice, which nothing in the game
+  currently has.

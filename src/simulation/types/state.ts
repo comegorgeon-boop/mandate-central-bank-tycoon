@@ -156,6 +156,26 @@ export interface SimulationState {
   readonly pendingEffects: readonly PendingEventEffect[]
   /** Events already resolved in this run, newest last. */
   readonly eventLog: readonly ResolvedEventRecord[]
+  /**
+   * Running sum of every confirmed package's contradiction severity
+   * (`detectContradictions`'s `severity` values, summed per package and
+   * accumulated across the mandate). The instant credibility/trust cost of a
+   * contradictory package was always priced and then forgotten; this is what
+   * lets the score and a future end condition see a *pattern* of incoherent
+   * conduct, the same way `guidance.brokenPromises` already does for broken
+   * promises.
+   */
+  readonly contradictionCost: number
+  /**
+   * Running count of meetings whose rate move reversed the previous
+   * meeting's direction. Read by `applyPolicyPackage` to price a *pattern*
+   * of reversals escalatingly rather than any single one — a committee
+   * pivoting once in response to genuinely new information is normal
+   * central banking and costs nothing; a committee that cannot hold a
+   * direction for two meetings running is a different thing entirely. See
+   * `COMMUNICATION.reversalCost`'s doc comment.
+   */
+  readonly reversalCount: number
   /** Clamp and instability records. Developer-facing only. */
   readonly diagnostics: readonly DiagnosticEvent[]
   /** One snapshot per completed meeting, oldest first. */

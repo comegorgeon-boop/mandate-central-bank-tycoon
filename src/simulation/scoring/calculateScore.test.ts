@@ -269,3 +269,73 @@ describe('policy steadiness', () => {
     expect(churnedScore.score).toBeLessThan(steadyScore.score)
   })
 })
+
+describe('the conduct gate', () => {
+  /**
+   * `syntheticRun` never engages the opening crisis's own bookkeeping
+   * (`contradictionCost`/`reversalCount`/`guidance` all start at zero
+   * regardless of whether a major event fired), so these tests set them
+   * directly rather than needing `{ openingEvent: false }`.
+   */
+  function withConduct(
+    institution: Institution,
+    difficulty: Difficulty,
+    conduct: Partial<Pick<SimulationState, 'contradictionCost' | 'reversalCount'>> & {
+      brokenPromises?: number
+    },
+  ): SimulationState {
+    const base = syntheticRun(institution, difficulty, PERFECT)
+    return {
+      ...base,
+      contradictionCost: conduct.contradictionCost ?? 0,
+      reversalCount: conduct.reversalCount ?? 0,
+      guidance: { ...base.guidance, brokenPromises: conduct.brokenPromises ?? 0 },
+    }
+  }
+
+  it('is 1 — no effect — for an otherwise-perfect easy mandate', () => {
+    const score = calculateScore(withConduct('fed', 'easy', {}), COMPLETED)
+    expect(score.conductGate).toBe(1)
+  })
+
+  it('forgives a small amount of contradiction and one broken promise', () => {
+    const score = calculateScore(
+      withConduct('fed', 'easy', { contradictionCost: 0.7, brokenPromises: 1 }),
+      COMPLETED,
+    )
+    expect(score.conductGate).toBe(1)
+  })
+
+  it('crushes the score for heavy contradiction and repeated broken promises', () => {
+    const score = calculateScore(
+      withConduct('fed', 'easy', { contradictionCost: 15, brokenPromises: 5 }),
+      COMPLETED,
+    )
+    expect(score.conductGate).toBeLessThan(0.2)
+  })
+
+  it('never fires on medium or hard, however bad the conduct', () => {
+    for (const difficulty of ['medium', 'hard'] as const) {
+      const score = calculateScore(
+        withConduct('fed', difficulty, { contradictionCost: 50, brokenPromises: 10 }),
+        COMPLETED,
+      )
+      expect(score.conductGate).toBe(1)
+    }
+  })
+
+  it('multiplies into the final score on top of the weighted components, not instead of them', () => {
+    const clean = calculateScore(withConduct('fed', 'easy', {}), COMPLETED)
+    const badConduct = calculateScore(
+      withConduct('fed', 'easy', { contradictionCost: 15, brokenPromises: 5 }),
+      COMPLETED,
+    )
+    // Broken promises also soften the credibility *component* itself
+    // (`consistency` in calculateScore), so the weighted total alone
+    // predicts only a modest drop — the gate is what accounts for the rest.
+    const predictedFromWeightsAlone = badConduct.weightedTotal / clean.weightedTotal
+    const actualRatio = badConduct.score / clean.score
+    expect(actualRatio).toBeLessThan(predictedFromWeightsAlone)
+    expect(badConduct.score).toBeLessThan(clean.score)
+  })
+})

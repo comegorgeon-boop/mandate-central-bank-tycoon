@@ -13,6 +13,7 @@ import { getInstitution } from '../config/institutions.ts'
 import { SPREADS, VOLATILITY } from '../config/model.ts'
 import { YEARS_PER_MEETING } from '../config/time.ts'
 import {
+  CONDUCT_GATE,
   MAX_SCORE,
   POLICY_VOLATILITY_ALLOWANCE_PER_YEAR,
   PRICE_STABILITY_GATE,
@@ -299,8 +300,36 @@ export function calculateScore(
       (1 - PRICE_STABILITY_GATE.floor) * (priceRaw / PRICE_STABILITY_GATE.threshold)
   }
 
+  // The conduct gate. Both institutions: erratic, self-contradictory policy
+  // guts the score independent of how the real economy absorbed it — see
+  // CONDUCT_GATE's own doc comment for why this has to be a gate on the
+  // decisions themselves rather than trusted to the weighted blend above.
+  // Easy only, for the same reason `COMMUNICATION.reversalCost` is: tuned
+  // against easy's own calm observation noise, and the inputs it reads
+  // (contradictions, reversals) are legitimately far more frequent at
+  // medium/hard's noise levels for reasons that have nothing to do with
+  // incoherent conduct. Medium and hard are out of scope for the session
+  // that built this.
+  let conductGate = 1
+  if (state.config.difficulty === 'easy') {
+    const billedContradictionCost = Math.max(
+      0,
+      state.contradictionCost - CONDUCT_GATE.freeContradictionCost,
+    )
+    const billedBrokenPromises = Math.max(
+      0,
+      state.guidance.brokenPromises - CONDUCT_GATE.freeBrokenPromises,
+    )
+    conductGate = Math.max(
+      CONDUCT_GATE.floor,
+      Math.exp(-Math.max(0, churn - allowance) / CONDUCT_GATE.churnScale) *
+        Math.exp(-billedContradictionCost / CONDUCT_GATE.contradictionScale) *
+        Math.exp(-billedBrokenPromises / CONDUCT_GATE.brokenPromiseScale),
+    )
+  }
+
   const scaled = clamp(
-    weightedTotal * priceStabilityGate * difficulty.scoreMultiplier,
+    weightedTotal * priceStabilityGate * conductGate * difficulty.scoreMultiplier,
     0,
     1,
   )
@@ -310,6 +339,7 @@ export function calculateScore(
     components,
     weightedTotal,
     priceStabilityGate,
+    conductGate,
     difficultyMultiplier: difficulty.scoreMultiplier,
     bucketKey: scoreBucketKey(
       state.config.institution,

@@ -257,6 +257,8 @@ export function createInitialState(
     guidance: INITIAL_GUIDANCE,
     pendingEffects: [],
     eventLog: [],
+    contradictionCost: 0,
+    reversalCount: 0,
     diagnostics: [],
     history: [{ meetingIndex: 0, timeYears: 0, latent }],
   }
