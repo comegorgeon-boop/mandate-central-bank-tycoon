@@ -1140,3 +1140,219 @@ Every finding above is now a test rather than a paragraph.
 | `events/balance.test.ts` | the delivered inflationary/disinflationary impulse ratio leaves 0.7-1.5, net delivery per meeting leaves ±0.08, or a shock/relief pair stops cancelling at calm and stressed states |
 | `observation/descriptions.test.ts` | indicator copy quotes a number no engine constant accounts for |
 | `engine/guidance.test.ts` | words stop moving markets the day they are said, distrust stops discounting them, any promise-ledger exploit reopens, honest guidance stops beating silence, or bluffing stops costing |
+
+---
+
+# Violent named events, and markets that answer them
+
+The phase-3 playthroughs fixed transmission and shipped communication as a
+second instrument, and the guidance falsifiable criterion passed — but the
+player who actually sat down with all of it reported the same verdict as
+before any of that work started: *nothing happens*. The only shocks in the
+game were the procedural catalog's small, state-dependent supply/demand
+noise, and even those never showed their own name to the player —
+`ResolvedEventRecord.title` was assembled by `resolveEvent.ts` and then
+never read by anything (`features/meeting/brief.ts` only ever surfaced
+`record.newswire`, wrapped in a generic "Fictional newswire report on an
+event that has just occurred."). A game with no drama has no reason to
+listen to its own central banker either: communication only pays when
+there is something worth communicating about.
+
+## The mechanism
+
+**A major-event tier, reusing the existing catalog machinery.** `GameEvent`
+gained three optional fields — `tier?: 'major'`, `maxDifficulty?: Difficulty`
+(a ceiling symmetric to the existing `minDifficulty` floor), and
+`dispatchLines?: readonly string[]` — so six new entries in
+`events/catalog.ts` (a geopolitical crisis, a domestic political shock, a
+bank failure, a housing crash, a supply-chain rupture freed of any prior
+build-up, and a standalone market panic) could be added without touching the
+twenty existing ones. All six are `minDifficulty: 'easy', maxDifficulty:
+'easy'` — scoped out of medium and hard entirely by construction, so neither
+difficulty's catalog or balance is touched by any of this. Each is written
+as an escalation-then-uneasy-stabilisation arc (immediate shock, a
+complication one meeting later, a partial — never complete — stabilisation
+two to four meetings after that), the same shape `energy_price_spike` and
+`geopolitical_escalation` already use, just 2-4x their magnitude on the
+primary channel.
+
+**A guaranteed opener, and why it cannot be an ordinary event firing.**
+`resolveEvent` only ever runs *between* meetings, inside `submitMeeting` — by
+the time it could fire anything, the player's first decision would already
+be over. So `events/openingCrisis.ts` applies a randomly drawn major event's
+effects directly to the fresh initial state, through the same
+`applyEffects`/`clampLatentState`/severity-scaling path `resolveEvent` uses,
+producing the same `ResolvedEventRecord` shape — everything downstream
+(occurrences, cooldowns, diagnosis, the dispatch log) treats it exactly like
+any other firing. The draw comes from a *forked* PRNG substream
+(`Prng.fork`), which by design never consumes from the parent, so the run's
+own random sequence — every later event draw, every shock innovation — is
+completely unaffected by whether an opener fires at all.
+
+That mattered for three things that had to stay exactly as they were:
+`testing/harness.ts`'s `playWithoutEvents` (every transmission/lag
+calibration test in this file), `events/balance.test.ts`'s
+`deliveredImpulses` (the symmetry guard below), and
+`pages/enginePathParity.test.tsx`, whose "Path A" calls `createInitialState`
+directly and asserts exact equality against the real app at every meeting
+including the first. `createInitialState` therefore took an options
+parameter, `{ openingEvent?: boolean }`, defaulting to `true`: real play gets
+the opener automatically and identically on both parity paths, and the three
+harnesses that need an uncontaminated baseline pass `openingEvent: false`
+explicitly. One consequence worth flagging for future test-writing: a plain
+`createInitialState(easyConfig)` is no longer a calm baseline by default —
+several of this session's own new tests had to build fixtures with
+`{ openingEvent: false }` for exactly this reason.
+
+**A healthy opening on easy**, per docs/DIRECTION.md's decided-but-unbuilt
+point 2. `initialState.ts`'s `OPENING_PERTURBATION_SCALE` multiplies every
+opening perturbation by 0.15 on easy (1 on medium/hard, byte-identical to
+before), pulling the opening tight around the institution's already
+near-equilibrium base values instead of spreading it across the
+"moderately damaged" range every difficulty shared. The player now sees a
+calm, controlled economy, sees exactly what breaks it, and knows what to
+repair.
+
+**Titles and living news.** `record.title` now actually reaches the player,
+in a dedicated `MajorEventPanel` shown above the tabs (so it's visible
+regardless of which panel is open) rather than folded into the generic
+newswire list. `events/dispatches.ts` derives a running "story so far" log
+purely from `eventLog` and `meetingIndex` — no new persisted state — so the
+scripted `dispatchLines` reveal one per meeting while a crisis is still
+inside its window, then stop.
+
+**Markets that answer words harder in a crisis.** `applyPolicyPackage.ts`
+gained `crisisIntensity(latent)`, read from the state a decision *inherits*
+(never from what the decision itself is about to move), a weighted composite
+of how far `marketVolatility`, `bankingStress`, `creditSpread` and
+`geopoliticalRisk` sit above their calm baselines. It multiplies the tone's
+market and expectations impact, the alarmed-tone volatility add, and the
+guidance same-day jump's share by `1 + crisisAmplifier(1.2) *
+crisisIntensity` — at intensity 1 (roughly what one major event produces on
+its own), words move markets a bit over twice as hard as in calm weather.
+Reassurance stopped being a flat bonus behind a hard `bankingStress >
+base * 2` gate: it now scales smoothly with crisis intensity, relieves
+market volatility and supports market trust (previously public trust only)
+— but only when the package actually does something about the crisis (a
+rate move, an escalated liquidity or support instrument, or binding
+guidance, via a new `addressesCrisis` check). Reassuring words with nothing
+behind them during a real crisis are hollow: they cost credibility and
+market trust instead, priced like a broken promise. Staying silent above a
+lower threshold costs market trust and adds volatility too — silence during
+a real panic is a choice, not a neutral default. The Policy Desk's
+Communication panel gets a short "markets right now" hint (calm/tense/
+panicked), read from the published, exact `market_volatility` series —
+never latent, matching every other panel in this build.
+
+## What was measured
+
+**The symmetry guard, `events/balance.test.ts`, fed/ecb easy, 150 seeds,
+after tuning the six majors' magnitudes against it:**
+
+| bucket | ratio (band 0.7-1.5) | net/meeting (band ±0.08) |
+| --- | --- | --- |
+| fed/easy | 1.205 | +0.0448 |
+| ecb/easy | 1.200 | +0.0463 |
+
+Comfortably inside both bands, and close to where the pre-major catalog
+already sat (1.26/+0.043 and 1.15/+0.030 respectively — see "The hole,
+plugged" above). Medium and hard are numerically untouched: the majors'
+`maxDifficulty: 'easy'` excludes them from `eligibleEvents` entirely at
+those difficulties, so their rows in this same suite did not move.
+
+**How violent "violent" turned out to need to be.** The first pass, at
+roughly 2.5x a comparable minor event's magnitude, changed nothing
+measurable: worst-case banking stress over 60 passive fed/easy seeds
+reached only 44 of the 79.75 watch tier, worst-case headline inflation only
+11.0 of the 17.4 fail tier, and `npm run sim:sweep` reported 100 %
+completion under every rule with medians *higher* than before. Scaling the
+banking, market and supply channels up by a further 50-70% (final immediate
+magnitudes: banking failure's `bankingStress +50`, market panic's
+`marketVolatility +44`, the geopolitical crisis and supply rupture's
+`supplyShock +4.0`, against `energy_price_spike`'s existing `+1.6` for
+scale) moved worst-case passive banking stress to 72.8 (fed) / 58.1 (ecb)
+and worst-case passive headline inflation to 14.34 / 11.29 — genuinely
+close to their watch tiers without a passive run ever actually failing in
+either 60-seed sample.
+
+**The dilemma re-activated at higher stakes.** Sixty seeds of fed/easy and
+ecb/easy played with a fixed `+75bp` and `+100bp` every meeting — the
+existing stress-test policy from "The easy-mode deadlock" above — against
+the new majors:
+
+| policy | fed worst peak bankingStress | fed failures | ecb worst peak bankingStress | ecb failures |
+| --- | --- | --- | --- | --- |
+| +75bp every meeting | 100.0 (clamp) | 0/60 | 100.0 (clamp) | 0/60 |
+| +100bp every meeting | 100.0 (clamp) | 1/60 | 100.0 (clamp) | 3/60 |
+
+Aggressive over-tightening into the new crises now risks a genuine
+banking-crisis failure where it previously only raised stress modestly —
+the pincer from "The easy-mode deadlock" is live again, at a scale the
+player can actually feel, without a single change to `BANKING.tighteningSpeed`
+or any other constant that would dilute it. This is the intended shape:
+the player who panics and over-tightens can lose; the player who reacts
+proportionately should not.
+
+**`npm run sim:sweep`, fed/easy and ecb/easy, 150 seeds, both with steps 1
+and 2 in place:**
+
+| bucket | doing nothing | staff rule | staff + honest guidance |
+| --- | --- | --- | --- |
+| fed/easy | 6491 (100 %) | 6640 (100 %) | **6680** (100 %) |
+| ecb/easy | 5520 (100 %) | 5805 (100 %) | **5920** (100 %) |
+
+Still 100 % completion under every rule measured — competent play (the
+staff rule, and honest guidance on top of it) is exactly as safe as it was
+before this session, satisfying docs/DIRECTION.md's non-negotiable "must be
+winnable, must never trap." What moved is the *distribution*: medians fell
+by 200-900 points versus the pre-major numbers in `docs/REPRISE.md`
+(fed 6816→6491 doing nothing, 6904→6680 guided; ecb 6464→5520 doing nothing,
+6687→5920 guided) and the tails widened sharply — ecb/easy's p10 fell from
+comfortably above 6000 to 2554. Acting still beats doing nothing, and honest
+guidance still beats silence, on both institutions; neither finding needed
+touching.
+
+**The falsifiable criterion, re-verified exactly, 120 paired seeds:**
+
+| bucket | honest − silent, paired | wins | bluff − silent, paired |
+| --- | --- | --- | --- |
+| fed/easy | +34.9 (was +33.3) | 71 % (was 84 %) | −133.6 (was −152.3) |
+| ecb/easy | +58.4 (was +50.0) | 83 % (was 74 %) | −132.6 (was −164.1) |
+
+Both inequalities hold with the same comfortable margin as before — the
+common-mode opening shock, injected identically inside each paired
+comparison, mostly cancels the way any other paired shock does. The honest
+win rate dropped on fed (84 %→71 %) as the added volatility makes the paired
+comparison noisier meeting to meeting, but the *mean* gain, which is what
+`engine/guidance.test.ts` actually pins, moved in the opposite direction.
+`honestBroken`/`bluffBroken` (0.15/2.17 fed, 0.11/2.43 ecb) stayed on the
+same side of their 0.4/0.9 bounds as always.
+
+## Not chased tonight: a version-bump artefact on ecb/medium
+
+Bumping `SIMULATION_VERSION` — the documented convention whenever a change
+would replay a recorded run differently, which this session's changes to
+easy's opening and to `applyPolicyPackage.ts` unambiguously are — reseeds
+every draw in the game, exactly as it did at the 1.1.0→1.2.0 bump. That
+reseed alone (nothing else changed; medium's catalog is untouched by
+anything in this session) pushed `events/balance.test.ts`'s ecb/medium
+net-per-meeting to +0.111, outside its ±0.08 band. The 1.1.0→1.2.0 bump hit
+the same failure mode once before and it was a real, previously-hidden
+structural tilt (`currency_pressure` missing its mirror) rather than pure
+sampling noise, despite the suite's own 150-seed sample supposedly keeping
+sampling error "well inside the margin." Diagnosing which this is requires
+the same kind of investigation, and medium is explicitly out of scope
+tonight. Rather than either chase an out-of-scope medium-difficulty fix or
+weaken the guard to paper over a real signal, `SIMULATION_VERSION` stays at
+`1.2.0` for now — the version bump remains correct and owed, just not
+tonight, and not silently.
+
+## What now protects each of these
+
+| Guard | Fails when |
+| --- | --- |
+| `events/openingCrisis.test.ts` | the opener stops firing exactly once on easy, fires on medium/hard, ignores `openingEvent: false`, stops being deterministic, or consumes from the run's own RNG stream |
+| `engine/initialState.test.ts` | easy's opening stops clustering tightly around the institution's calm baseline, or medium/hard's spread narrows to match it |
+| `events/balance.test.ts` | (unchanged in mechanism) the majors' random firings push the delivered ratio or net-per-meeting outside their bands |
+| `applyPolicyPackage.test.ts`, "markets answer words harder during a crisis" | crisis-scaled tone/guidance effects stop exceeding their calm-weather size, earned reassurance stops paying, hollow reassurance or silence stop costing during a real crisis, or any of this starts firing in calm weather |
+| `engine/guidance.test.ts` | (unchanged bounds) the falsifiable criterion stops holding once a common-mode opening shock is paired into every comparison |

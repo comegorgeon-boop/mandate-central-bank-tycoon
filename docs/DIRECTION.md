@@ -1,11 +1,12 @@
 # Design direction, from the phase-3 playthroughs
 
 Recorded after three full Fed/easy mandates. **Nothing here was implemented
-when recorded; point 1 is now built, engine and desk** — see "The second
-instrument" in docs/BALANCE.md for the mechanism, the measurements and the
-falsifiable criterion it shipped against. This file exists so the findings
-survive while they are fresh; the balancing work in docs/BALANCE.md is
-separate and must not be confused with it.
+when recorded; point 1 is now built, engine and desk**, and **point 2's easy
+column is now built** — see "The second instrument" and "Violent named
+events, and markets that answer them" in docs/BALANCE.md for the
+mechanisms, the measurements and what each shipped against. This file
+exists so the findings survive while they are fresh; the balancing work in
+docs/BALANCE.md is separate and must not be confused with it.
 
 The order below is the player's, not a priority ranking imposed afterwards.
 
@@ -57,11 +58,17 @@ missing is the desk that collects it and the difficulty gate that allows it.
 `engine/initialState.ts` perturbs one central starting point for every
 difficulty. **Decision taken: one deliberate opening per difficulty.**
 
-- **Easy** — a *healthy* economy. Inflation and unemployment under control. Then
-  **a major, named event at the very first meeting** that upends it. The player
-  sees the baseline, sees the cause, and knows what to repair.
-- **Hard** — an economy already badly damaged. Inflation entrenched, credibility
-  eroded, and **no identifiable culprit**.
+- **Easy — built.** A *healthy* economy (`OPENING_PERTURBATION_SCALE`, 0.15
+  against medium/hard's unchanged 1). Then **a major, named event at the very
+  first meeting** that upends it (`events/openingCrisis.ts`, one of six major
+  events added to `events/catalog.ts`, drawn per seed). The player sees the
+  baseline, sees the cause, and knows what to repair. Full mechanism and
+  measurements in docs/BALANCE.md, "Violent named events, and markets that
+  answer them."
+- **Hard — not yet built.** An economy already badly damaged. Inflation
+  entrenched, credibility eroded, and **no identifiable culprit**. Medium and
+  hard were explicitly out of scope for the session that built the easy
+  column; this remains open.
 
 Note how well this fits the information ladder already recorded in
 docs/BALANCE.md: easy names the shock, hard does not. This turns that ladder
@@ -70,7 +77,12 @@ from a property of the interface into a property of the scenario.
 It also bears on a measurement problem. Balance work has been measuring the
 *median seeded opening*, which under the current construction is exactly the
 "moderately damaged" state the player is describing. A designed opening makes
-the balance question sharper, not just the play.
+the balance question sharper, not just the play. — **Live for easy**: since
+easy's opening is no longer the ambient perturbation, a plain
+`createInitialState` on easy is no longer a calm baseline by default; tests
+that need one pass `{ openingEvent: false }`. Medium and hard are unaffected
+and still describe the ambient, un-designed opening this section originally
+complained about.
 
 ## 3. The market is the most promising direction
 
@@ -85,6 +97,17 @@ The reaction screen surfaces a sliver of it.
 
 This is the natural companion to 1: communication is the instrument, the market
 is what answers back, and the two together are the second axis the game lacks.
+
+**A first real instance built.** `crisisIntensity(latent)` in
+`applyPolicyPackage.ts` makes the market's *response* to a decision depend on
+the market's own state, not only on the decision: the same words move
+markets a bit over twice as hard once a major event (point 2) has markets
+keyed up, reassurance only pays when backed by action, and silence during a
+real panic now costs. This is still a same-meeting mechanic — it does not
+yet make the market something the player *reads and times*, a step ahead of
+the decision, which is what "a real channel of play" ultimately means. That
+remains open. Full mechanism and measurements in docs/BALANCE.md, "Violent
+named events, and markets that answer them."
 
 ## 4. The final screen should be a written account of the mandate
 
