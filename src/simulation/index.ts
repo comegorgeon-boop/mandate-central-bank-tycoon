@@ -82,7 +82,7 @@ export {
 export { buildLagKernel } from './engine/lags.ts'
 
 // ---- Events ---------------------------------------------------------------
-export { EVENT_CATALOG } from './events/catalog.ts'
+export { EVENT_CATALOG, isMajorEvent } from './events/catalog.ts'
 export { buildEventContext, eligibleEvents, resolveEvent } from './events/resolveEvent.ts'
 export { revealedDispatches, type RevealedDispatch } from './events/dispatches.ts'
 

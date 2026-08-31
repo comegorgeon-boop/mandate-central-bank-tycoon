@@ -7,17 +7,12 @@ import type { SimulationState } from '../types/state.ts'
 import { applyPolicyPackage } from '../engine/applyPolicyPackage.ts'
 import { advanceTrueState } from '../engine/advanceTrueState.ts'
 import { createInitialState } from '../engine/initialState.ts'
-import { EVENTS_BY_ID } from '../events/catalog.ts'
+import { isMajorEvent } from '../events/catalog.ts'
 import { resolveEvent } from '../events/resolveEvent.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
 import { configFromLog } from './decisionLog.ts'
-
-/** True when a resolved event's catalog definition is a major crisis. */
-function isMajorRecord(record: ResolvedEventRecord): boolean {
-  return EVENTS_BY_ID.get(record.eventId)?.tier === 'major'
-}
 
 /**
  * The run loop, and deterministic replay on top of it.
@@ -184,9 +179,9 @@ export function submitMeeting(
 
   // Majors get the dedicated banner, not the generic newswire list — see
   // `RunSession.majorEvent`.
-  const majorEvent = resolution.resolved.find(isMajorRecord) ?? null
+  const majorEvent = resolution.resolved.find((record) => isMajorEvent(record.eventId)) ?? null
   const newswire = resolution.resolved
-    .filter((record) => !isMajorRecord(record))
+    .filter((record) => !isMajorEvent(record.eventId))
     .map((record: ResolvedEventRecord) => record.newswire)
 
   return {

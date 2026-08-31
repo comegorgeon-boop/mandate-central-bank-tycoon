@@ -2,6 +2,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { MAX_SCORE, getInstitution } from '../simulation/index.ts'
 import { LineChart, type ChartSeries } from '../components/LineChart.tsx'
 import { useRun } from '../features/game/runContext.ts'
+import { buildMandateReport } from '../features/result/report.ts'
 
 /**
  * The post-mandate report.
@@ -9,6 +10,11 @@ import { useRun } from '../features/game/runContext.ts'
  * The run is over, so this screen is allowed to show the realised path of the
  * true economy rather than the published statistics the player was working
  * from. That difference is itself part of the lesson.
+ *
+ * The written account leads, directly under the header: what happened, what
+ * went well, what went wrong, why the score is what it is. The score and its
+ * component breakdown come after, as the Scorecard — support for the
+ * narrative, not the headline.
  */
 export default function ResultPage() {
   const { runId } = useParams()
@@ -26,6 +32,7 @@ export default function ResultPage() {
   const outcome = session.outcome
   const history = session.state.history
   const meetingsServed = session.state.meetingIndex
+  const report = buildMandateReport(session.state, outcome, score)
 
   const line = (
     label: string,
@@ -56,14 +63,63 @@ export default function ResultPage() {
       <h1 className="mt-1 text-2xl font-semibold text-neutral-50">
         {outcome.label ?? 'Mandate ended'}
       </h1>
-      <p className="mt-2 text-sm text-neutral-300">{outcome.summary}</p>
       <p className="mt-1 text-sm text-neutral-400">
         {meetingsServed} of {config.meetingCount} scheduled meetings served.
       </p>
 
-      <section className="mt-8" aria-labelledby="score-heading">
+      <section className="mt-6 space-y-6" aria-labelledby="report-heading">
+        <h2 id="report-heading" className="sr-only">
+          The mandate, in full
+        </h2>
+
+        <div>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+            What happened
+          </h3>
+          {report.whatHappened.map((paragraph) => (
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-emerald-400">
+            What went well
+          </h3>
+          {report.whatWentWell.map((paragraph) => (
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-400">
+            What went wrong
+          </h3>
+          {report.whatWentWrong.map((paragraph) => (
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+            Why this score
+          </h3>
+          {report.whyThisScore.map((paragraph) => (
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="score-heading">
         <h2 id="score-heading" className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
-          Score
+          Scorecard
         </h2>
         <p className="mt-2 text-4xl font-semibold tabular-nums text-neutral-50">
           {score.score.toLocaleString('en-US')}

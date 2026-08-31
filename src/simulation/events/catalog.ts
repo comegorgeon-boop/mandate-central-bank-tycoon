@@ -1151,3 +1151,8 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
 export const EVENTS_BY_ID = new Map<string, GameEvent>(
   EVENT_CATALOG.map((event) => [event.id, event]),
 )
+
+/** True when a catalog event id names a mandate-defining major crisis. */
+export function isMajorEvent(eventId: string): boolean {
+  return EVENTS_BY_ID.get(eventId)?.tier === 'major'
+}
