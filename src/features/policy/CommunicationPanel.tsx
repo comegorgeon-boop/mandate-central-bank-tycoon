@@ -1,6 +1,7 @@
 import type {
   CommunicationCommitment,
   GuidanceState,
+  ObservationSet,
 } from '../../simulation/index.ts'
 import { GUIDANCE_HORIZON_MEETINGS } from '../../simulation/index.ts'
 import {
@@ -8,6 +9,33 @@ import {
   PATH_OPTIONS,
   buildStatement,
 } from './statement.ts'
+
+/**
+ * A read of how keyed-up markets are, from published data only — never
+ * latent state, matching every other panel in this build. Deliberately
+ * cruder than the engine's own `crisisIntensity`: this only has to tell the
+ * player *whether* their words are about to land harder than usual, not by
+ * how much.
+ */
+type MarketMood = 'calm' | 'tense' | 'panicked'
+
+const MOOD_COPY: Readonly<Record<MarketMood, string>> = {
+  calm: 'Markets are calm. Words move them, but not by much.',
+  tense:
+    'Markets are on edge. What you say here will move them harder than usual — ' +
+    'reassurance can pay, and staying quiet is not a neutral choice.',
+  panicked:
+    'Markets are in open distress. This statement will move them hard — a ' +
+    'reassurance backed by real action pays; empty calm, or silence, costs.',
+}
+
+function marketMood(observation: ObservationSet): MarketMood {
+  const volatility = observation.indicators.market_volatility?.value ?? null
+  if (volatility === null) return 'calm'
+  if (volatility >= 45) return 'panicked'
+  if (volatility >= 24) return 'tense'
+  return 'calm'
+}
 
 /**
  * The communication half of the Policy Desk.
@@ -85,6 +113,7 @@ export function CommunicationPanel({
   pricedRate,
   guidance,
   meetingIndex,
+  observation,
   onSignal,
   onCommitment,
 }: {
@@ -98,6 +127,7 @@ export function CommunicationPanel({
   readonly pricedRate: number | null
   readonly guidance: GuidanceState
   readonly meetingIndex: number
+  readonly observation: ObservationSet
   readonly onSignal: (signal: number) => void
   readonly onCommitment: (commitment: CommunicationCommitment) => void
 }) {
@@ -117,6 +147,22 @@ export function CommunicationPanel({
         itself will do. Markets reprice it the moment it is published — against
         what they already expected, not against zero.
       </p>
+
+      {(() => {
+        const mood = marketMood(observation)
+        if (mood === 'calm') return null
+        return (
+          <p
+            className={`mt-3 rounded border p-3 text-sm ${
+              mood === 'panicked'
+                ? 'border-rose-800 bg-rose-950/40 text-rose-200'
+                : 'border-amber-800 bg-amber-950/30 text-amber-200'
+            }`}
+          >
+            {MOOD_COPY[mood]}
+          </p>
+        )
+      })()}
 
       <StandingGuidance
         guidance={guidance}

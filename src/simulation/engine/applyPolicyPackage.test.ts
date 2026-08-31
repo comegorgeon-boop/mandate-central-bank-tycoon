@@ -426,3 +426,149 @@ describe('contradictions are reported and priced, never blocked', () => {
     )
   })
 })
+
+describe('markets answer words harder during a crisis', () => {
+  /**
+   * `{ openingEvent: false }`, deliberately: easy now guarantees a major
+   * event by default (see `events/openingCrisis.ts`), so the plain easy
+   * opening is no longer a calm baseline. These tests need one they fully
+   * control, both for the calm control and as the base the crisis case
+   * overrides — a crisis confounded by an extra, random opener underneath
+   * would not isolate what this mechanic does.
+   */
+  function calmState(): SimulationState {
+    return createInitialState(testConfig('fed', 'easy', 'communication-crisis'), {
+      openingEvent: false,
+    })
+  }
+
+  /**
+   * Elevated volatility and banking stress push `crisisIntensity`
+   * comfortably above every gate this batch of mechanics uses.
+   */
+  function crisisState(): SimulationState {
+    const base = calmState()
+    return {
+      ...base,
+      latent: { ...base.latent, marketVolatility: 60, bankingStress: 50 },
+    }
+  }
+
+  const HAWKISH_ANNOUNCEMENT: PolicyPackage = {
+    actions: [{ instrument: 'forward_guidance', magnitude: 100 }],
+    communication: {
+      tone: 'hawkish',
+      emphasis: 'inflation',
+      commitment: 'conditional_path',
+      channel: 'statement',
+    },
+  }
+
+  const REASSURING_WORDS_ONLY: PolicyPackage = {
+    actions: [],
+    communication: {
+      tone: 'reassuring',
+      emphasis: 'financial_stability',
+      commitment: 'none',
+      channel: 'statement',
+    },
+  }
+
+  const REASSURING_WITH_ACTION: PolicyPackage = {
+    actions: [{ instrument: 'policy_rate', magnitude: -25 }],
+    communication: {
+      tone: 'reassuring',
+      emphasis: 'financial_stability',
+      commitment: 'none',
+      channel: 'statement',
+    },
+  }
+
+  it('moves the priced path and expectations further for the same words', () => {
+    const calm = calmState()
+    const crisis = crisisState()
+
+    const calmResult = applyPolicyPackage(calm, HAWKISH_ANNOUNCEMENT)
+    const crisisResult = applyPolicyPackage(crisis, HAWKISH_ANNOUNCEMENT)
+    expect(calmResult.ok && crisisResult.ok).toBe(true)
+    if (!calmResult.ok || !crisisResult.ok) return
+
+    const calmJump = calmResult.state.latent.marketExpectedRate - calm.latent.marketExpectedRate
+    const crisisJump =
+      crisisResult.state.latent.marketExpectedRate - crisis.latent.marketExpectedRate
+    expect(crisisJump).toBeGreaterThan(calmJump)
+  })
+
+  it('earns trust and relieves volatility when a reassuring tone is backed by action', () => {
+    const crisis = crisisState()
+    const held = applyPolicyPackage(crisis, { actions: [], communication: null })
+    const reassured = applyPolicyPackage(crisis, REASSURING_WITH_ACTION)
+    expect(held.ok && reassured.ok).toBe(true)
+    if (!held.ok || !reassured.ok) return
+
+    expect(reassured.state.latent.marketTrust).toBeGreaterThan(held.state.latent.marketTrust)
+    expect(reassured.state.latent.marketVolatility).toBeLessThan(
+      held.state.latent.marketVolatility,
+    )
+  })
+
+  it('costs credibility for a reassuring tone with nothing behind it, in a real crisis', () => {
+    const crisis = crisisState()
+    const held = applyPolicyPackage(crisis, { actions: [], communication: null })
+    const hollow = applyPolicyPackage(crisis, REASSURING_WORDS_ONLY)
+    expect(held.ok && hollow.ok).toBe(true)
+    if (!held.ok || !hollow.ok) return
+
+    expect(hollow.state.latent.credibility).toBeLessThan(held.state.latent.credibility)
+    expect(hollow.state.latent.marketTrust).toBeLessThan(held.state.latent.marketTrust)
+  })
+
+  it('costs market trust to say nothing at all during a real crisis', () => {
+    const calm = calmState()
+    const crisis = crisisState()
+    const silentCalm = applyPolicyPackage(calm, { actions: [], communication: null })
+    const silentCrisis = applyPolicyPackage(crisis, { actions: [], communication: null })
+    expect(silentCalm.ok && silentCrisis.ok).toBe(true)
+    if (!silentCalm.ok || !silentCrisis.ok) return
+
+    // The crisis state's own baseline trust may differ from calm's, so the
+    // comparison is against a spoken package on the *same* crisis state, not
+    // across states.
+    const spoken = applyPolicyPackage(crisis, {
+      actions: [],
+      communication: {
+        tone: 'neutral',
+        emphasis: 'data_dependence',
+        commitment: 'none',
+        channel: 'statement',
+      },
+    })
+    expect(spoken.ok).toBe(true)
+    if (!spoken.ok) return
+    expect(silentCrisis.state.latent.marketTrust).toBeLessThan(spoken.state.latent.marketTrust)
+  })
+
+  it('does none of this in calm weather', () => {
+    const calm = calmState()
+    const held = applyPolicyPackage(calm, { actions: [], communication: null })
+    const hollow = applyPolicyPackage(calm, REASSURING_WORDS_ONLY)
+    const spoken = applyPolicyPackage(calm, {
+      actions: [],
+      communication: {
+        tone: 'neutral',
+        emphasis: 'data_dependence',
+        commitment: 'none',
+        channel: 'statement',
+      },
+    })
+    expect(held.ok && hollow.ok && spoken.ok).toBe(true)
+    if (!held.ok || !hollow.ok || !spoken.ok) return
+
+    // Below `reassuranceCrisisFloor`, a reassuring tone costs no more
+    // credibility than any other silent-on-substance tone would.
+    expect(hollow.state.latent.credibility).toBeCloseTo(spoken.state.latent.credibility, 6)
+    // Below `silenceCrisisThreshold`, saying nothing costs no more market
+    // trust than a neutral, substance-free statement would.
+    expect(held.state.latent.marketTrust).toBeCloseTo(spoken.state.latent.marketTrust, 6)
+  })
+})

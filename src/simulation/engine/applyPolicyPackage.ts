@@ -1,6 +1,7 @@
 import type { DiagnosticEvent } from '../types/core.ts'
 import type {
   GuidanceState,
+  InstrumentId,
   PolicyContradiction,
   PolicyPackage,
   PolicyRejection,
@@ -17,7 +18,7 @@ import {
   getInstrument,
   getInstrumentRange,
 } from '../config/instruments.ts'
-import { BANKING, COMMUNICATION, INSTITUTIONAL, VOLATILITY } from '../config/model.ts'
+import { BANKING, COMMUNICATION, INSTITUTIONAL, SPREADS, VOLATILITY } from '../config/model.ts'
 import {
   GUIDANCE_DELIVERY_TOLERANCE,
   GUIDANCE_HORIZON_MEETINGS,
@@ -60,6 +61,54 @@ function magnitudeOf(
   instrument: string,
 ): number | undefined {
   return pkg.actions.find((action) => action.instrument === instrument)?.magnitude
+}
+
+/**
+ * How keyed-up markets already are, on a scale where roughly 1 is what one of
+ * the event catalog's major crises produces on its own and a genuine pile-up
+ * of trouble can exceed it.
+ *
+ * Read from the state a decision *inherits* — the caller always passes the
+ * pre-decision latent — never from anything the decision itself is about to
+ * move. This is what makes "reassure at the right moment" a judgement of
+ * whether the words matched the moment they were said into, not the moment
+ * the decision itself just created.
+ */
+function crisisIntensity(latent: LatentState): number {
+  const volatility = Math.max(0, latent.marketVolatility - VOLATILITY.base) / 25
+  const banking = Math.max(0, latent.bankingStress - BANKING.base) / 30
+  const spread = Math.max(0, latent.creditSpread - SPREADS.base) / 1.5
+  const geopolitical = Math.max(0, latent.geopoliticalRisk - 25) / 45
+  return clamp(
+    0.4 * volatility + 0.3 * banking + 0.15 * spread + 0.15 * geopolitical,
+    0,
+    1.6,
+  )
+}
+
+/**
+ * Whether a package does anything beyond words about a live crisis: a rate
+ * move, an escalated liquidity or support instrument, or a binding guidance
+ * commitment. Used only to judge a reassuring tone — calm words backed by
+ * none of this, in a real crisis, are spin rather than reassurance.
+ */
+function addressesCrisis(pkg: PolicyPackage, priorStance: PolicyStance): boolean {
+  const rateMove = magnitudeOf(pkg, 'policy_rate')
+  if (rateMove !== undefined && rateMove !== 0) return true
+
+  const escalated = (instrument: InstrumentId, prior: number): boolean => {
+    const magnitude = magnitudeOf(pkg, instrument)
+    return magnitude !== undefined && magnitude > prior
+  }
+  if (escalated('discount_window', priorStance.discountWindowLevel)) return true
+  if (escalated('swap_lines', priorStance.swapLinesLevel)) return true
+  if (escalated('transmission_protection', priorStance.transmissionProtection)) return true
+  if (escalated('targeted_refinancing', priorStance.targetedRefinancing)) return true
+  const purchases = magnitudeOf(pkg, 'asset_purchases')
+  if (purchases !== undefined && purchases > priorStance.assetPurchasePace) return true
+
+  const commitment = pkg.communication?.commitment
+  return commitment === 'conditional_path' || commitment === 'strong_commitment'
 }
 
 export function validatePolicyPackage(
@@ -363,6 +412,12 @@ export function applyPolicyPackage(
   const sensitivity = difficulty.credibilitySensitivity
   const stance = deriveStance(state, pkg)
 
+  // How keyed-up markets already are, judged from what the committee
+  // inherited walking in — see `crisisIntensity`. Governs how hard every word
+  // in this package lands.
+  const crisis = crisisIntensity(state.latent)
+  const crisisAmplifier = 1 + COMMUNICATION.crisisAmplifier * crisis
+
   const previousRate = state.latent.policyRate
   const newRate = effectivePolicyRate(stance, state.config.institution)
   const actualMove = newRate - previousRate
@@ -394,9 +449,9 @@ export function applyPolicyPackage(
     const tone = COMMUNICATION.toneSignal[communication.tone]
 
     latent.marketExpectedRate +=
-      COMMUNICATION.toneMarketImpact * tone * reach * credibilityShare
+      COMMUNICATION.toneMarketImpact * tone * reach * credibilityShare * crisisAmplifier
     latent.expectedInflationShort -=
-      COMMUNICATION.toneExpectationImpact * tone * reach * credibilityShare
+      COMMUNICATION.toneExpectationImpact * tone * reach * credibilityShare * crisisAmplifier
     latent.anchoring = clamp(
       latent.anchoring +
         COMMUNICATION.emphasisAnchoringSupport[communication.emphasis] *
@@ -407,11 +462,29 @@ export function applyPolicyPackage(
     )
 
     if (communication.tone === 'alarmed') {
-      latent.marketVolatility += COMMUNICATION.alarmVolatility * reach
+      latent.marketVolatility += COMMUNICATION.alarmVolatility * reach * crisisAmplifier
     }
-    if (communication.tone === 'reassuring' && latent.bankingStress > BANKING.base * 2) {
-      latent.publicTrust += COMMUNICATION.reassuranceTrust * reach
+
+    if (communication.tone === 'reassuring' && crisis > COMMUNICATION.reassuranceCrisisFloor) {
+      if (addressesCrisis(pkg, state.stance)) {
+        // Earned: there is something to reassure people about, and the
+        // package backs the words with an actual response to it.
+        latent.publicTrust += COMMUNICATION.reassuranceTrust * reach * crisis
+        latent.marketTrust += COMMUNICATION.reassuranceMarketTrust * reach * crisis
+        latent.marketVolatility -=
+          COMMUNICATION.reassuranceVolatilityRelief * reach * crisis
+      } else {
+        // Hollow: calm words with nothing behind them, during a real crisis —
+        // spin, priced like a broken promise rather than earning trust.
+        latent.credibility -= COMMUNICATION.hollowReassuranceCost * crisis * sensitivity
+        latent.marketTrust -= COMMUNICATION.hollowReassuranceCost * crisis
+      }
     }
+  } else if (crisis > COMMUNICATION.silenceCrisisThreshold) {
+    // Saying nothing at all while markets are in real trouble is a choice,
+    // not a neutral default.
+    latent.marketTrust -= COMMUNICATION.silenceCrisisCost * crisis
+    latent.marketVolatility += COMMUNICATION.silenceCrisisVolatility * crisis
   }
 
   // ---- The promise ledger --------------------------------------------------
@@ -527,7 +600,8 @@ export function applyPolicyPackage(
       COMMUNICATION.guidanceMarketJump *
         (latent.credibility / 100) *
         COMMUNICATION.commitmentWeight[guidance.commitment] *
-        reach,
+        reach *
+        crisisAmplifier,
       0,
       1,
     )

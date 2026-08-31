@@ -281,6 +281,7 @@ export function PolicyDeskPanel({
         pricedRate={marketRate}
         guidance={session.state.guidance}
         meetingIndex={session.state.meetingIndex}
+        observation={session.observation}
         onSignal={setSignal}
         onCommitment={setCommitment}
       />

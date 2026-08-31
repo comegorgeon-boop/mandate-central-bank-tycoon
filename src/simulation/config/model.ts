@@ -478,10 +478,51 @@ export const COMMUNICATION = {
   guidanceMarketJump: 0.6,
   /** Credibility lost when the words contradict the decision. */
   inconsistencyCost: 4.5,
-  /** Public trust gained by a reassuring tone while the system is stressed. */
-  reassuranceTrust: 2.5,
-  /** Market volatility added by an alarmed tone. */
+  /** Public trust gained by an earned reassurance, per unit of crisis intensity, before reach. */
+  reassuranceTrust: 6.0,
+  /** Market volatility added by an alarmed tone, before the crisis amplifier. */
   alarmVolatility: 5.0,
+  /**
+   * How much harder words land when markets are already in crisis.
+   *
+   * Multiplies the tone's market and expectations impact, the alarmed-tone
+   * volatility add, and the guidance same-day jump's share, by
+   * `1 + crisisAmplifier * crisisIntensity`. At `crisisIntensity` 1 — roughly
+   * what one of the catalog's major events produces on its own — a statement
+   * moves markets a bit over twice as much as the identical words would in
+   * calm weather. This is the mechanism behind "markets become listenable":
+   * the rate is still one instrument, but what is said about it now carries
+   * real weight when there is something worth saying it about.
+   */
+  crisisAmplifier: 1.2,
+  /**
+   * Floor of `crisisIntensity` below which a reassuring tone is judged
+   * neither earned nor hollow — it is just a tone. Below it there is nothing
+   * to reassure anyone about.
+   */
+  reassuranceCrisisFloor: 0.15,
+  /** Market trust gained by an earned reassurance, per unit of crisis intensity, before reach. */
+  reassuranceMarketTrust: 6.0,
+  /** Market volatility relieved by an earned reassurance, per unit of crisis intensity, before reach. */
+  reassuranceVolatilityRelief: 4.0,
+  /**
+   * Credibility and market-trust cost of a reassuring tone published during a
+   * real crisis with nothing behind it — no stabilising rate move, no
+   * liquidity or support instrument escalated, no binding guidance. Spin that
+   * is not backed by action, priced the way a broken promise is: on
+   * credibility (scaled by the difficulty's sensitivity) and on market trust.
+   */
+  hollowReassuranceCost: 5.0,
+  /**
+   * `crisisIntensity` above which staying silent is a choice rather than a
+   * neutral default — set higher than `reassuranceCrisisFloor`, so a mildly
+   * tense meeting can still pass without comment.
+   */
+  silenceCrisisThreshold: 0.3,
+  /** Market trust cost of publishing nothing at all during a real crisis. */
+  silenceCrisisCost: 4.0,
+  /** Market volatility added by publishing nothing at all during a real crisis. */
+  silenceCrisisVolatility: 3.0,
   /** How each emphasis choice supports or dilutes expectations anchoring. */
   emphasisAnchoringSupport: {
     inflation: 0.02,
