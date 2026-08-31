@@ -11,6 +11,7 @@ import { StanceStrip } from '../policy/StanceStrip.tsx'
 import { ChangesPanel } from './panels/ChangesPanel.tsx'
 import { DiagnosisPanel } from './panels/DiagnosisPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
+import { MajorEventPanel } from './panels/MajorEventPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { PricesPanel } from './panels/PricesPanel.tsx'
 
@@ -99,6 +100,12 @@ export function MeetingScreen({
               </ul>
             </div>
           )}
+
+          <MajorEventPanel
+            majorEvent={session.majorEvent}
+            eventLog={session.state.eventLog}
+            meetingIndex={session.state.meetingIndex}
+          />
 
           <StanceStrip
             observation={session.observation}

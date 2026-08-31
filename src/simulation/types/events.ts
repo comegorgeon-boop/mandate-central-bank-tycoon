@@ -19,6 +19,13 @@ export type EventFamily =
   | 'market_cycle'
   | 'natural_disaster'
   | 'innovation'
+  // ---- Major event families ------------------------------------------------
+  | 'geopolitical_crisis'
+  | 'domestic_political'
+  | 'banking_failure'
+  | 'housing_crash'
+  | 'supply_rupture'
+  | 'market_panic'
 
 /** An additive nudge to one latent variable. */
 export interface EventEffect {
@@ -79,6 +86,13 @@ export interface GameEvent {
   readonly clue: string | null
   readonly institutions: readonly Institution[]
   readonly minDifficulty: Difficulty
+  /**
+   * Ceiling symmetric to `minDifficulty`: undefined means no ceiling. Used to
+   * scope a batch of content to a single difficulty (the major events are
+   * `minDifficulty: 'easy', maxDifficulty: 'easy'`) without touching the
+   * catalog or balance of the difficulties either side of it.
+   */
+  readonly maxDifficulty?: Difficulty
   /** Base selection weight before the state-dependent multiplier. */
   readonly baseWeight: number
   /** Meetings that must pass before this event can fire again. */
@@ -94,6 +108,21 @@ export interface GameEvent {
   readonly followUps: readonly string[]
   /** Only fires if one of these events fired earlier. Empty means no gate. */
   readonly requires: readonly string[]
+  /**
+   * Marks a mandate-defining crisis rather than routine background noise:
+   * rare, large, and given dedicated prominence in the UI instead of being
+   * folded into the ordinary newswire list. Undefined means an ordinary
+   * (minor) event.
+   */
+  readonly tier?: 'major'
+  /**
+   * Scripted follow-up wire lines for a major event, revealed one per meeting
+   * after it fires: index 0 one meeting later, index 1 two meetings later,
+   * and so on. Purely narrative — the mechanical arc is still carried by
+   * `immediate`/`delayed` — so this needs no new engine state: it is derived
+   * at read time from how long ago the event's own record fired.
+   */
+  readonly dispatchLines?: readonly string[]
 }
 
 /** An effect queued to fire at a future internal sub-step. */

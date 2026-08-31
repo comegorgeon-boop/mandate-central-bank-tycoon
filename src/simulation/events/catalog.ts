@@ -23,6 +23,7 @@ import { BANKING, VOLATILITY } from '../config/model.ts'
 const ONE_MEETING = 4
 const TWO_MEETINGS = 8
 const THREE_MEETINGS = 12
+const FOUR_MEETINGS = 16
 
 export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Energy and commodities --------------------------------------------
@@ -788,6 +789,362 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     ],
     followUps: [],
     requires: [],
+  },
+
+  // ===== Major events ========================================================
+  //
+  // Mandate-defining crises rather than background noise: `tier: 'major'`,
+  // scoped to `minDifficulty`/`maxDifficulty` 'easy' only (medium/hard are out
+  // of scope for this batch — their catalog and balance stay untouched, since
+  // `eligibleEvents` filters these out entirely once `ctx.difficulty` is above
+  // the ceiling). Rare (`baseWeight` well under the minors' 0.7-1.2) and
+  // singular (`maxOccurrences: 1`) as *random* draws — one of them also fires
+  // unconditionally at the first meeting of every easy mandate, via
+  // `events/openingCrisis.ts`, which is not gated by weight or probability at
+  // all. Each carries a real multi-sentence `newswire` and 2-3 `dispatchLines`
+  // so the story keeps developing over the meetings after it breaks, without
+  // needing any new persisted state: `events/dispatches.ts` derives what's
+  // been revealed so far from `meetingIndex - record.meetingIndex` alone.
+  //
+  // Magnitudes are roughly 2.5-3x a comparable minor on their primary
+  // channel, arced immediate-shock -> complication -> uneasy stabilisation
+  // (never a full, clean resolution — a war doesn't just end, a failed bank
+  // doesn't just get well). Three of the six (banking failure, housing crash,
+  // market panic) hit predominantly unweighted channels in
+  // `inflationImpulse.ts` (bankingStress, creditSpread, marketVolatility,
+  // assetPricePressure, politicalPressure are not inflation-weighted, same as
+  // the existing unpaired `bank_funding_scare`/`housing_correction`/
+  // `market_crash`/`communication_leak`), so they need no mirrored good-news
+  // counterpart to keep `events/balance.test.ts` inside its band. The other
+  // three (geopolitical crisis, domestic political shock, supply rupture) are
+  // each written to net back down close to neutral over their own arc for the
+  // same reason the existing `energy_price_spike`/`supply_chain_disruption`
+  // do. `financialShock` and `demandShock` are nudged where the story is
+  // naturally that kind of shock, purely so `observation/diagnose.ts` names it
+  // correctly — both are free or cheap against the balance guard.
+  {
+    id: 'geopolitical_crisis_outbreak',
+    family: 'geopolitical_crisis',
+    title: 'War breaks out along a key trade corridor',
+    newswire:
+      "Fighting has broken out between two regional powers along one of the world's " +
+      'busiest shipping corridors. Insurers have suspended new coverage for vessels ' +
+      'transiting the strait, and several governments are drawing up evacuation plans ' +
+      'for nationals in the region.',
+    clue: 'Naval insurers have quietly widened war-risk premiums across the corridor for three straight weeks.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    maxDifficulty: 'easy',
+    tier: 'major',
+    baseWeight: 0.15,
+    cooldownMeetings: 8,
+    maxOccurrences: 1,
+    isEligible: () => true,
+    weight: (ctx) => 0.5 + ctx.latent.geopoliticalRisk / 60,
+    immediate: (ctx) => [
+      { variable: 'geopoliticalRisk', delta: 55 },
+      { variable: 'marketVolatility', delta: 22 },
+      { variable: 'supplyShock', delta: 4.0 },
+      { variable: 'importPriceInflation', delta: 10 * (ctx.institution === 'ecb' ? 1.3 : 1) },
+      { variable: 'confidenceShock', delta: -2.2 },
+    ],
+    delayed: () => [
+      // The fighting spreads before it settles.
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          { variable: 'supplyShock', delta: 1.7 },
+          { variable: 'geopoliticalRisk', delta: 12 },
+        ],
+      },
+      // A ceasefire holds, but re-routed shipping and the risk premium it
+      // carries do not fully unwind — this is stabilisation, not resolution.
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'supplyShock', delta: -3.6 },
+          { variable: 'geopoliticalRisk', delta: -38 },
+          { variable: 'outputGap', delta: -0.7 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: [],
+    dispatchLines: [
+      'Shipping lines are re-routing around the corridor, adding weeks to delivery ' +
+        'times on some of the busiest routes in the world.',
+      'A ceasefire announced overnight is holding for now, though diplomats caution ' +
+        'it is fragile and forces on both sides remain mobilised.',
+    ],
+  },
+  {
+    id: 'domestic_political_shock',
+    family: 'domestic_political',
+    title: "Government loses its majority in a snap vote",
+    newswire:
+      "A confidence vote has stripped the governing coalition of its majority, " +
+      "throwing fiscal policy and the central bank's own leadership into question. " +
+      "Opposition leaders have called for an emergency session and floated replacing " +
+      "the bank's leadership within the year.",
+    clue: "Coalition whips have failed to guarantee the numbers for next week's budget vote.",
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    maxDifficulty: 'easy',
+    tier: 'major',
+    baseWeight: 0.15,
+    cooldownMeetings: 8,
+    maxOccurrences: 1,
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + ctx.latent.politicalPressure / 80,
+    immediate: () => [
+      { variable: 'politicalPressure', delta: 45 },
+      { variable: 'credibility', delta: -9 },
+      { variable: 'marketTrust', delta: -15 },
+      { variable: 'marketVolatility', delta: 14 },
+      // Uncertainty over who is actually in charge chills spending before any
+      // policy has actually changed — a demand-shaped shock, not a supply one.
+      { variable: 'demandShock', delta: -1.4 },
+      { variable: 'confidenceShock', delta: -1.4 },
+    ],
+    delayed: () => [
+      // A first attempt at forming a government fails.
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          { variable: 'politicalPressure', delta: 16 },
+          { variable: 'marketVolatility', delta: 9 },
+        ],
+      },
+      // An interim arrangement holds. The institution is not out of the
+      // spotlight, but the immediate threat to it has receded.
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'politicalPressure', delta: -30 },
+          { variable: 'marketTrust', delta: 8 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: [],
+    dispatchLines: [
+      'A first attempt to form a caretaker coalition collapsed overnight; markets ' +
+        'are pricing weeks of uncertainty before a government is confirmed.',
+      'Party leaders have agreed an interim confidence-and-supply arrangement, and ' +
+        "the immediate threat to the bank's leadership has receded.",
+    ],
+  },
+  {
+    id: 'banking_failure',
+    family: 'banking_failure',
+    title: 'A major regional lender collapses overnight',
+    newswire:
+      'Regulators seized a major regional lender in an emergency weekend action ' +
+      'after a wave of withdrawals emptied its liquidity buffers within hours. ' +
+      'Shares in peer institutions were suspended in early trading as counterparties ' +
+      'scrambled to assess their exposure.',
+    clue: 'Overnight funding costs for mid-sized lenders have detached sharply from the rest of the banking system.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    maxDifficulty: 'easy',
+    tier: 'major',
+    baseWeight: 0.15,
+    cooldownMeetings: 8,
+    maxOccurrences: 1,
+    // Unlike `bank_funding_scare`, this does not require prior fragility: a
+    // single failure can strike a genuinely healthy system without warning.
+    isEligible: () => true,
+    weight: (ctx) => 0.8 + Math.max(0, ctx.latent.bankingStress - BANKING.base) / 40,
+    immediate: () => [
+      { variable: 'bankingStress', delta: 50 },
+      { variable: 'creditSpread', delta: 1.6 },
+      { variable: 'marketVolatility', delta: 30 },
+      { variable: 'confidenceShock', delta: -1.7 },
+      // So `diagnoseShock` names this what it is: a financial shock.
+      { variable: 'financialShock', delta: 2.6 },
+    ],
+    delayed: () => [
+      // Contagion fear before the backstop is trusted.
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          { variable: 'bankingStress', delta: 22 },
+          { variable: 'creditGrowth', delta: -4.0 },
+        ],
+      },
+      // A backstop calms markets, but a failure this size leaves a lasting
+      // scar on the stress index rather than a clean recovery.
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'bankingStress', delta: -24 },
+          { variable: 'creditGrowth', delta: 1.8 },
+          { variable: 'creditSpread', delta: -0.5 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: [],
+    dispatchLines: [
+      'Two smaller lenders with similar balance-sheet profiles have reported ' +
+        'unusually heavy deposit outflows over the past week.',
+      'An emergency backstop facility has stopped the bleeding at peer ' +
+        "institutions, though the failed lender's resolution will take months to " +
+        'complete.',
+    ],
+  },
+  {
+    id: 'housing_market_crash',
+    family: 'housing_crash',
+    title: 'Property markets seize up nationwide',
+    newswire:
+      'Transaction volumes have collapsed across every major metropolitan market ' +
+      'and several large developers have halted projects mid-construction. Estate ' +
+      "agents describe a buyers' strike as sellers refuse to mark prices down and " +
+      'buyers refuse to move until they do.',
+    clue: 'Mortgage applications have fallen for five consecutive months while completed-but-unsold inventory keeps building.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    maxDifficulty: 'easy',
+    tier: 'major',
+    baseWeight: 0.15,
+    cooldownMeetings: 8,
+    maxOccurrences: 1,
+    // Unlike `housing_correction`, this does not require a prior run-up: the
+    // floor below is large enough to strike a fairly valued market too.
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, ctx.latent.assetPricePressure) / 40,
+    immediate: (ctx) => [
+      {
+        variable: 'assetPricePressure',
+        delta: -Math.max(32, ctx.latent.assetPricePressure * 0.6),
+      },
+      { variable: 'bankingStress', delta: 26 },
+      { variable: 'confidenceShock', delta: -1.9 },
+      { variable: 'financialShock', delta: 1.7 },
+    ],
+    delayed: () => [
+      // Demand destruction takes a couple of quarters to show up in full.
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'outputGap', delta: -1.4 },
+          { variable: 'creditGrowth', delta: -3.4 },
+        ],
+      },
+      // Prices find a floor; volumes stay depressed. Partial, not complete.
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [
+          { variable: 'outputGap', delta: 0.6 },
+          { variable: 'creditGrowth', delta: 1.3 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: [],
+    dispatchLines: [
+      'Two mid-sized developers have sought creditor protection, and lenders with ' +
+        'concentrated construction-loan exposure are under fresh scrutiny.',
+      'Prices have found a floor in the hardest-hit markets, though transaction ' +
+        'volumes remain far below their normal pace.',
+    ],
+  },
+  {
+    id: 'supply_rupture',
+    family: 'supply_rupture',
+    title: 'Export ban cuts off a critical input overnight',
+    newswire:
+      'A sudden export ban on a critical industrial input has left manufacturers ' +
+      'scrambling for alternatives with almost no notice. Factories dependent on ' +
+      'the material report only weeks of buffer stock, and substitutes are neither ' +
+      'qualified nor available at scale.',
+    clue: 'Buyers have reported abrupt cancellations of scheduled cargoes with no replacement offered.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    maxDifficulty: 'easy',
+    tier: 'major',
+    baseWeight: 0.15,
+    cooldownMeetings: 8,
+    maxOccurrences: 1,
+    isEligible: () => true,
+    weight: (ctx) => 0.6 + ctx.latent.geopoliticalRisk / 70,
+    immediate: (ctx) => [
+      { variable: 'supplyShock', delta: 4.0 },
+      { variable: 'importPriceInflation', delta: 10 * (ctx.institution === 'ecb' ? 1.3 : 1) },
+    ],
+    delayed: () => [
+      { delaySteps: ONE_MEETING, effects: [{ variable: 'supplyShock', delta: 1.6 }] },
+      // Alternate suppliers ramp up, at a lasting premium to the old price.
+      { delaySteps: THREE_MEETINGS, effects: [{ variable: 'supplyShock', delta: -3.6 }] },
+    ],
+    followUps: [],
+    requires: [],
+    dispatchLines: [
+      'Manufacturers are rationing existing stock and idling production lines that ' +
+        'cannot be adapted to substitute materials.',
+      'Alternative suppliers are ramping up output and the first substitute ' +
+        'cargoes are reaching buyers, though at a steep premium to the old price.',
+    ],
+  },
+  {
+    id: 'market_panic',
+    family: 'market_panic',
+    title: 'Leveraged trades unwind in a disorderly rout',
+    newswire:
+      'A wave of forced selling has swept through leveraged positions across asset ' +
+      'classes, with dealers stepping back from making prices as losses cascade ' +
+      'through margin calls. Exchanges have triggered circuit breakers more than ' +
+      'once in a single session.',
+    // Genuinely unforeseeable, unlike `market_crash`: this is not the unwind of
+    // a melt-up the player could have seen building.
+    clue: null,
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'easy',
+    maxDifficulty: 'easy',
+    tier: 'major',
+    baseWeight: 0.15,
+    cooldownMeetings: 8,
+    maxOccurrences: 1,
+    isEligible: () => true,
+    weight: (ctx) => 0.5 + Math.max(0, ctx.latent.marketVolatility - VOLATILITY.base) / 40,
+    immediate: (ctx) => [
+      { variable: 'marketVolatility', delta: 44 },
+      { variable: 'creditSpread', delta: 1.6 },
+      { variable: 'bankingStress', delta: 20 },
+      {
+        variable: 'assetPricePressure',
+        delta: -Math.max(26, ctx.latent.assetPricePressure * 0.5),
+      },
+      { variable: 'confidenceShock', delta: -2.0 },
+      { variable: 'financialShock', delta: 3.0 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          { variable: 'outputGap', delta: -1.3 },
+          { variable: 'confidenceShock', delta: -0.9 },
+        ],
+      },
+      // Circuit breakers and backstops calm trading; the demand hit does not
+      // reverse on its own.
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'marketVolatility', delta: -24 },
+          { variable: 'creditSpread', delta: -0.7 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: [],
+    dispatchLines: [
+      'Margin desks report a second wave of forced selling as overnight losses ' +
+        'triggered further collateral calls.',
+      'Circuit breakers and emergency liquidity have restored orderly trading, ' +
+        'though positioning across the market remains far lighter than before.',
+    ],
   },
 ]
 

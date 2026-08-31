@@ -63,7 +63,11 @@ export function playWithoutEvents(
   packages: readonly PolicyPackage[],
   seedState?: (latent: LatentState) => LatentState,
 ): SimulationState {
-  const initial = createInitialState(config)
+  // { openingEvent: false }: this harness isolates a mechanism by keeping the
+  // treatment and control identical apart from the packages played, so the
+  // easy-mode opening crisis — a real but deliberately one-off, scripted
+  // narrative beat — must stay out of it exactly like every other event.
+  const initial = createInitialState(config, { openingEvent: false })
   let state = seedState
     ? {
         ...initial,

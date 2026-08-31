@@ -10,7 +10,7 @@ import type { SimulationState } from '../types/state.ts'
 import type { DiagnosticEvent } from '../types/core.ts'
 import { restorePrng } from '../rng/prng.ts'
 import { clampLatentState } from '../config/bounds.ts'
-import { getDifficulty, meetsDifficulty } from '../config/difficulty.ts'
+import { DIFFICULTY_ORDER, getDifficulty, meetsDifficulty } from '../config/difficulty.ts'
 import { applyEffects } from '../engine/advanceTrueState.ts'
 import { EVENT_CATALOG } from './catalog.ts'
 
@@ -60,6 +60,12 @@ export function eligibleEvents(
   return catalog.filter((event) => {
     if (!event.institutions.includes(ctx.institution)) return false
     if (!meetsDifficulty(ctx.difficulty, event.minDifficulty)) return false
+    if (
+      event.maxDifficulty !== undefined &&
+      DIFFICULTY_ORDER[ctx.difficulty] > DIFFICULTY_ORDER[event.maxDifficulty]
+    ) {
+      return false
+    }
 
     const seen = ctx.occurrences[event.id] ?? 0
     if (seen >= event.maxOccurrences) return false
@@ -125,7 +131,7 @@ function buildClues(ctx: EventContext, threshold: number): readonly string[] {
 }
 
 /** Scales an event's effects by the difficulty's severity multiplier. */
-function scaleEffects(
+export function scaleEffects(
   effects: readonly EventEffect[],
   scale: number,
 ): readonly EventEffect[] {

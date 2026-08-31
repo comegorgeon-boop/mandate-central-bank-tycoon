@@ -101,7 +101,12 @@ function deliveredImpulses(
     simulationVersion: SIMULATION_VERSION,
   })
   const severity = getDifficulty(difficulty).eventSeverityScale
-  let state = createInitialState(config)
+  // This guard measures the *ambient, random* catalog's symmetry over many
+  // seeds — not the easy-mode opener, which is a deliberate, singular,
+  // scripted narrative beat rather than a probabilistic imbalance that
+  // compounds over repeated play. The majors' own random (non-opener)
+  // firings still flow through here normally, as ordinary catalog entries.
+  let state = createInitialState(config, { openingEvent: false })
   let outcome = evaluateEndConditions(state)
   const impulses: number[] = []
 

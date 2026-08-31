@@ -7,11 +7,17 @@ import type { SimulationState } from '../types/state.ts'
 import { applyPolicyPackage } from '../engine/applyPolicyPackage.ts'
 import { advanceTrueState } from '../engine/advanceTrueState.ts'
 import { createInitialState } from '../engine/initialState.ts'
+import { EVENTS_BY_ID } from '../events/catalog.ts'
 import { resolveEvent } from '../events/resolveEvent.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
 import { configFromLog } from './decisionLog.ts'
+
+/** True when a resolved event's catalog definition is a major crisis. */
+function isMajorRecord(record: ResolvedEventRecord): boolean {
+  return EVENTS_BY_ID.get(record.eventId)?.tier === 'major'
+}
 
 /**
  * The run loop, and deterministic replay on top of it.
@@ -51,8 +57,21 @@ export interface RunSession {
   readonly outcome: EndConditionResult
   /** Ordered decisions so far, ready to be serialised. */
   readonly decisions: readonly DecisionLogEntry[]
-  /** Headlines published since the previous meeting. */
+  /**
+   * Headlines published since the previous meeting, from *minor* events only.
+   * Major events are excluded here and carried instead in `majorEvent`, which
+   * gets dedicated, prominent treatment rather than being folded into this
+   * list.
+   */
   readonly newswire: readonly string[]
+  /**
+   * The major event resolved since the previous meeting, if any — or, at the
+   * first meeting of an easy mandate, the crisis the run opened on. Null
+   * otherwise. `events/dispatches.ts` derives the unfolding "story so far"
+   * for this and any earlier major event from `state.eventLog` directly, so
+   * nothing beyond the most recent firing needs to be carried here.
+   */
+  readonly majorEvent: ResolvedEventRecord | null
   /** Warning signals for risks that may materialise. */
   readonly clues: readonly string[]
 }
@@ -94,6 +113,13 @@ function withRestatedSnapshot(state: SimulationState): SimulationState {
 export function startRun(config: RunConfig): RunSession {
   const state = createInitialState(config)
   const outcome = evaluateEndConditions(state)
+
+  // The easy-mode opener (if any) is already baked into `state` by
+  // `createInitialState`, recorded at `meetingIndex: 0`. Surfaced through
+  // `majorEvent`, not the plain newswire — majors get the dedicated banner,
+  // exactly as at every later meeting.
+  const opener = state.eventLog.find((record) => record.meetingIndex === 0) ?? null
+
   return {
     state,
     observation: observe(state, [], []),
@@ -102,6 +128,7 @@ export function startRun(config: RunConfig): RunSession {
     outcome,
     decisions: [],
     newswire: [],
+    majorEvent: opener,
     clues: [],
   }
 }
@@ -155,9 +182,12 @@ export function submitMeeting(
   const advanced = advanceTrueState(resolution.state)
   const outcome = evaluateEndConditions(advanced, session.outcome.breachCounters)
 
-  const newswire = resolution.resolved.map(
-    (record: ResolvedEventRecord) => record.newswire,
-  )
+  // Majors get the dedicated banner, not the generic newswire list — see
+  // `RunSession.majorEvent`.
+  const majorEvent = resolution.resolved.find(isMajorRecord) ?? null
+  const newswire = resolution.resolved
+    .filter((record) => !isMajorRecord(record))
+    .map((record: ResolvedEventRecord) => record.newswire)
 
   return {
     ok: true,
@@ -170,6 +200,7 @@ export function submitMeeting(
       outcome,
       decisions: [...session.decisions, { meetingIndex, package: pkg }],
       newswire,
+      majorEvent,
       clues: resolution.clues,
     },
   }
