@@ -53,9 +53,21 @@ export const LATENT_BOUNDS: Readonly<
   marketTrust: [0, 100],
   politicalPressure: [0, 100],
 
-  marketExpectedRate: [-2, 30],
+  // Widened from [-2, 30]. The priced path tracks the Taylor benchmark, which
+  // is linear in headline inflation, so in a genuine spiral it follows headline
+  // upward — and, unlike headline, it *diverges* rather than settling, because
+  // the priced path feeds financial conditions which feed the gap which feeds
+  // inflation. Widening does not stop that and is not meant to: this is the one
+  // rail in the file that regularly does the job the file describes. What
+  // reaches it are mandates already ending in `inflation_spiral`, which fires
+  // at 12 % held for three meetings — far below anything that gets here.
+  marketExpectedRate: [-2, 40],
 
-  supplyShock: [-8, 12],
+  // Widened from [-8, 12]. Hard deliberately has no `costPushCeiling`, so
+  // shocks piling onto one another is its subject rather than an accident, and
+  // a rail a mode is *designed* to reach is not sitting where this file says
+  // its rails sit. Three runs in 150 on ecb/hard touched it.
+  supplyShock: [-10, 16],
   demandShock: [-8, 8],
   // Widened from [-6, 6]. The stationary spread of the process itself is 0.7,
   // so six was already far outside anything the stochastic side produces — but

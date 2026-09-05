@@ -875,7 +875,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'importPriceInflation', delta: 10 * (ctx.institution === 'ecb' ? 1.3 : 1) },
       { variable: 'confidenceShock', delta: -2.2 },
     ],
-    delayed: () => [
+    delayed: (ctx) => [
       // The fighting spreads before it settles.
       {
         delaySteps: ONE_MEETING,
@@ -886,10 +886,20 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       },
       // A ceasefire holds, but re-routed shipping and the risk premium it
       // carries do not fully unwind — this is stabilisation, not resolution.
+      //
+      // The give-back is sized to leave a *premium*, not a permanent tax. At
+      // -3.6 this arc netted +2.1 of outstanding cost-push and +6.95 of
+      // lifetime inflation impulse — the largest one-directional source in the
+      // whole catalog, unmirrored, against the energy spike's +5.58 which the
+      // energy relief cancels at -6.59. It was invisible while the majors were
+      // scoped to easy and rare; unlocking them above easy put three of the six
+      // buckets outside `events/balance.test.ts`'s net-per-meeting band and is
+      // what caught it.
       {
         delaySteps: THREE_MEETINGS,
         effects: [
-          { variable: 'supplyShock', delta: -3.6 },
+          { variable: 'supplyShock', delta: -5.5 },
+          { variable: 'importPriceInflation', delta: -9 * (ctx.institution === 'ecb' ? 1.3 : 1) },
           { variable: 'geopoliticalRisk', delta: -38 },
           { variable: 'outputGap', delta: -0.7 },
         ],
@@ -1100,10 +1110,19 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'supplyShock', delta: 4.0 },
       { variable: 'importPriceInflation', delta: 10 * (ctx.institution === 'ecb' ? 1.3 : 1) },
     ],
-    delayed: () => [
+    delayed: (ctx) => [
       { delaySteps: ONE_MEETING, effects: [{ variable: 'supplyShock', delta: 1.6 }] },
-      // Alternate suppliers ramp up, at a lasting premium to the old price.
-      { delaySteps: THREE_MEETINGS, effects: [{ variable: 'supplyShock', delta: -3.6 }] },
+      // Alternate suppliers ramp up, at a lasting premium to the old price —
+      // a premium, which is what the newswire says, rather than the permanent
+      // +2.0 of outstanding cost-push a -3.6 give-back actually left. See the
+      // geopolitical crisis above for how that was caught.
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'supplyShock', delta: -5.4 },
+          { variable: 'importPriceInflation', delta: -9 * (ctx.institution === 'ecb' ? 1.3 : 1) },
+        ],
+      },
     ],
     followUps: [],
     requires: [],

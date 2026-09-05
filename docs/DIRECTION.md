@@ -2,8 +2,10 @@
 
 Recorded after three full Fed/easy mandates. **Nothing here was implemented
 when recorded; point 1 is now built, engine and desk**, **point 2's easy
-column is now built**, and **point 4 is now built** — see "The second
-instrument" and "Violent named events, and markets that answer them" in
+column is now built and hard's is half built**, **point 4 is now built**, and
+**a point 4b has been added for the difficulty work that followed** — see "The
+second instrument", "Violent named events, and markets that answer them" and
+"The three difficulties, and the kind of problem each one sets" in
 docs/BALANCE.md for the mechanisms, the measurements and what each shipped
 against. This file exists so the findings survive while they are fresh; the
 balancing work in docs/BALANCE.md is separate and must not be confused with
@@ -66,10 +68,12 @@ difficulty. **Decision taken: one deliberate opening per difficulty.**
   baseline, sees the cause, and knows what to repair. Full mechanism and
   measurements in docs/BALANCE.md, "Violent named events, and markets that
   answer them."
-- **Hard — not yet built.** An economy already badly damaged. Inflation
-  entrenched, credibility eroded, and **no identifiable culprit**. Medium and
-  hard were explicitly out of scope for the session that built the easy
-  column; this remains open.
+- **Hard — half built.** Hard now has **no identifiable culprit**: no scripted
+  opener (`openingCrisisCharacters` is null there), and neither the shock's
+  name nor the assembled evidence. What is still missing is the *damaged
+  opening state* — inflation entrenched, credibility eroded before the first
+  meeting. `OPENING_PERTURBATION_SCALE` still gives medium and hard the same
+  ambient perturbation this section originally complained about.
 
 Note how well this fits the information ladder already recorded in
 docs/BALANCE.md: easy names the shock, hard does not. This turns that ladder
@@ -124,6 +128,30 @@ directly under the header; the score number and component table are
 demoted to a "Scorecard" section below. Verified in a real browser end to
 end, zero console errors. Full detail in docs/BALANCE.md, "Violent named
 events, and markets that answer them."
+
+## 4b. The information ladder, and what difficulty is actually made of — built
+
+Recorded here because it changed what "difficulty" means in this game, not
+just how much of it there is. The session that built it found that the
+structuring axis was missing entirely: the *kind* of shock a mode serves.
+Easy drew its mandate-opening crisis uniformly over six majors, two of which
+are pure cost-push, so a third of tutorials opened on stagflation — and,
+measured, the draw decided more than half the final score before the player's
+first decision.
+
+Every event now declares what it asks of the committee (`shockCharacter`), and
+three difficulty parameters read it: which problems a mode is fed, whether
+they may pile onto one another, and which may open a mandate at all. Easy
+serves the problems that have a right answer; hard is made of the ones that do
+not. Full mechanism and measurements in docs/BALANCE.md, "The three
+difficulties, and the kind of problem each one sets".
+
+The same session implemented the information ladder this file and
+docs/BALANCE.md had both recorded as settled since phase 3 and which the code
+did not have — medium was getting neither the shock's name nor its evidence —
+built hard's divided committee, opened the balance sheet and the facilities
+that had been configured since the toolkit was written but never rendered, and
+gave hard the free tone that makes bluffing possible at all.
 
 ## 5. A summary tab is missing
 

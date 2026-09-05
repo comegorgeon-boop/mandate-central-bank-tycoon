@@ -156,18 +156,27 @@ function main(): void {
         const score = calculateScore(session.state, session.outcome)
 
         scores.push(score.score)
-        // `saturated` is excluded on purpose: a 0-100 index reaching the top of
-        // its own scale is the model working, not the integrator failing, and
-        // reporting it here is what kept a phantom `geopoliticalRisk` warning
-        // in docs/BALANCE.md for several sessions. See `config/bounds.ts`.
-        for (const diagnostic of session.state.diagnostics) {
-          if (diagnostic.kind === 'saturated') continue
-          clampedVariables.set(
-            diagnostic.variable,
-            (clampedVariables.get(diagnostic.variable) ?? 0) + 1,
-          )
+        // Two exclusions, both about telling a defect apart from the model
+        // working. `saturated` is a 0-100 index reaching the top of its own
+        // scale, which is a state the game has opinions about rather than an
+        // integrator failing — reporting it is what kept a phantom
+        // `geopoliticalRisk` warning in docs/BALANCE.md for several sessions.
+        // And a run that has *already failed* is by construction outside the
+        // plausible envelope the rails are drawn around: an inflation spiral
+        // ends the mandate at 12 %, and the priced path diverging in the
+        // meeting after that is the spiral, not a bug. A mandate that ran to
+        // term and still touched a rail is the case worth hearing about, and
+        // it is the case this still reports.
+        if (session.outcome.status === 'completed') {
+          completed += 1
+          for (const diagnostic of session.state.diagnostics) {
+            if (diagnostic.kind === 'saturated') continue
+            clampedVariables.set(
+              diagnostic.variable,
+              (clampedVariables.get(diagnostic.variable) ?? 0) + 1,
+            )
+          }
         }
-        if (session.outcome.status === 'completed') completed += 1
 
         // The same rule, but ignoring the real-time gap estimate entirely.
         const smoothed = playRun(config, (current) =>

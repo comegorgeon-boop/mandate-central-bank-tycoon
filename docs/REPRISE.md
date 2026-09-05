@@ -1,131 +1,141 @@
 # Reprise — where this session stopped
 
-Written at the end of a two-chantier session: first, a story for easy mode
-(violent named events, a healthy opening, markets that answer words during a
-crisis, a written postmortem); second, fixing the score so sabotage actually
-costs and a mandate can genuinely be lost. To be read before the next one.
-`docs/BALANCE.md` and `docs/DIRECTION.md` are the permanent record; this file
-is a handoff and can be deleted once its open items are folded into those
-two.
+Written at the end of chantier 1 of a two-chantier session. Chantier 1 made the
+*kind* of shock the structuring axis of difficulty, and built the three modes
+the brief describes. Chantier 2 — the visual design — had not been started when
+this was written. `docs/BALANCE.md` and `docs/DIRECTION.md` are the permanent
+record; this file is a handoff and can be deleted once its open items are
+folded into those two.
 
 ## Branch state
 
-`balance/easy-mode-transmission`, seven commits ahead of last session's
-stopping point, tree clean:
+`difficulty/three-modes`, seven commits ahead of `main`, tree clean:
 
 ```
-9d1b08f Make sabotage actually cost, and make it possible to lose
-3adb16c Record tonight's stopping point: a story, listenable markets, a postmortem
-a249ef0 Mark DIRECTION.md point 4 built, now that the postmortem report exists
-d2e38b5 Write the mandate postmortem: what happened, what you did, why this score
-8b5d6b7 Re-verify winnability and the symmetry guard, write up the findings
-3e8dcfc Make markets answer words harder in a crisis, and price silence and spin
-edd6602 Give easy mode a story: a healthy opening, a named crisis, living news
+7a53081 Measure what guidance is worth, and put it on the confirmation screen
+e0f9eef Make sabotage cost at every difficulty, and stop double-counting hard
+3da6783 Make the objective move with the regime, and say so before judging
+4c70c0a Give each mode the toolkit and the voice its brief describes
+f1fe5d1 Repair the information ladder, and give hard a divided committee
+1e9280e Make the kind of shock the axis difficulty is built on
 ```
 
-`npm run build`, `npm test` (425 tests, up from 392 at the start of the
-night), and `npm run sim:sweep` all green as of this commit. `main` is
-untouched. Not merged. Verified end to end in a real browser both times
-tonight (Playwright driven directly against the Vite dev server — still no
-project run-skill for this app; worth `/run-skill-generator` if a third
-session ends up doing this again).
+`npm run build` and `npm test` (507 tests, up from 425 at the start) green.
+`npm run sim:sweep` reports one warning, deliberately left standing — see "Still
+open". **Not merged.** The previous session's REPRISE said the same and was
+wrong by the time it was read: `main`, `origin/main` and
+`balance/easy-mode-transmission` had all been fast-forwarded to the same commit.
+Check `git rev-parse` rather than trusting this paragraph.
 
-## Chantier 1: a story, and markets that answer it
+**Engine 1.3.0, scoring 1.1.0.** The bump owed since two sessions back is paid.
 
-Six major named crises, one guaranteed at meeting 1 on easy (on an economy
-that now opens healthy instead of "moderately damaged"), a living "story so
-far" dispatch log, and communication that lands up to ~2.6x harder once
-markets are keyed up — reassurance only pays when backed by action, silence
-and hollow reassurance both cost during a real crisis. Re-verified: both
-fed/easy and ecb/easy still complete 100% of the time for competent play
-(never trapped), while medians fell 200-900 points and tails widened
-sharply — real stakes where there were none. Full writeup: docs/BALANCE.md,
-"Violent named events, and markets that answer them."
+## What was built
 
-## Chantier 2: sabotage now costs, and you can lose
+Six commits, each measured before and after. The full write-up is
+docs/BALANCE.md, "The three difficulties, and the kind of problem each one
+sets". In brief:
 
-The player played two mandates on chantier 1's build: seriously (~7000),
-then deliberately sabotaging with alternating ±100bp and contrary
-announcements (~5500) — only 21% apart, and the mandate always completed.
-Diagnosed first, as instructed, before any fix: the transmission lag kernel
-smooths alternation almost to nothing before it reaches the real economy;
-nothing tracked a *pattern* of contradiction, only an isolated instant hit;
-and the components that stayed high regardless were over half the score's
-weight. Fixed with three easy-only mechanisms — a running contradiction
-tally, an escalating reversal cost (with a free-pivot allowance, or it broke
-the honest guided rule), and a new multiplicative conduct gate mirroring the
-ECB's existing price-stability gate. Sabotage now scores 442-640 (target
-<1500) and dismisses in 100% of seeds (target: majority), at every
-commitment level tested — an order of magnitude below serious play. A first,
-difficulty-unscoped attempt broke medium/hard badly and was caught and fixed
-before committing. Full writeup: docs/BALANCE.md, "Conduct has to cost,
-independent of the economy."
+1. **Shock character as a difficulty axis.** Every event declares what it asks
+   of the committee; `shockMix`, `costPushCeiling` and
+   `openingCrisisCharacters` read it. Easy's opener spread across the six major
+   crises fell from 3922 points to 928 on the ECB.
+2. **The information ladder, implemented.** Medium was getting neither the
+   shock's name nor its evidence, contradicting a table both docs had recorded
+   as settled since phase 3. Hard gained the divided committee.
+3. **The toolkit and the voice.** Instruments configured `availableFrom:
+   'medium'` since the toolkit was written had never been reachable. Hard gained
+   the free tone, without which bluffing is impossible at any difficulty.
+4. **The objective moves with the regime** (requirement a), in the score and on
+   screen before the decision.
+5. **Sabotage costs at every difficulty** (requirement b). 186–499 against a
+   1500 bar, revoked in 92–100 % of seeds.
+6. **Guidance measured and made visible** (requirement c). Worth +99 to +227
+   points on an identical rate path, winning four seeds in five.
 
-**One deliberate non-fix, worth knowing before touching this area again:**
-`features/policy/statement.ts`'s `deriveTone` discards the announced path
-when `commitment === 'none'` — a prior session's considered design ("a mere
-remark, never recorded"), not a bug. Sabotage at `commitment: 'none'` still
-dismisses reliably (the reversal cost doesn't depend on commitment level at
-all), so this was left exactly as it was.
+## What did NOT pass, and was reported rather than papered over
 
-## What is NOT done
+**Hard is not winnable by competent play: 27–37 % completion.** The instruction
+was to say so rather than dilute the shocks, so no shock magnitude was touched.
+One principled change was made — hard's `thresholdLeniency` went from 0.82 to
+medium's 1.0, because pulling the definition of catastrophe in *as well as*
+throwing bigger shocks is difficulty counted twice — and it roughly doubled
+completion.
 
-- **Doctrines**, and three smaller ideas (a dated objective, a press
-  conference with a question to answer, a committee no-confidence vote), are
-  written up in full in `docs/DIRECTION.md` but **not implemented**, per this
-  session's explicit instruction. That document has the design, the open
-  questions, and why doctrines specifically (tying the game to the French
-  ESH prépa syllabus the player is studying).
-- **`SIMULATION_VERSION` was not bumped**, despite real replay-affecting
-  changes across both chantiers tonight. Bumping reseeds everything and
-  exposes a pre-existing ecb/medium balance fragility unrelated to tonight's
-  work (recorded in detail under chantier 1's writeup in docs/BALANCE.md).
-  Still owed, not tonight.
-- **Medium and hard untouched** everywhere, both chantiers, as instructed
-  both times: no new catalog content reaches them, no threshold or lag
-  constant was touched, and the new conduct mechanisms are explicitly
-  gated off outside easy.
-- The market is still not a channel the player reads and times a step ahead
-  of the decision (`docs/DIRECTION.md` point 3's fuller vision) — chantier
-  1's crisis-scaled communication is a same-meeting mechanic only.
-- `docs/DIRECTION.md` points 5-6 (a summary tab; showing only what's
-  actionable on easy) untouched.
+The diagnosis for whoever picks this up, in the order it should be taken:
+
+1. **The liquidity facilities are net-negative as the engine prices them.** The
+   toolkit rule cuts banking crises 21 → 9 per 100 on fed/hard and raises
+   dismissals 16 → 32, so the plain rate-only rule completes *better* (41 %
+   against 31 %). Escalating a facility on a noisy published stress print trips
+   `liquidity_support_without_stress`, and the credibility it costs outweighs
+   the stress it relieves. This makes "the full toolkit" partly decorative at
+   the difficulty that has all of it, and it is the first thing to fix.
+2. The per-meeting failure hazard is a cliff rather than a ladder — 0.0 % /
+   0.2 % / 4.6 % — and failures are spread evenly across the mandate, so it is
+   a genuine per-meeting hazard and not only 32 meetings of exposure.
+3. Binding guidance at hard is correctly lethal and should stay so.
 
 ## Next session
 
-1. **Play fed/easy and ecb/easy again on this branch.** Two things changed
-   enough since the last playthrough to be worth re-checking in play, not
-   just in the sweep: does the opening crisis + the new stakes read as
-   *fair* when you lose (the postmortem should make the reason legible, not
-   just the number), and does an *honest* mistake (not deliberate sabotage —
-   a legitimate pivot, or getting caught out by noisy data) ever feel
-   punished the way sabotage is? The free allowances were tuned against
-   `guidedStaffPackage`'s own behaviour, not a human's.
-2. If it plays well: merge to `main`, then pick up doctrines
-   (`docs/DIRECTION.md`) — it's the largest, most differentiating idea on
-   the table and the one explicitly tied to why the player is building this
-   at all.
-3. If something still doesn't sit right: both chantiers' docs sections list
-   exactly what was measured and where the remaining looseness is (the
-   passive-vs-competent gap in chantier 2 is still only ~4%, noted but not
-   touched since the criterion only asked for "clearly below").
+**Chantier 2 — the visual design — has not been started.** The brief is in the
+session prompt: a token system first (palette, type scale, spacing, radii,
+shadows), the boardroom metaphor in dark walnut / brass / cream paper / deep
+green / burgundy, one serif for display and a very legible sans for the
+interface, legibility before aesthetics, charts under every key indicator,
+responsive from 360 px, full keyboard navigation, visible focus,
+`prefers-reduced-motion`. **One screen dressed first, for validation, before the
+others.** The mascot last and only if there is time.
 
-## Reproducing tonight's numbers
+Two things worth knowing before starting it:
+
+- The interface work in chantier 1 was deliberately minimal and unstyled —
+  `ObjectivePanel`, `CommitteeSplitPanel`, `BalanceSheetPanel`,
+  `InstrumentStepper`, the guidance preview block and the three-way register in
+  `IndicatorRow`. They are new surfaces that have never been designed.
+- `components/TrendChart.tsx`, `LineChart.tsx` and `Sparkline.tsx` already
+  exist and `IndicatorRow` already renders a trend under every indicator. The
+  chart request in the brief is closer to "make these good" than to "build
+  these".
+
+## Still open, beyond hard
+
+- **`marketExpectedRate` reaches its rail in one *completed* ecb/hard mandate
+  in 150.** The sweep's one remaining warning, deliberately left: a completed
+  run touching a computational rail is exactly the case worth hearing about.
+  Clamps in runs that have already failed are no longer reported, because an
+  inflation spiral ends the mandate at 12 % and the priced path diverging in the
+  meeting after that is the spiral, not a defect.
+- **Competent play and passive are within 1–2 % on fed/medium and fed/hard.**
+  The long-standing structural finding on the Fed. Competent wins clearly on the
+  ECB at every difficulty.
+- **The ECB is not selectable.** It is fully built and measured in every sweep;
+  the setup screen offers only the Fed. Adding it is one radio group. It was out
+  of scope for this brief and not done unilaterally.
+- **Doctrines** and the three smaller ideas in docs/DIRECTION.md remain
+  unimplemented — still the largest differentiating idea on the table, and the
+  one tied to the ESH syllabus.
+- docs/DIRECTION.md points 5–6 (a summary tab; showing only what is actionable
+  on easy) untouched. Point 2's **hard opening state** — an economy already
+  damaged before the first meeting — is still unbuilt; hard now has no
+  identifiable culprit, but its opening perturbation is the same ambient one
+  medium gets.
+
+## Reproducing this session's numbers
 
 ```bash
-npm test -- src/simulation/events/openingCrisis.test.ts        # the opener
-npm test -- src/simulation/engine/initialState.test.ts          # the healthy easy opening
-npm test -- src/simulation/events/balance.test.ts                # the symmetry guard, majors included
-npm test -- src/simulation/engine/applyPolicyPackage.test.ts     # crisis-scaled communication + conduct pricing
-npm test -- src/simulation/scoring/calculateScore.test.ts        # the conduct gate
-npm test -- src/simulation/engine/guidance.test.ts                # the falsifiable criterion, twice re-verified tonight
-npm test -- src/features/result/report.test.ts                   # the written postmortem, both chantiers
-npm run sim:sweep                                                 # the six-bucket table
+npm test -- src/simulation/events/character.test.ts        # shock character and the mix
+npm test -- src/simulation/observation/ladder.test.ts       # the information ladder
+npm test -- src/features/meeting/register.test.ts           # the per-difficulty register
+npm test -- src/simulation/scoring/regimeObjective.test.ts   # requirement (a)
+npm test -- src/simulation/scoring/winnability.test.ts       # requirement (b)
+npm test -- src/features/policy/guidancePreview.test.ts      # requirement (c)
+npm test -- src/pages/consoleCheck.test.tsx                  # every panel, every difficulty
+npm run sim:sweep                                            # the six-bucket table
 ```
 
-The worst-case-passive-stress probes, the aggressive-tightening failure
-rates, the exact falsifiable-criterion numbers, and the sabotage/serious/
-passive comparison table were all one-off measurement scripts, not
-committed — reproduce by adapting `events/balance.test.ts`'s
-`deliveredImpulses` or `engine/guidance.test.ts`'s criterion loop with
-`playRun`/`console.log` in place of `expect`.
+The opener-split table, the conduct signatures, the per-meeting hazard, the
+three-arm guidance comparison and the regime-weight gains were one-off
+measurement scripts, not committed. Each is a short loop over `playRun` with
+`calculateScore`; the guidance one is the only fiddly one, because it records a
+rate trajectory from a reference run and replays it move for move in both arms
+so the words are the only thing that differs.

@@ -8,7 +8,7 @@
  * Local records are bucketed by this value, so runs produced by different
  * engine versions are never compared against each other.
  */
-export const SIMULATION_VERSION = '1.2.0'
+export const SIMULATION_VERSION = '1.3.0'
 
 /**
  * Version of the scoring formula only.
@@ -16,4 +16,4 @@ export const SIMULATION_VERSION = '1.2.0'
  * Kept separate from SIMULATION_VERSION so the post-mandate report can state
  * which formula produced a stored score even if the engine itself moved on.
  */
-export const SCORING_VERSION = '1.0.0'
+export const SCORING_VERSION = '1.1.0'

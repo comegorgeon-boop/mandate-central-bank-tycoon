@@ -31,13 +31,17 @@ function playWholeMandate(difficulty: Difficulty): void {
   fireEvent.click(screen.getByRole('button', { name: 'Enter the first meeting' }))
 
   for (let meeting = 1; meeting <= MEETING_COUNT[difficulty]; meeting += 1) {
+    // A mandate can end early — dismissal, a banking crisis, an inflation
+    // spiral — and then the meeting screen is gone and the result screen is up.
+    // That is a real outcome and the common one at hard, not a failure of this
+    // test, so the guard has to come before anything reaches for a tab.
+    if (screen.queryByRole('tab', { name: 'Meeting Brief' }) === null) break
+
     for (const tab of ['Meeting Brief', 'Prices', 'Labor', 'Policy Desk']) {
       fireEvent.click(screen.getByRole('tab', { name: tab }))
     }
 
     const review = screen.queryByRole('button', { name: 'Review policy package' })
-    // A mandate can end early — dismissal, a banking crisis — and then there is
-    // no desk to submit from. That is a real outcome, not a failure of this test.
     if (review === null) break
     fireEvent.click(review)
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))

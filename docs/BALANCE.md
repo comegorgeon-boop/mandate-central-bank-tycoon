@@ -1522,3 +1522,373 @@ dismissal for `commitment: 'none'` sabotage on its own, per the table above.
 | `calculateScore.test.ts`, "the conduct gate" | the gate stops being 1 for a clean mandate or for conduct within the free allowances, stops crushing heavy contradiction/broken-promise conduct on easy, or fires at all on medium/hard |
 | `features/result/report.test.ts`, "leads why this score with conduct..." | the written postmortem stops naming conduct as the dominant story when the gate is severe |
 | `engine/guidance.test.ts` | (unchanged bounds, re-verified) honest guidance stops beating silence now that a single ordinary broken promise sits inside the conduct gate's free allowance |
+
+---
+
+# The three difficulties, and the kind of problem each one sets
+
+Engine 1.3.0, scoring 1.1.0. Built to a brief that made the *type* of shock
+the structuring axis of difficulty, on top of the axes this document already
+recorded. The player's report was precise and, once measured, exactly right:
+
+> "Easy mode serves me insoluble problems. I had massive energy inflation, then
+> a simultaneous supply shock, unemployment gone, no playable move. That is
+> stagflation — the hardest problem in monetary policy — served in the tutorial."
+
+## What was measured first
+
+Two hundred seeds per institution, easy, competent play (guided honest staff),
+split by which of the six major events opened the mandate:
+
+| opener | fed competent | fed passive | ecb competent | ecb passive | peak headline | stagflation |
+| --- | --- | --- | --- | --- | --- | --- |
+| `geopolitical_crisis_outbreak` (supply) | **5848** | 5792 | **3117** | 2801 | 8.2–8.4 % | 30 % / 51 % |
+| `supply_rupture` (supply) | **5977** | 5981 | **3302** | 3017 | 7.9–8.4 % | 5 % / 11 % |
+| `banking_failure` | 6897 | 6680 | 6423 | 6349 | 3.7–4.0 % | 0 % / 6 % |
+| `market_panic` | 6917 | 6814 | 6667 | 6483 | 4.1 % | 13 % / 17 % |
+| `housing_market_crash` | 7140 | 7120 | 6856 | 6732 | 3.5–3.9 % | 0 % / 21 % |
+| `domestic_political_shock` | 7325 | 7104 | 7039 | 6864 | 3.3–3.5 % | 12 % / 17 % |
+
+**The draw decided more than half the score before the player's first
+decision.** On ecb/easy, 3117 against 7039 — a coin flip they never made. Under
+a supply opener competent play beat doing nothing by 300 points, because under
+a cost-push shock there is genuinely almost nothing policy can do; the "no
+playable move" was mechanical, not an impression. And **35–38 % of easy runs
+fired a second cost-push event within two meetings of the first**, so
+simultaneity was the modal outcome of an unconstrained draw rather than bad
+luck.
+
+## The mechanism: shock character as a difficulty axis
+
+Every catalog event declares a `shockCharacter` — `demand`, `supply`,
+`financial` or `institutional` — which says *what it asks of the committee*
+rather than what happened. Three difficulty parameters read it:
+
+- **`shockMix`** weights the selection of each character. Easy runs
+  `demand 1.6 / supply 0.25`, medium the catalog's own weights untouched, hard
+  `supply 1.5`. Easy is where the instrument is shown to work, so it serves the
+  problems that have a right answer; hard is made of the ones that do not.
+- **`costPushCeiling`** stops a second *adverse* supply event firing while one
+  is still outstanding: 1.0 at easy, 3.0 at medium, none at hard. Stated
+  against `latent.supplyShock` rather than against the event log, for the same
+  reason every other eligibility rule is a pure function of the state. It never
+  blocks *relieving* supply news — good news that needs permission to happen is
+  not good news the player will ever meet.
+- **`openingCrisisCharacters`** decides which crises may open a mandate. Easy
+  draws from `demand` and `financial` only; the two supply majors stay in the
+  catalog and can still be drawn later, once the player has had meetings to
+  learn the instrument on a problem it can solve.
+
+The majors lost their `maxDifficulty: 'easy'` ceiling. A mode whose whole
+subject is stagflation and tail risk cannot be the one mode with no
+mandate-defining crisis in it.
+
+`events/character.test.ts` keeps the declarations honest against the effects
+underneath them, separating supply from demand by the co-movement the model
+actually produces. It caught two mis-declarations while being written: a
+productivity surge is supply-side but carries no trade-off at all (it moves
+capacity, not costs), and a currency depreciation is inflationary *and*
+expansionary, which is the demand pattern.
+
+**After**, 200 seeds, same split:
+
+| | before | after |
+| --- | --- | --- |
+| fed/easy, spread across openers | 5848 – 7325 (**1477**) | 6758 – 7447 (**689**) |
+| ecb/easy, spread across openers | 3117 – 7039 (**3922**) | 6315 – 7243 (**928**) |
+| worst peak headline, ecb/easy | 8.40 % | 3.35 % |
+| two cost-push firings within two meetings | 35–38 % | 8–9 % |
+
+## The information ladder, finally implemented
+
+docs/BALANCE.md settled the ladder in phase 3 — the name is withdrawn as
+difficulty rises, the evidence persists one rung further — and the code did not
+implement it. The whole diagnosis was gated on `namesShocks` alone, so **medium,
+recorded as "shock not named, evidence still shown", was getting neither.**
+
+`showsShockEvidence` separates the halves. Easy names the shock and shows the
+tells; medium withholds the name and keeps the tells, framed as an argument for
+the player to close; hard reads nothing, though every series the tells quote is
+still published. Medium also gains the staff recommendation its own documented
+rung always called for, and needs no new mechanism to make it fallible:
+`staffRule` reads the same noisy, late prints the player does.
+
+**Hard gains the split committee**, which this document called "the one
+genuinely unbuilt piece" and whose cheapest honest construction it had already
+named. Three recommendations from the same rule at inflation weights 0.9 / 0.5 /
+0.2, put without a resolution, bracketing the advice the lower difficulties are
+given. Measured over 60 hard mandates: **divided at 68 % of meetings, mean
+spread 23 bp between the wings**, agreeing on the rest and saying so rather than
+manufacturing an argument.
+
+Difficulty also decides the *register*. Easy leads each indicator row with a
+plain sentence and puts the figure underneath; medium leads with the figure;
+hard drops the plain-language reading of what a move means. The sentence states
+distance in words only, and what counts as a distance is measured in multiples
+of that print's own error bar — a headline calling a gap smaller than its
+measurement error "well above the objective" would teach the tutorial's player
+to chase noise.
+
+## The toolkit, and the voice
+
+Three instruments had been configured `availableFrom: 'medium'` since the
+toolkit was written and had never once been reachable: the desk rendered a
+hard-coded policy rate at every difficulty, and the setup screen said in as
+many words that medium and hard were not part of the build. The desk now
+renders from `availableInstruments`; the rate and the words keep dedicated
+controls because each is a *change* rather than a level, and everything else is
+drawn generically from its own definition.
+
+**Hard gains the free tone**, and this is the difference between a game where
+communication is an instrument and one where bluffing is a move. With the tone
+derived from the decision, a hawkish decision produces a hawkish statement by
+construction, so `detectContradictions` has nothing to detect and the whole
+saying-one-thing-doing-another axis is unreachable at *every* difficulty.
+Opening it needed nothing new to punish it.
+
+## (a) The objective moves with the regime
+
+The game stated one objective in every state of the world and scored against
+it. Decomposing a cost-push mandate on ecb/medium, competent play, quiet
+weather → heavy cost-push:
+
+| component | quiet | cost-push |
+| --- | --- | --- |
+| employment_output | 93 % | 91 % |
+| financial_stability | 99 % | 99 % |
+| anchoring | 99 % | 95 % |
+| shock_response | 60 % | **71 %** |
+| price_stability | 56 % | **0 %** |
+
+**The player was succeeding on every measure of the regime's own objective and
+being scored as a failure anyway.** Nearly the whole penalty sat on the one
+objective that was unavailable.
+
+So under cost-push pressure, weight leaves `price_stability` for `anchoring` —
+did the shock stay a price-level event rather than becoming an inflation regime
+— and `shock_response` — was the first round looked through rather than
+answered by destroying output. Flexible inflation targeting, which is what real
+committees say they do. Never all the weight: at half, a mandate that lets the
+anchor go with the price level still fails.
+
+Median gain against the fixed-weight score, 150 seeds:
+
+| bucket | quiet mandates | cost-push mandates |
+| --- | --- | --- |
+| fed/easy | 0 (n=101) | +65 (n=49) |
+| fed/medium | 0 (n=42) | +410 (n=108) |
+| fed/hard | 0 (n=19) | +804 (n=131) |
+| ecb/easy | 0 (n=108) | +115 (n=42) |
+| ecb/medium | 0 (n=40) | +597 (n=110) |
+| ecb/hard | 0 (n=24) | +1341 (n=126) |
+
+**Zero in calm weather everywhere, by construction.** A correction that paid in
+quiet mandates would not be a correction but an inflation of the whole scale.
+
+Two dead ends, both measured rather than reasoned about, both worth not
+repeating. A **per-meeting discount on the miss itself** moved price stability
+from 0 % to 3 % and was removed: the RMSE is dominated not by the shock
+meetings but by the ones after them, where inflation is still elevated and the
+shock has decayed — and that persistence is precisely what a central bank stays
+responsible for. And **the regime share had to saturate** rather than scale
+linearly: a mandate cannot spend all of itself at the peak of a shock, so the
+raw mean tops out near a third even when cost-push was the whole story.
+
+The player is told *before* the decision. `ObjectivePanel` sits above the tabs
+and states what winning looks like now, read from the published prints — never
+latent state, so the information ladder stays intact — quoting figures the
+player can check on the panels.
+
+## (b) Winnable, and sabotage punished
+
+Measured on all six buckets, events on. Competent play is `policy/toolkitRule.ts`,
+the first benchmark in this project to move more than one instrument; sabotage
+alternates the largest move each mode allows and announces the opposite of it
+under a binding commitment.
+
+**Before**, at engine 1.2.0 with the conduct mechanisms scoped to easy:
+
+| bucket | competent | passive | sabotage | sabotage dismissed |
+| --- | --- | --- | --- | --- |
+| fed/medium | 7446 | 7348 | **6331** | 2 % |
+| ecb/medium | 5410 | 5066 | **5297** | 3 % |
+
+Sabotage was very nearly free above easy, and on ecb/medium it **beat competent
+play outright** — the exact complaint that started this line of work, still
+unfixed everywhere but the tutorial.
+
+The conduct mechanisms had been scoped to easy on the finding that medium and
+hard's noise makes a committee legitimately jumpier. That finding was true and
+the conclusion drawn from it was wrong. Sixty seeds per bucket, per mandate:
+
+| | competent | sabotage |
+| --- | --- | --- |
+| reversals | 0.0 – 3.4 | 9.0 – 15.2 |
+| contradiction cost | 0.0 – 1.9 | 7.0 – 11.3 |
+| churn per year | 0.5 – 1.9 | 6.7 – 11.9 |
+
+Six to twenty times apart at every difficulty. `freeReversals`, the conduct
+gate's free allowances and `POLICY_VOLATILITY_ALLOWANCE_PER_YEAR` are all
+per-difficulty now, each set between the two columns.
+
+**One conduct signal deliberately does not follow: broken promises invert.**
+Honest guidance breaks 1.3 a mandate at medium and 3.5–4.2 at hard, because the
+noise moves its own target under it; sabotage breaks 0.0–0.6, because a
+saboteur rewriting its promise every meeting never holds one long enough to
+default. Billing that at easy's bar would have punished the honest play the
+gate exists to protect and left the sabotage untouched — the same inversion of
+`guidance.test.ts`'s criterion this gate has already been caught causing twice.
+
+**After**, engine 1.3.0, 150 seeds:
+
+| bucket | competent | passive | sabotage | complete (c/p/s) | sabotage dismissed |
+| --- | --- | --- | --- | --- | --- |
+| fed/easy | 7222 | 7107 | **499** | 100 / 100 / 0 % | 100 % |
+| fed/medium | 7189 | 7211 | **359** | 97 / 99 / 0 % | 100 % |
+| fed/hard | 6299 | 6093 | **209** | 37 / 29 / 0 % | 94 % |
+| ecb/easy | 6834 | 6703 | **476** | 100 / 100 / 0 % | 100 % |
+| ecb/medium | 5494 | 5273 | **338** | 98 / 95 / 0 % | 99 % |
+| ecb/hard | 4034 | 4032 | **186** | 27 / 27 / 0 % | 92 % |
+
+Sabotage 186–499 against a 1500 bar, revoked in 92–100 % of seeds, at **every**
+difficulty. `scoring/winnability.test.ts` pins it.
+
+### Two engine defects the same measurements exposed
+
+**Credibility collapsed on `|headline − target|`**, which under a cost-push
+shock is precisely what no instrument reaches — the same error the score made,
+in the place that *ends mandates*. Loosening every failure threshold only
+converted banking crises into dismissals (34 → 48) because this term, not the
+thresholds, was binding. A bank's standing does not collapse because headline
+is high during an oil shock; it collapses when people stop believing inflation
+will be brought back, which is the anchoring term, left at full strength.
+`INSTITUTIONAL.credibility.supplyMissForgiveness` and the score's own regime
+shift now read one shared band, `SUPPLY_REGIME_BAND` — they were separate
+judgements and disagreed, so the score forgave a miss the end conditions were
+still ending the mandate over.
+
+**Hard's `thresholdLeniency` of 0.82 was difficulty counted twice.** Hard
+already throws shocks 1.45x larger, 1.35x more severe, more often, at 1.7x the
+observation noise, over a mandate four times as long — and then also called a
+smaller crisis a crisis. A banking crisis is a banking crisis whatever mode was
+selected. At medium's 1.0, with **no shock diluted**, competent play completed
+51 % against 26 % on the Fed and 34 % against 18 % on the ECB.
+
+### Hard does not meet the bar, and that is reported rather than fixed
+
+Competent play completes **27–37 %** of hard mandates. The instruction was
+explicit — say so rather than dilute the shocks — so this is the honest state
+of that mode, with the diagnosis:
+
+- **The per-meeting failure hazard is a cliff, not a ladder**: 0.0 % at easy,
+  0.2–0.3 % at medium, 4.6–5.4 % at hard before the threshold fix. Compounded
+  over 32 meetings that is most of the story, and the failures are spread
+  evenly across the mandate rather than concentrated late, so it is a genuine
+  per-meeting hazard and not only exposure.
+- **The liquidity facilities are net-negative as the engine prices them.** The
+  toolkit rule cuts banking crises sharply (21 → 9 per 100 on fed/hard) and
+  raises dismissals more (16 → 32), so the plain rate-only staff rule completes
+  *better* — 41 % against 31 %. Escalating a facility on a noisy published
+  stress print trips `liquidity_support_without_stress`, and the credibility it
+  costs outweighs the stress it relieves. **This is the first thing to look at
+  for hard**, and it makes "the full toolkit" partly decorative until it is
+  fixed.
+- **Binding guidance at hard is correctly lethal** and should stay so: the
+  honest binding rule breaks 3.8 promises a mandate and is dismissed 64–68 % of
+  the time, against 16–22 % for the same rule speaking without binding itself.
+
+## (c) What guidance is actually worth
+
+The player's report was that announcing something felt like it changed nothing.
+Paired over 120 seeds per bucket with **the rate trajectory held identical**
+between the arms — recorded from a reference run and replayed move for move —
+so the only thing that differs is what was said:
+
+| saying it, binding nothing, vs silence | inflation miss closed | 1y expectations | anchoring index | score | speaking wins |
+| --- | --- | --- | --- | --- | --- |
+| fed/easy | +0.047 pp | **+0.065** (se .014) | **+0.077** (se .002) | **+99** (se 20) | 92 % |
+| fed/medium | +0.192 pp | **+0.171** (se .023) | **+0.104** (se .003) | **+119** (se 25) | 87 % |
+| ecb/easy | +0.133 pp | **+0.099** (se .014) | **+0.073** (se .002) | **+166** (se 28) | 91 % |
+| ecb/medium | −0.067 pp | **+0.149** (se .028) | **+0.103** (se .003) | **+227** (se 44) | 86 % |
+
+Four to ten standard errors on the expectations and anchoring channels, winning
+four seeds in five. **The instrument was never weak; it was invisible.** Nothing
+on the screen connected the sentence the player picked to the numbers it moved,
+and the same-day reaction panel only appears *after* the decision is taken. So
+the estimate now sits on the confirmation screen beside the statement,
+derived from the same `COMMUNICATION` and `EXPECTATIONS` constants
+`applyPolicyPackage` uses, with a test that plays the announcement through the
+real engine and checks the estimate against what actually happened.
+
+**And the same measurement found the trap, which is worth more than the gain.**
+Announcing under a *binding* commitment at every meeting, rather than as a
+leaning, costs 155 points on easy and 1619–1838 on medium: it breaks 3.8–4.2
+promises a mandate, because the target moves under a committee reading noisy
+data. Binding roughly doubles the same-day effect and can cost ten times what
+it buys. That is the real dilemma about commitment, it emerges from the model
+rather than being scripted, and the confirmation screen now says it in one line
+where the decision is taken.
+
+## Collateral of the 1.2.0 → 1.3.0 bump
+
+The bump was owed from two sessions back and is now paid. Reseeding exposed one
+real defect, which is what a bump is for.
+
+**The two supply majors never gave back what they took.** Net lifetime
+inflation impulse, measured at a reference context:
+
+| event | net inflation | net supplyShock |
+| --- | --- | --- |
+| `energy_price_spike` | +5.58 | +1.70 |
+| `energy_price_relief` | −6.59 | −2.02 |
+| `geopolitical_crisis_outbreak` | **+6.95** | **+2.10** |
+| `supply_rupture` | **+7.31** | **+2.00** |
+
+The two largest one-directional inflation sources in the catalog, unmirrored,
+against a paired energy spike and relief that cancel almost exactly — and the
+catalog's own comment claimed they "net back down close to neutral over their
+own arc". They do now: the stabilisation legs give back the cost-push and the
+import-price move, leaving the "lasting premium" the newswire already
+described, at +0.73 and under the reporting threshold respectively. This was
+invisible while the majors were scoped to easy and rare; unlocking them above
+easy put three of the six buckets outside `events/balance.test.ts`'s band,
+which is what caught it.
+
+**Safety rails, sorted from index saturation.** `bankingStress`, `credibility`,
+`geopoliticalRisk` and the other 0–100 indices are not safety rails: reaching
+100 is the top of the scale, and the end conditions have opinions about exactly
+that. They are labelled `saturated` and excluded from the sweep's instability
+report — which retires the phantom `geopoliticalRisk` warning this document has
+carried as "pre-existing, not diagnosed" since engine 1.0.0. `confidenceShock`
+and `supplyShock` were widened, since majors above easy now reach rails the
+file says sit "far outside any plausible economy". And a clamp in a run that
+has *already failed* is no longer reported: an inflation spiral ends the
+mandate at 12 %, and the priced path diverging in the meeting after that is the
+spiral.
+
+## Still open
+
+- **Hard completes 27–37 % under competent play.** See the diagnosis above; the
+  liquidity facilities are the first thing to look at.
+- **`marketExpectedRate` reaches its rail in one *completed* ecb/hard mandate
+  in 150.** A completed run touching a computational rail is the case worth
+  hearing about, and the sweep still reports it. Not diagnosed.
+- **Competent play and passive are within 1–2 % on fed/medium and fed/hard.**
+  The long-standing structural finding on the Fed, unchanged: an opening near
+  both objectives gives policy little to earn. Competent wins clearly on the
+  ECB at every difficulty.
+- **The ECB is still not selectable.** It is fully built, measured in every
+  sweep, and the setup screen offers only the Fed.
+
+## What now protects each of these
+
+| Guard | Fails when |
+| --- | --- |
+| `events/character.test.ts` | a declared shock character stops matching the co-movement its effects produce, a cost-push event is routed anywhere but `supply`, the mix stops ordering the modes, or the cost-push ceiling stops holding back a second shock at easy while blocking relief |
+| `observation/ladder.test.ts` | the name outlives the evidence down the ladder, medium loses its evidence or its adviser, hard gains either, or the divided committee stops bracketing the centre and reporting agreement honestly |
+| `features/meeting/register.test.ts` | a difficulty publishes its numbers in the wrong register, or a plain-language headline calls a gap inside its own error bar a distance |
+| `scoring/regimeObjective.test.ts` | the objective stops moving under cost-push, starts moving in calm weather, stops summing to one, or the ECB safeguard stops softening — or hardens to nothing |
+| `features/meeting/objective.test.ts` | the player is no longer told what winning looks like before the decision, or is told it from something they cannot check |
+| `scoring/winnability.test.ts` | sabotage stops collapsing or stops being revoked at any difficulty, or easy and medium stop being completable |
+| `features/policy/guidancePreview.test.ts` | the estimate shown at confirmation drifts from what `applyPolicyPackage` actually does |
+| `pages/consoleCheck.test.tsx` | any panel throws or warns at any difficulty, or a difficulty stops reaching the instruments its brief describes |

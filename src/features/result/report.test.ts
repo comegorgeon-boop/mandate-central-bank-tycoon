@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SIMULATION_VERSION,
   calculateScore,
+  createInitialState,
   createRunConfig,
   evaluateEndConditions,
   isMajorEvent,
@@ -69,8 +70,19 @@ describe('the mandate report', () => {
   })
 
   it('opens with no scripted crisis on medium, where the mandate is not handed a culprit', () => {
-    const { state } = completedSession('report-medium', 'medium')
-    expect(state.eventLog.some((record) => record.meetingIndex === 0)).toBe(false)
+    // Read off the *initial* state, not off a finished run. `resolveEvent`
+    // runs between meetings and stamps whatever fires before the second
+    // meeting with `meetingIndex: 0` too, so a played mandate cannot tell a
+    // scripted opener apart from an ordinary early firing. This assertion used
+    // to be made against a finished run and passed only because the seed it
+    // happened to use drew nothing in that window.
+    const config = createRunConfig({
+      institution: 'fed',
+      difficulty: 'medium',
+      seed: 'report-medium',
+      simulationVersion: SIMULATION_VERSION,
+    })
+    expect(createInitialState(config).eventLog).toHaveLength(0)
   })
 
   it('falls back to the smaller developments when no major event ever fired', () => {
