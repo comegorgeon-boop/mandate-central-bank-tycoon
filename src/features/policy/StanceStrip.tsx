@@ -25,9 +25,9 @@ const LABEL_TEXT: Readonly<Record<StanceLabel, string>> = {
 }
 
 const LABEL_STYLE: Readonly<Record<StanceLabel, string>> = {
-  restrictive: 'text-sky-300',
-  neutral: 'text-neutral-300',
-  accommodative: 'text-amber-300',
+  restrictive: 'text-accent-onwood',
+  neutral: 'text-onwood-soft',
+  accommodative: 'text-accent-onwood',
 }
 
 const LABEL_MEANING: Readonly<Record<StanceLabel, string>> = {
@@ -48,10 +48,10 @@ function StanceLabelBlock({ stance }: { readonly stance: StanceReading }) {
   if (stance.label === null || stance.gap === null || stance.neutralEstimate === null) {
     return (
       <div>
-        <dt className="text-xs uppercase tracking-wide text-neutral-500">Stance</dt>
+        <dt className="text-xs uppercase tracking-wide text-onwood-faint">Stance</dt>
         <dd>
-          <span className="text-lg font-semibold text-neutral-400">UNAVAILABLE</span>
-          <span className="mt-0.5 block text-xs text-neutral-500">
+          <span className="text-lg font-semibold text-onwood-soft">UNAVAILABLE</span>
+          <span className="mt-0.5 block text-xs text-onwood-faint">
             The releases needed to place the rate against neutral have not arrived.
           </span>
         </dd>
@@ -67,12 +67,12 @@ function StanceLabelBlock({ stance }: { readonly stance: StanceReading }) {
 
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-neutral-500">Stance</dt>
+      <dt className="text-xs uppercase tracking-wide text-onwood-faint">Stance</dt>
       <dd>
         <span className={`text-lg font-semibold ${LABEL_STYLE[stance.label]}`}>
           {LABEL_TEXT[stance.label]}
         </span>
-        <span className="mt-0.5 block text-xs text-neutral-400">
+        <span className="mt-0.5 block text-xs text-onwood-soft">
           {position} (estimated {stance.neutralEstimate.toFixed(2)} %, ±
           {stance.neutralUncertainty.toFixed(2)}).
         </span>
@@ -101,18 +101,18 @@ export function StanceStrip({
   return (
     <section
       aria-label="Policy stance"
-      className="mt-4 rounded border border-neutral-800 bg-neutral-900/60 p-4"
+      className="mt-4 rounded border border-edge-room bg-room/60 p-4"
     >
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-neutral-500">
+          <dt className="text-xs uppercase tracking-wide text-onwood-faint">
             Policy rate
           </dt>
           <dd>
-            <span className="text-lg font-semibold tabular-nums text-neutral-50">
+            <span className="text-lg font-semibold tabular-nums text-onwood">
               {stance.nominalRate === null ? '—' : `${stance.nominalRate.toFixed(2)} %`}
             </span>
-            <span className="mt-0.5 block text-xs text-neutral-400">
+            <span className="mt-0.5 block text-xs text-onwood-soft">
               {change === null
                 ? 'The rate you set. On its own it says nothing about tight or loose.'
                 : `${signed(change.nominal)} since the last meeting.`}
@@ -121,12 +121,12 @@ export function StanceStrip({
         </div>
 
         <div>
-          <dt className="text-xs uppercase tracking-wide text-neutral-500">Real rate</dt>
+          <dt className="text-xs uppercase tracking-wide text-onwood-faint">Real rate</dt>
           <dd>
-            <span className="text-lg font-semibold tabular-nums text-neutral-50">
+            <span className="text-lg font-semibold tabular-nums text-onwood">
               {stance.realRate === null ? '—' : `${stance.realRate.toFixed(2)} %`}
             </span>
-            <span className="mt-0.5 block text-xs text-neutral-400">
+            <span className="mt-0.5 block text-xs text-onwood-soft">
               Policy rate minus expected inflation
               {stance.expectedInflation !== null &&
                 ` (${stance.expectedInflation.toFixed(2)} %)`}
@@ -138,14 +138,14 @@ export function StanceStrip({
         <StanceLabelBlock stance={stance} />
 
         <div>
-          <dt className="text-xs uppercase tracking-wide text-neutral-500">
+          <dt className="text-xs uppercase tracking-wide text-onwood-faint">
             Your word
           </dt>
           <dd>
-            <span className="text-lg font-semibold tabular-nums text-neutral-50">
+            <span className="text-lg font-semibold tabular-nums text-onwood">
               {credibility === null ? '—' : Math.round(credibility)}
             </span>
-            <span className="mt-0.5 block text-xs text-neutral-400">
+            <span className="mt-0.5 block text-xs text-onwood-soft">
               {credibilityMove !== null && credibilityMove !== 0
                 ? `${credibilityMove > 0 ? '+' : '−'}${Math.abs(credibilityMove)} since ` +
                   'the last meeting. '
@@ -157,35 +157,35 @@ export function StanceStrip({
       </dl>
 
       {stance.label !== null && (
-        <p className="mt-3 text-sm text-neutral-300">{LABEL_MEANING[stance.label]}</p>
+        <p className="mt-3 text-sm text-onwood-soft">{LABEL_MEANING[stance.label]}</p>
       )}
 
       {change !== null && (
-        <div className="mt-3 border-t border-neutral-800 pt-3">
-          <h3 className="text-xs uppercase tracking-wide text-neutral-500">
+        <div className="mt-3 border-t border-edge-room pt-3">
+          <h3 className="text-xs uppercase tracking-wide text-onwood-faint">
             How the stance moved since the last meeting
           </h3>
           <dl className="mt-2 max-w-sm text-sm">
             <div className="flex justify-between gap-4">
-              <dt className="text-neutral-400">You moved the policy rate</dt>
-              <dd className="tabular-nums text-neutral-200">{signed(change.nominal)}</dd>
+              <dt className="text-onwood-soft">You moved the policy rate</dt>
+              <dd className="tabular-nums text-onwood">{signed(change.nominal)}</dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-neutral-400">Expected inflation moved</dt>
-              <dd className="tabular-nums text-neutral-200">
+              <dt className="text-onwood-soft">Expected inflation moved</dt>
+              <dd className="tabular-nums text-onwood">
                 {signed(change.expectations)}
               </dd>
             </div>
-            <div className="mt-1 flex justify-between gap-4 border-t border-neutral-700 pt-1">
-              <dt className="font-medium text-neutral-200">Real rate</dt>
-              <dd className="font-medium tabular-nums text-neutral-50">
+            <div className="mt-1 flex justify-between gap-4 border-t border-edge-room pt-1">
+              <dt className="font-medium text-onwood">Real rate</dt>
+              <dd className="font-medium tabular-nums text-onwood">
                 {signed(change.real)}
               </dd>
             </div>
           </dl>
 
           {change.contradictory && (
-            <p role="status" className="mt-2 text-sm text-amber-300">
+            <p role="status" className="mt-2 text-sm text-accent-onwood">
               Your decision moved the stance the other way. Expected inflation moved
               further than the rate did, so{' '}
               {change.nominal > 0
@@ -195,7 +195,7 @@ export function StanceStrip({
           )}
 
           {!change.contradictory && change.nominal === 0 && Math.abs(change.real) >= 0.05 && (
-            <p className="mt-2 text-sm text-neutral-400">
+            <p className="mt-2 text-sm text-onwood-soft">
               You held, but the stance still moved{' '}
               {change.real > 0 ? 'tighter' : 'looser'}: expected inflation shifted
               underneath an unchanged rate. Holding is not a neutral act.
@@ -205,9 +205,9 @@ export function StanceStrip({
       )}
 
       {stance.realRateExPost !== null && stance.headlineInflation !== null && (
-        <p className="mt-3 border-t border-neutral-800 pt-3 text-xs text-neutral-500">
+        <p className="mt-3 border-t border-edge-room pt-3 text-xs text-onwood-faint">
           Households feel{' '}
-          <span className="tabular-nums text-neutral-400">
+          <span className="tabular-nums text-onwood-soft">
             {stance.realRateExPost.toFixed(2)} %
           </span>{' '}
           — the policy rate minus the {stance.headlineInflation.toFixed(2)} % inflation

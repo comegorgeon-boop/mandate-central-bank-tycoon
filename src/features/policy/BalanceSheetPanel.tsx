@@ -52,15 +52,15 @@ export function BalanceSheetPanel({
   return (
     <section
       aria-labelledby="toolkit-heading"
-      className="mt-5 rounded border border-neutral-800 bg-neutral-900 p-4"
+      className="mt-5 rounded border border-edge bg-sunk p-4"
     >
-      <p className="text-xs uppercase tracking-wide text-neutral-500">
+      <p className="text-xs uppercase tracking-wide text-ink-faint">
         The rest of the toolkit
       </p>
-      <h3 id="toolkit-heading" className="mt-1 text-base font-semibold text-neutral-100">
+      <h3 id="toolkit-heading" className="mt-1 text-base font-semibold text-ink">
         Standing settings
       </h3>
-      <p className="mt-1 text-sm text-neutral-400">
+      <p className="mt-1 text-sm text-ink-soft">
         These stay in force between meetings. Leaving one alone is a decision to
         keep it where it is, not an absence of one.
       </p>

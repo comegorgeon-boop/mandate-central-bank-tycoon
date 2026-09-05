@@ -61,6 +61,7 @@
 
   /* Brass. Fittings, rules, the mark of something worth looking at. Used
    * sparingly: brass everywhere is brass nowhere. */
+  --color-brass-700: #63491f;
   --color-brass-600: #8a6a2f;
   --color-brass-500: #a8842f;
   --color-brass-400: #c9a227;
@@ -192,7 +193,18 @@
   --bad-surface: #f8e9ec;
   --bad-on-dark: var(--color-claret-400);
 
-  --accent: var(--color-brass-600);
+  /*
+   * Brass comes in three, and which one you want depends entirely on what is
+   * behind it. Getting this wrong is how an interface ends up with 1.5:1 text,
+   * so the tokens are named for their ground rather than for their lightness.
+   */
+  /* Brass as a *fill* — a pressed button, a rule. */
+  --accent: var(--color-brass-500);
+  /* Text on that fill. Always ink: brass is a mid tone in both directions. */
+  --on-accent: var(--color-ink-900);
+  /* Brass as *text*, on a pale surface. */
+  --accent-strong: var(--color-brass-700);
+  /* Brass as text on walnut. */
   --accent-on-dark: var(--color-brass-300);
   --accent-surface: #f6edd6;
 
@@ -230,7 +242,10 @@
   --bad-strong: var(--color-claret-200);
   --bad-surface: var(--color-claret-900);
 
-  --accent: var(--color-brass-300);
+  /* Brass as a fill stays the same in both directions, so `--on-accent` can
+   * stay ink and a primary button reads identically either way. What changes
+   * is brass as *text*, which now needs to be light. */
+  --accent-strong: var(--color-brass-200);
   --accent-surface: var(--color-walnut-800);
 }
 
@@ -281,6 +296,8 @@
   --color-bad-onwood: var(--bad-on-dark);
 
   --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-strong: var(--accent-strong);
   --color-accent-onwood: var(--accent-on-dark);
   --color-accent-surface: var(--accent-surface);
 

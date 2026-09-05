@@ -71,8 +71,8 @@ export function LineChart({
 
   return (
     <figure className="mt-5">
-      <figcaption className="text-sm font-medium text-neutral-200">
-        {title} <span className="font-normal text-neutral-500">({unit})</span>
+      <figcaption className="text-sm font-medium text-ink">
+        {title} <span className="font-normal text-ink-faint">({unit})</span>
       </figcaption>
 
       <div className="mt-2 overflow-x-auto">
@@ -88,13 +88,13 @@ export function LineChart({
             y1={HEIGHT - PAD_Y}
             x2={WIDTH - 8}
             y2={HEIGHT - PAD_Y}
-            className="stroke-neutral-700"
+            className="stroke-edge"
             strokeWidth="1"
           />
-          <text x="4" y={y(max) + 4} className="fill-neutral-500 text-[10px]">
+          <text x="4" y={y(max) + 4} className="fill-ink-faint text-[10px]">
             {max.toFixed(1)}
           </text>
-          <text x="4" y={y(min) + 4} className="fill-neutral-500 text-[10px]">
+          <text x="4" y={y(min) + 4} className="fill-ink-faint text-[10px]">
             {min.toFixed(1)}
           </text>
 
@@ -105,7 +105,7 @@ export function LineChart({
                 y1={y(reference.value)}
                 x2={WIDTH - 8}
                 y2={y(reference.value)}
-                className="stroke-neutral-600"
+                className="stroke-edge"
                 strokeWidth="1"
                 strokeDasharray="2 3"
               />
@@ -113,7 +113,7 @@ export function LineChart({
                 x={WIDTH - 8}
                 y={y(reference.value) - 4}
                 textAnchor="end"
-                className="fill-neutral-500 text-[10px]"
+                className="fill-ink-faint text-[10px]"
               >
                 {reference.label}
               </text>
@@ -136,7 +136,7 @@ export function LineChart({
         </svg>
       </div>
 
-      <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-400">
+      <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
         {series.map((line) => (
           <li key={line.label} className="flex items-center gap-1.5">
             <svg width="18" height="6" aria-hidden="true" focusable="false">

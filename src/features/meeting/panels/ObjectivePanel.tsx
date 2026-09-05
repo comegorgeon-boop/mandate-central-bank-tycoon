@@ -19,13 +19,13 @@ export function ObjectivePanel({ objective }: { readonly objective: RegimeObject
       aria-labelledby="objective-heading"
       className={`rounded border p-3 ${
         objective.displaced
-          ? 'border-amber-800 bg-amber-950/30'
-          : 'border-neutral-800 bg-neutral-900'
+          ? 'border-accent bg-accent-surface'
+          : 'border-edge-room bg-room'
       }`}
     >
       <p
         className={`text-xs uppercase tracking-wide ${
-          objective.displaced ? 'text-amber-400' : 'text-neutral-500'
+          objective.displaced ? 'text-accent-onwood' : 'text-onwood-faint'
         }`}
       >
         {objective.displaced ? 'The objective has moved' : 'What you are playing for'}
@@ -33,12 +33,12 @@ export function ObjectivePanel({ objective }: { readonly objective: RegimeObject
       <h2
         id="objective-heading"
         className={`mt-1 text-base font-semibold ${
-          objective.displaced ? 'text-amber-100' : 'text-neutral-100'
+          objective.displaced ? 'text-accent-onwood' : 'text-onwood'
         }`}
       >
         {objective.goal}
       </h2>
-      <p className="mt-1 text-sm text-neutral-400">{objective.reason}</p>
+      <p className="mt-1 text-sm text-onwood-soft">{objective.reason}</p>
     </section>
   )
 }

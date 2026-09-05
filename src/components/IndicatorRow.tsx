@@ -68,21 +68,21 @@ export function IndicatorRow({
   const decimals = getSeries(observation.seriesId)?.decimals ?? 2
   const change = formatChange(observation.value, observation.previous, decimals)
   const figure = (
-    <span className="tabular-nums text-lg text-neutral-50">
+    <span className="tabular-nums text-lg text-ink">
       {formatValue(observation.value, decimals)}
-      <span className="ml-1 text-xs text-neutral-400">{observation.unit}</span>
+      <span className="ml-1 text-xs text-ink-soft">{observation.unit}</span>
     </span>
   )
 
   return (
-    <li className="border-b border-neutral-800 py-4 last:border-b-0">
+    <li className="border-b border-edge py-4 last:border-b-0">
       {register === 'plain' ? (
         <div>
-          <p className="font-medium text-neutral-100">
+          <p className="font-medium text-ink">
             {plainHeadline(observation, reference, referenceLabel)}
           </p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            <span className="text-xs uppercase tracking-wide text-neutral-500">
+            <span className="text-xs uppercase tracking-wide text-ink-faint">
               {observation.label}
             </span>
             {figure}
@@ -90,7 +90,7 @@ export function IndicatorRow({
         </div>
       ) : (
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <span className="font-medium text-neutral-100">{observation.label}</span>
+          <span className="font-medium text-ink">{observation.label}</span>
           {figure}
         </div>
       )}
@@ -105,12 +105,12 @@ export function IndicatorRow({
 
       {/* What a move means is a reading, and hard reads nothing for you. */}
       {register !== 'technical' && (
-        <p className="mt-2 text-sm text-neutral-400">{observation.meaning}</p>
+        <p className="mt-2 text-sm text-ink-soft">{observation.meaning}</p>
       )}
 
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-ink-faint">
         {observation.missing ? (
-          <span className="text-amber-400">
+          <span className="text-accent-strong">
             This release did not arrive in time for the meeting.
           </span>
         ) : (
@@ -128,7 +128,7 @@ export function IndicatorRow({
       </p>
 
       {observation.revision !== null && (
-        <p className="mt-1 text-xs text-amber-400">
+        <p className="mt-1 text-xs text-accent-strong">
           Revision: the reading {observation.revision.periodsAgo} period
           {observation.revision.periodsAgo === 1 ? '' : 's'} ago was first published at{' '}
           {observation.revision.firstPrint.toFixed(decimals)} and now reads{' '}
@@ -136,7 +136,7 @@ export function IndicatorRow({
         </p>
       )}
 
-      <p className="mt-1 text-xs text-neutral-600">{observation.definition}</p>
+      <p className="mt-1 text-xs text-ink-faint">{observation.definition}</p>
     </li>
   )
 }

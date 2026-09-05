@@ -17,6 +17,8 @@ export type SeriesId =
   | 'credibility_index'
   | 'policy_rate'
   | 'market_expected_rate'
+  | 'long_rate'
+  | 'equity_index'
   | 'market_volatility'
   | 'credit_spread'
   | 'exchange_rate'

@@ -8,6 +8,7 @@ import {
 } from '../simulation/index.ts'
 import { useRun } from '../features/game/runContext.ts'
 import { MAX_SEED_LENGTH, randomSeed, sanitizeSeed } from '../features/game/seed.ts'
+import { SettingsPanel } from '../features/settings/SettingsPanel.tsx'
 
 /**
  * Run setup.
@@ -72,18 +73,18 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8 text-neutral-200">
-      <h1 className="text-2xl font-semibold text-neutral-50">Set up your mandate</h1>
-      <p className="mt-2 text-sm text-neutral-400">
+    <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8 text-onwood">
+      <h1 className="text-2xl font-semibold text-onwood">Set up your mandate</h1>
+      <p className="mt-2 text-sm text-onwood-soft">
         A simplified fictional simulation of monetary policy. Not affiliated with, and
         not an official product of, any central bank.
       </p>
 
       <fieldset className="mt-8">
-        <legend className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+        <legend className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           Institution
         </legend>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-onwood-soft">
           The mandate you serve, and therefore what you are judged on.
         </p>
         <div className="mt-2 flex flex-col gap-2">
@@ -96,18 +97,18 @@ export default function SetupPage() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setInstitution(id)}
-                className={`rounded border p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 ${
+                className={`rounded border p-3 text-left ${
                   selected
-                    ? 'border-neutral-300 bg-neutral-800'
-                    : 'border-neutral-700 bg-neutral-900 hover:bg-neutral-800'
+                    ? 'border-edge-accent bg-inset'
+                    : 'border-edge-room bg-room hover:bg-inset'
                 }`}
               >
                 <span
-                  className={`font-medium ${selected ? 'text-neutral-50' : 'text-neutral-100'}`}
+                  className={`font-medium ${selected ? 'text-onwood' : 'text-onwood'}`}
                 >
                   {config.name}
                 </span>
-                <span className="mt-1 block text-sm text-neutral-400">
+                <span className="mt-1 block text-sm text-onwood-soft">
                   {config.mandateSummary}
                 </span>
               </button>
@@ -117,10 +118,10 @@ export default function SetupPage() {
       </fieldset>
 
       <fieldset className="mt-6">
-        <legend className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+        <legend className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           Difficulty
         </legend>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-onwood-soft">
           Not three settings of one dial. Each serves a different kind of problem.
         </p>
         <div className="mt-2 flex flex-col gap-2">
@@ -133,18 +134,18 @@ export default function SetupPage() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setDifficulty(id)}
-                className={`rounded border p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 ${
+                className={`rounded border p-3 text-left ${
                   selected
-                    ? 'border-neutral-300 bg-neutral-800'
-                    : 'border-neutral-700 bg-neutral-900 hover:bg-neutral-800'
+                    ? 'border-edge-accent bg-inset'
+                    : 'border-edge-room bg-room hover:bg-inset'
                 }`}
               >
                 <span
-                  className={`font-medium ${selected ? 'text-neutral-50' : 'text-neutral-100'}`}
+                  className={`font-medium ${selected ? 'text-onwood' : 'text-onwood'}`}
                 >
                   {copy.name} — {MEETING_COUNT[id]} scheduled meetings
                 </span>
-                <span className="mt-1 block text-sm text-neutral-400">
+                <span className="mt-1 block text-sm text-onwood-soft">
                   {copy.summary}
                 </span>
               </button>
@@ -154,10 +155,10 @@ export default function SetupPage() {
       </fieldset>
 
       <section className="mt-6" aria-labelledby="seed-heading">
-        <h2 id="seed-heading" className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+        <h2 id="seed-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           Scenario seed
         </h2>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-onwood-soft">
           The seed generates the economy. The same seed always produces the same run.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -169,38 +170,40 @@ export default function SetupPage() {
             value={seed}
             maxLength={MAX_SEED_LENGTH}
             onChange={(event) => setSeed(sanitizeSeed(event.target.value))}
-            className="flex-1 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+            className="flex-1 rounded border border-edge-room bg-room px-3 py-2 font-mono text-sm text-onwood"
           />
           <button
             type="button"
             onClick={() => setSeed(randomSeed())}
-            className="rounded border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+            className="rounded border border-edge-room px-3 py-2 text-sm text-onwood hover:bg-inset"
           >
             Random seed
           </button>
         </div>
         {trimmed.length === 0 && (
-          <p className="mt-2 text-xs text-amber-400">
+          <p className="mt-2 text-xs text-accent-onwood">
             Enter a seed of at least one letter or digit.
           </p>
         )}
       </section>
+
+      <SettingsPanel className="mt-8" />
 
       <div className="mt-8 flex flex-wrap items-center gap-4">
         <button
           type="button"
           onClick={start}
           disabled={trimmed.length === 0}
-          className="rounded border border-neutral-300 bg-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          className="rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood disabled:cursor-not-allowed disabled:opacity-50"
         >
           Start the mandate
         </button>
-        <Link to="/" className="text-sm text-neutral-400 underline hover:text-neutral-200">
+        <Link to="/" className="text-sm text-onwood-soft underline hover:text-onwood">
           Back
         </Link>
       </div>
 
-      <p className="mt-8 text-xs text-neutral-600">
+      <p className="mt-8 text-xs text-onwood-faint">
         This build keeps no local records and does not save runs. Reloading the page
         during a mandate ends it.
       </p>

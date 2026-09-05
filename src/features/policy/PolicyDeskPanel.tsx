@@ -135,7 +135,7 @@ export function PolicyDeskPanel({
   }, [range, currentRate, floor])
 
   if (instrument === undefined || range === null) {
-    return <p className="text-neutral-300">The policy rate instrument is unavailable.</p>
+    return <p className="text-ink-soft">The policy rate instrument is unavailable.</p>
   }
 
   const resultingRate = currentRate + move / 100
@@ -195,22 +195,22 @@ export function PolicyDeskPanel({
     const contradictions = detectContradictions(session.state, buildPackage())
     return (
       <section aria-labelledby="confirm-heading">
-        <h2 id="confirm-heading" className="text-lg font-semibold text-neutral-50">
+        <h2 id="confirm-heading" className="text-lg font-semibold text-ink">
           Confirm the policy package
         </h2>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-ink-soft">
           Review the whole package before it is put to the committee. Once confirmed,
           the decision is recorded and time advances to the next meeting.
         </p>
 
-        <dl className="mt-4 divide-y divide-neutral-800 border-y border-neutral-800 text-sm">
+        <dl className="mt-4 divide-y divide-edge border-y border-edge text-sm">
           <div className="flex justify-between gap-4 py-2">
-            <dt className="text-neutral-400">{instrument.label[institution]}</dt>
-            <dd className="tabular-nums text-neutral-50">{formatMove(move)}</dd>
+            <dt className="text-ink-soft">{instrument.label[institution]}</dt>
+            <dd className="tabular-nums text-ink">{formatMove(move)}</dd>
           </div>
           <div className="flex justify-between gap-4 py-2">
-            <dt className="text-neutral-400">Rate after the decision</dt>
-            <dd className="tabular-nums text-neutral-50">
+            <dt className="text-ink-soft">Rate after the decision</dt>
+            <dd className="tabular-nums text-ink">
               {currentRate.toFixed(2)} % → {resultingRate.toFixed(2)} %
             </dd>
           </div>
@@ -220,8 +220,8 @@ export function PolicyDeskPanel({
             const standing = standingLevel(session.state.stance, action.instrument) ?? 0
             return (
               <div key={action.instrument} className="flex justify-between gap-4 py-2">
-                <dt className="text-neutral-400">{definition.label[institution]}</dt>
-                <dd className="tabular-nums text-neutral-50">
+                <dt className="text-ink-soft">{definition.label[institution]}</dt>
+                <dd className="tabular-nums text-ink">
                   {formatMagnitude(standing, definition.unit)} →{' '}
                   {formatMagnitude(action.magnitude, definition.unit)}
                 </dd>
@@ -229,12 +229,12 @@ export function PolicyDeskPanel({
             )
           })}
           <div className="flex flex-col gap-1 py-2">
-            <dt className="text-neutral-400">The statement</dt>
-            <dd className="italic text-neutral-200">
+            <dt className="text-ink-soft">The statement</dt>
+            <dd className="italic text-ink">
               {buildStatement(move, signal, commitment)}
             </dd>
             {commitment === 'conditional_path' && (
-              <dd className="text-xs text-neutral-500">
+              <dd className="text-xs text-ink-faint">
                 This is a promise. It is judged in about a year — delivered, or
                 broken at a lasting cost to credibility.
               </dd>
@@ -243,14 +243,14 @@ export function PolicyDeskPanel({
         </dl>
 
         {contradictions.length > 0 && (
-          <div className="mt-3 rounded border border-amber-700 bg-amber-950/40 p-3 text-sm text-amber-200">
+          <div className="mt-3 rounded border border-accent bg-accent-surface p-3 text-sm text-accent-strong">
             <p className="font-medium">Mixed signals</p>
             <ul className="mt-1 list-disc pl-5">
               {contradictions.map((contradiction) => (
                 <li key={contradiction.code}>{contradiction.message}</li>
               ))}
             </ul>
-            <p className="mt-1 text-xs text-amber-300/80">
+            <p className="mt-1 text-xs text-accent-strong">
               You can confirm it anyway — committees sometimes mean to — but
               markets charge credibility for a package that argues with itself.
             </p>
@@ -275,11 +275,11 @@ export function PolicyDeskPanel({
           const pulled = Math.abs(preview.expectationsPullPerYear) >= 0.01
 
           return (
-            <div className="mt-4 rounded border border-sky-900 bg-sky-950/30 p-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-sky-400">
+            <div className="mt-4 rounded border border-edge-accent bg-sunk p-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-accent-strong">
                 What the words are expected to do
               </h3>
-              <ul className="mt-2 space-y-1 text-sm text-neutral-300">
+              <ul className="mt-2 space-y-1 text-sm text-ink-soft">
                 <li>
                   {moved
                     ? `Markets reprice the one-year path by about ${preview.pricedPathMove > 0 ? '+' : '−'}${Math.abs(preview.pricedPathMove).toFixed(2)} pp today, before any rate has moved.`
@@ -291,7 +291,7 @@ export function PolicyDeskPanel({
                     : 'Expectations are barely moved: this announcement says little markets did not already assume.'}
                 </li>
                 {preview.binding && (
-                  <li className="text-sky-200">
+                  <li className="text-accent-strong">
                     This is a promise, judged around meeting {preview.judgedAtMeeting}.
                     Binding is what makes the two effects above roughly twice the
                     size — and a promise the data moves out from under costs far
@@ -299,7 +299,7 @@ export function PolicyDeskPanel({
                   </li>
                 )}
               </ul>
-              <p className="mt-2 text-xs text-neutral-500">
+              <p className="mt-2 text-xs text-ink-faint">
                 An estimate of direction and rough size, read off the published
                 credibility survey — which carries its own error, and markets owe
                 nobody their reaction function.
@@ -310,10 +310,10 @@ export function PolicyDeskPanel({
 
         <StancePreview observation={session.observation} move={move} />
 
-        <p className="mt-3 text-sm text-neutral-400">
+        <p className="mt-3 text-sm text-ink-soft">
           {pricedInSummary(move, pricedGap)}
         </p>
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="mt-2 text-sm text-ink-soft">
           Peak effect on inflation and output expected around{' '}
           {formatMeetings(lag.peakMeetings)} from now. Markets and the priced path,
           however, respond the moment this is announced.
@@ -323,14 +323,14 @@ export function PolicyDeskPanel({
           <button
             type="button"
             onClick={confirm}
-            className="rounded border border-emerald-600 bg-emerald-900/40 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-900/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+            className="rounded border border-good bg-good-surface px-4 py-2 text-sm font-medium text-good-strong hover:bg-good-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
           >
             Confirm and advance
           </button>
           <button
             type="button"
             onClick={() => setReviewing(false)}
-            className="rounded border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+            className="rounded border border-edge px-4 py-2 text-sm text-ink hover:bg-sunk"
           >
             Back to the desk
           </button>
@@ -341,15 +341,15 @@ export function PolicyDeskPanel({
 
   return (
     <section aria-labelledby="desk-heading">
-      <h2 id="desk-heading" className="text-lg font-semibold text-neutral-50">
+      <h2 id="desk-heading" className="text-lg font-semibold text-ink">
         Policy Desk
       </h2>
-      <p className="mt-1 text-sm text-neutral-400">{instrument.description}</p>
+      <p className="mt-1 text-sm text-ink-soft">{instrument.description}</p>
 
       {validation !== null && validation.rejections.length > 0 && (
         <div
           role="alert"
-          className="mt-4 rounded border border-red-800 bg-red-950/50 p-3 text-sm text-red-200"
+          className="mt-4 rounded border border-bad bg-bad-surface p-3 text-sm text-bad-strong"
         >
           <p className="font-medium">The package was rejected.</p>
           <ul className="mt-1 list-disc pl-5">
@@ -363,7 +363,7 @@ export function PolicyDeskPanel({
       )}
 
       <fieldset className="mt-4">
-        <legend className="text-sm font-medium text-neutral-200">
+        <legend className="text-sm font-medium text-ink">
           {instrument.label[institution]} — currently {currentRate.toFixed(2)} %
         </legend>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -375,10 +375,10 @@ export function PolicyDeskPanel({
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setMove(option)}
-                className={`rounded border px-3 py-2 text-sm tabular-nums focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 ${
+                className={`rounded border px-3 py-2 text-sm tabular-nums ${
                   selected
-                    ? 'border-neutral-300 bg-neutral-200 font-semibold text-neutral-900'
-                    : 'border-neutral-700 text-neutral-200 hover:bg-neutral-800'
+                    ? 'border-edge-accent bg-accent font-semibold text-on-accent'
+                    : 'border-edge text-ink hover:bg-sunk'
                 }`}
               >
                 {formatMove(option)}
@@ -386,7 +386,7 @@ export function PolicyDeskPanel({
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-ink-faint">
           Moves in steps of {range.increment} bp, from {range.min} to {range.max} bp.
           The rate cannot be set below the {floor.toFixed(2)} % effective lower bound.
         </p>
@@ -428,44 +428,44 @@ export function PolicyDeskPanel({
         onTone={setChosenTone}
       />
 
-      <dl className="mt-5 divide-y divide-neutral-800 border-y border-neutral-800 text-sm">
+      <dl className="mt-5 divide-y divide-edge border-y border-edge text-sm">
         <div className="flex justify-between gap-4 py-2">
-          <dt className="text-neutral-400">Resulting policy rate</dt>
-          <dd className="tabular-nums text-neutral-50">{resultingRate.toFixed(2)} %</dd>
+          <dt className="text-ink-soft">Resulting policy rate</dt>
+          <dd className="tabular-nums text-ink">{resultingRate.toFixed(2)} %</dd>
         </div>
         <div className="flex justify-between gap-4 py-2">
-          <dt className="text-neutral-400">Transmission channels</dt>
-          <dd className="text-right text-neutral-200">
+          <dt className="text-ink-soft">Transmission channels</dt>
+          <dd className="text-right text-ink">
             {instrument.channels.map((channel) => CHANNEL_LABEL[channel] ?? channel).join(', ')}
           </dd>
         </div>
         <div className="flex justify-between gap-4 py-2">
-          <dt className="text-neutral-400">Expected lag</dt>
-          <dd className="text-right text-neutral-200">
+          <dt className="text-ink-soft">Expected lag</dt>
+          <dd className="text-right text-ink">
             peaks around {formatMeetings(lag.peakMeetings)}, mostly delivered within{' '}
             {formatMeetings(lag.spanMeetings)}
           </dd>
         </div>
         <div className="flex justify-between gap-4 py-2">
-          <dt className="text-neutral-400">Priced in?</dt>
-          <dd className="max-w-md text-right text-neutral-200">
+          <dt className="text-ink-soft">Priced in?</dt>
+          <dd className="max-w-md text-right text-ink">
             {pricedInSummary(move, pricedGap)}
           </dd>
         </div>
       </dl>
 
       {showsHints && (
-        <div className="mt-4 rounded border border-neutral-800 bg-neutral-900 p-3">
-          <h3 className="text-sm font-medium text-neutral-200">Estimated effect</h3>
-          <p className="mt-1 text-sm text-neutral-400">{rateEffectHint(move)}</p>
-          <p className="mt-2 text-xs text-neutral-500">
+        <div className="mt-4 rounded border border-edge bg-sunk p-3">
+          <h3 className="text-sm font-medium text-ink">Estimated effect</h3>
+          <p className="mt-1 text-sm text-ink-soft">{rateEffectHint(move)}</p>
+          <p className="mt-2 text-xs text-ink-faint">
             An estimate of direction, not a promise of magnitude. The economy is
             simultaneously being moved by forces this desk does not control.
           </p>
         </div>
       )}
 
-      <p className="mt-4 text-xs text-neutral-500">
+      <p className="mt-4 text-xs text-ink-faint">
         Risks both ways: too little tightening lets inflation and expectations drift,
         while too much cools employment and can strain the financial system. The
         institution&rsquo;s standing depends on getting that balance right over the
@@ -475,12 +475,12 @@ export function PolicyDeskPanel({
       <button
         type="button"
         onClick={() => setReviewing(true)}
-        className="mt-5 rounded border border-neutral-300 bg-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+        className="mt-5 rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
       >
         Review policy package
       </button>
 
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-ink-faint">
         {getInstitution(institution).name} mandate — simplified fictional simulation,
         not an official product of any central bank.
       </p>

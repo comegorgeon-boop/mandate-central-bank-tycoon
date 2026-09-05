@@ -66,22 +66,22 @@ export function InstrumentStepper({
   const changed = Math.abs(value - standing) > 1e-9
 
   return (
-    <div className="border-b border-neutral-800 py-3 last:border-b-0">
+    <div className="border-b border-edge py-3 last:border-b-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="font-medium text-neutral-100">{label}</span>
+        <span className="font-medium text-ink">{label}</span>
         <span className="flex items-center gap-2">
           <button
             type="button"
             aria-label={`Lower ${label}`}
             disabled={value <= range.min + 1e-9}
             onClick={() => onChange(clamp(value - range.increment))}
-            className="h-8 w-8 rounded border border-neutral-700 text-neutral-200 hover:bg-neutral-800 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+            className="h-8 w-8 rounded border border-edge text-ink hover:bg-sunk disabled:opacity-30"
           >
             −
           </button>
           <output
             aria-label={`${label}, currently selected`}
-            className="min-w-32 text-center tabular-nums text-neutral-50"
+            className="min-w-32 text-center tabular-nums text-ink"
           >
             {formatMagnitude(value, instrument.unit)}
           </output>
@@ -90,18 +90,18 @@ export function InstrumentStepper({
             aria-label={`Raise ${label}`}
             disabled={value >= range.max - 1e-9}
             onClick={() => onChange(clamp(value + range.increment))}
-            className="h-8 w-8 rounded border border-neutral-700 text-neutral-200 hover:bg-neutral-800 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+            className="h-8 w-8 rounded border border-edge text-ink hover:bg-sunk disabled:opacity-30"
           >
             +
           </button>
         </span>
       </div>
 
-      <p className="mt-1 text-sm text-neutral-400">{instrument.description}</p>
+      <p className="mt-1 text-sm text-ink-soft">{instrument.description}</p>
 
-      <p className="mt-1 text-xs text-neutral-500">
+      <p className="mt-1 text-xs text-ink-faint">
         {changed ? (
-          <span className="text-amber-300">
+          <span className="text-accent-strong">
             Changing from {formatMagnitude(standing, instrument.unit)}.
           </span>
         ) : (

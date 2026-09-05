@@ -12,11 +12,13 @@ import { ChangesPanel } from './panels/ChangesPanel.tsx'
 import { DiagnosisPanel } from './panels/DiagnosisPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MajorEventPanel } from './panels/MajorEventPanel.tsx'
+import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
 import { PricesPanel } from './panels/PricesPanel.tsx'
 import { regimeObjective } from './objective.ts'
 import { registerFor } from './register.ts'
+import { SettingsPanel } from '../settings/SettingsPanel.tsx'
 
 /**
  * One policy meeting.
@@ -35,10 +37,15 @@ import { registerFor } from './register.ts'
  * it never reaches this component.
  */
 
-type PanelId = 'brief' | 'prices' | 'labor' | 'desk'
+type PanelId = 'brief' | 'markets' | 'prices' | 'labor' | 'desk'
 
+// Markets sits second, right after the brief and ahead of the statistics, on
+// purpose: it is the only panel whose numbers describe *now* rather than a
+// reference period already past, so it is where a player should look first and
+// where a decision shows up first.
 const TABS: readonly { readonly id: PanelId; readonly label: string }[] = [
   { id: 'brief', label: 'Meeting Brief' },
+  { id: 'markets', label: 'Markets' },
   { id: 'prices', label: 'Prices' },
   { id: 'labor', label: 'Labor' },
   { id: 'desk', label: 'Policy Desk' },
@@ -72,17 +79,21 @@ export function MeetingScreen({
   )
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 text-neutral-200">
-      <header className="border-b border-neutral-800 pb-4">
-        <p className="text-xs uppercase tracking-wide text-neutral-500">
-          {institution.name} · {config.difficulty} · seed {config.seed}
-        </p>
-        <h1 className="mt-1 text-xl font-semibold text-neutral-50">
-          Meeting {meetingNumber} of {config.meetingCount}
-        </h1>
-        <p className="mt-1 text-sm text-neutral-400">
-          Objective: {institution.inflationTarget.toFixed(1)} % inflation.
-        </p>
+    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 text-onwood">
+      {/* The brass rule under the header is the room's one piece of hardware:
+          it marks where the institution ends and the meeting begins. */}
+      <header className="border-b-2 border-edge-accent pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
+              {institution.name} · {config.difficulty} · seed {config.seed}
+            </p>
+            <h1 className="mt-1 font-display text-2xl font-semibold text-onwood">
+              Meeting {meetingNumber} of {config.meetingCount}
+            </h1>
+          </div>
+          <SettingsPanel className="w-full sm:w-72" />
+        </div>
       </header>
 
       {showReaction && session.previousObservation !== null && session.onTheDay !== null ? (
@@ -99,9 +110,9 @@ export function MeetingScreen({
           {severeWarnings.length > 0 && (
             <div
               role="alert"
-              className="mt-4 rounded border border-amber-700 bg-amber-950/40 p-3 text-sm text-amber-200"
+              className="mt-4 rounded-lg border-l-4 border-bad bg-bad-surface p-3 text-sm text-bad-strong shadow-panel"
             >
-              <p className="font-medium">Mandate at risk</p>
+              <p className="font-display text-base font-semibold">Mandate at risk</p>
               <ul className="mt-1 list-disc pl-5">
                 {severeWarnings.map((warning) => (
                   <li key={warning.id}>{warning.message}</li>
@@ -134,7 +145,7 @@ export function MeetingScreen({
           <div
             role="tablist"
             aria-label="Meeting panels"
-            className="mt-5 flex flex-wrap gap-2"
+            className="mt-6 flex flex-wrap gap-1"
           >
             {TABS.map((tab) => {
               const selected = tab.id === panel
@@ -147,10 +158,17 @@ export function MeetingScreen({
                   aria-selected={selected}
                   aria-controls={`panel-${tab.id}`}
                   onClick={() => setPanel(tab.id)}
-                  className={`rounded border px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 ${
+                  // The selected tab is a sheet of paper pulled forward out of
+                  // the stack; the rest are still in the room.
+                  // Not animated, deliberately. A tab moving between paper and
+                  // walnut is a discrete change of state, and interpolating it
+                  // puts dark ink on a still-dark ground for the length of the
+                  // transition — measured at 1.11:1 on every tab change, which
+                  // is worse than anything this redesign set out to fix.
+                  className={`-mb-px rounded-t-md border border-b-0 px-3 py-2 text-sm ${
                     selected
-                      ? 'border-neutral-300 bg-neutral-200 font-semibold text-neutral-900'
-                      : 'border-neutral-700 text-neutral-200 hover:bg-neutral-800'
+                      ? 'border-edge bg-panel font-semibold text-ink'
+                      : 'border-edge-room bg-room text-onwood-soft hover:bg-inset hover:text-onwood'
                   }`}
                 >
                   {tab.label}
@@ -164,7 +182,7 @@ export function MeetingScreen({
             id={`panel-${panel}`}
             aria-labelledby={`tab-${panel}`}
             tabIndex={-1}
-            className="mt-5"
+            className="rounded-lg rounded-tl-none border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
           >
             {panel === 'brief' && (
               <div className="space-y-5">
@@ -177,6 +195,12 @@ export function MeetingScreen({
                   institution={config.institution}
                 />
               </div>
+            )}
+            {panel === 'markets' && (
+              <MarketsPanel
+                observation={session.observation}
+                previousObservation={session.previousObservation}
+              />
             )}
             {panel === 'prices' && (
               <PricesPanel
@@ -197,7 +221,7 @@ export function MeetingScreen({
             <button
               type="button"
               onClick={() => setPanel('desk')}
-              className="mt-6 rounded border border-neutral-300 bg-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+              className="mt-6 rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
             >
               Go to the Policy Desk
             </button>

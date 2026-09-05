@@ -4,7 +4,7 @@ import { BANKING, EXCHANGE, SPREADS, VOLATILITY } from '../config/model.ts'
 import { STRESS_PENALTY_FLOOR } from '../config/scoring.ts'
 import { THRESHOLDS } from '../config/thresholds.ts'
 import { INSTITUTIONS } from '../config/institutions.ts'
-import { SERIES } from './series.ts'
+import { EQUITY_BASE, SERIES } from './series.ts'
 
 /**
  * Indicator copy must not become a second source of truth.
@@ -42,6 +42,10 @@ function knownValues(): Set<number> {
   add(EXCHANGE.foreignRealRate)
   add(SPREADS.base)
   add(STRESS_PENALTY_FLOOR)
+  // The equity index's own rebasing constant. It lives in `series.ts` beside
+  // the series that uses it rather than in `config/`, because it is a property
+  // of how that indicator is *published* and not of the economy.
+  add(EQUITY_BASE)
 
   for (const family of Object.values(THRESHOLDS)) {
     for (const value of Object.values(family)) {

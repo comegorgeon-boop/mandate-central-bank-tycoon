@@ -64,7 +64,7 @@ export function TrendChart({
 
   if (points.length < 2) {
     return (
-      <p className="mt-2 text-xs text-neutral-600">
+      <p className="mt-2 text-xs text-ink-faint">
         Not enough published readings yet to show a trend.
       </p>
     )
@@ -106,7 +106,7 @@ export function TrendChart({
         preserveAspectRatio="none"
         role="img"
         aria-label={describe(label, values, decimals)}
-        className="h-16 w-full text-neutral-300"
+        className="h-16 w-full text-ink-soft"
       >
         {reference !== null && (
           <line
@@ -117,7 +117,7 @@ export function TrendChart({
             stroke="currentColor"
             strokeWidth="1"
             strokeDasharray="3 3"
-            className="text-neutral-600"
+            className="text-ink-faint"
           />
         )}
         {segments.map((segment) => (
@@ -135,7 +135,7 @@ export function TrendChart({
         <circle cx={x(latest.index)} cy={y(latest.value)} r="2.5" fill="currentColor" />
       </svg>
 
-      <figcaption className="mt-1 flex justify-between text-xs text-neutral-500">
+      <figcaption className="mt-1 flex justify-between text-xs text-ink-faint">
         <span className="tabular-nums">
           low {min.toFixed(decimals)} · high {max.toFixed(decimals)}
         </span>

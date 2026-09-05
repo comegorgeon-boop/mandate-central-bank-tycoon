@@ -53,10 +53,10 @@ function marketMood(observation: ObservationSet): MarketMood {
  */
 
 const selectedClasses =
-  'border-neutral-300 bg-neutral-200 font-semibold text-neutral-900'
-const unselectedClasses = 'border-neutral-700 text-neutral-200 hover:bg-neutral-800'
+  'border-edge-accent bg-accent font-semibold text-on-accent'
+const unselectedClasses = 'border-edge text-ink hover:bg-sunk'
 const buttonBase =
-  'rounded border px-3 py-2 text-sm text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400'
+  'rounded border px-3 py-2 text-sm text-left'
 
 function isBinding(commitment: CommunicationCommitment): boolean {
   return commitment === 'conditional_path' || commitment === 'strong_commitment'
@@ -80,7 +80,7 @@ function StandingGuidance({
 
   if (!isBinding(guidance.commitment)) {
     return (
-      <p className="mt-3 rounded border border-neutral-800 bg-neutral-900 p-3 text-sm text-neutral-400">
+      <p className="mt-3 rounded border border-edge bg-sunk p-3 text-sm text-ink-soft">
         Standing leaning: toward about {path.toFixed(2)} %. It binds nothing and
         lapses on its own.
       </p>
@@ -88,14 +88,14 @@ function StandingGuidance({
   }
 
   return (
-    <div className="mt-3 rounded border border-sky-900 bg-sky-950/40 p-3 text-sm text-sky-200">
+    <div className="mt-3 rounded border border-edge-accent bg-sunk p-3 text-sm text-accent-strong">
       <p className="font-medium">
         Standing commitment: about {path.toFixed(2)} % — judged around meeting{' '}
         {dueMeeting}
         {meetingsLeft > 0 ? `, ${meetingsLeft} meeting${meetingsLeft === 1 ? '' : 's'} from now` : ' — due now'}
         .
       </p>
-      <p className="mt-1 text-sky-300/90">
+      <p className="mt-1 text-accent-strong">
         {Math.abs(gapBp) <= 50
           ? 'The rate is already close enough to count as delivered.'
           : `${Math.abs(gapBp)} bp still to deliver.`}{' '}
@@ -151,10 +151,10 @@ export function CommunicationPanel({
 
   return (
     <section aria-labelledby="communication-heading" className="mt-6">
-      <h3 id="communication-heading" className="text-sm font-medium text-neutral-200">
+      <h3 id="communication-heading" className="text-sm font-medium text-ink">
         The statement
       </h3>
-      <p className="mt-1 text-sm text-neutral-400">
+      <p className="mt-1 text-sm text-ink-soft">
         What you say acts on expectations directly, ahead of anything the rate
         itself will do. Markets reprice it the moment it is published — against
         what they already expected, not against zero.
@@ -167,8 +167,8 @@ export function CommunicationPanel({
           <p
             className={`mt-3 rounded border p-3 text-sm ${
               mood === 'panicked'
-                ? 'border-rose-800 bg-rose-950/40 text-rose-200'
-                : 'border-amber-800 bg-amber-950/30 text-amber-200'
+                ? 'border-bad bg-bad-surface text-bad-strong'
+                : 'border-accent bg-accent-surface text-accent-strong'
             }`}
           >
             {MOOD_COPY[mood]}
@@ -183,7 +183,7 @@ export function CommunicationPanel({
       />
 
       <fieldset className="mt-4">
-        <legend className="text-sm font-medium text-neutral-200">
+        <legend className="text-sm font-medium text-ink">
           Where is the rate heading from here?
         </legend>
         <div className="mt-2 flex flex-col gap-2">
@@ -199,7 +199,10 @@ export function CommunicationPanel({
               >
                 {option.label}
                 <span
-                  className={`ml-2 text-xs tabular-nums ${selected ? 'text-neutral-600' : 'text-neutral-500'}`}
+                  // The footnote sits *inside* the button, so when the button
+                  // is selected its ground is brass and the text has to be ink
+                  // on brass, not ink on paper.
+                  className={`ml-2 text-xs tabular-nums ${selected ? 'text-on-accent opacity-80' : 'text-ink-faint'}`}
                 >
                   {option.signal === 0
                     ? 'hold near today’s level'
@@ -209,7 +212,7 @@ export function CommunicationPanel({
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-ink-faint">
           Announced path: about {announcedRate.toFixed(2)} % a year from now
           {pricedRate !== null
             ? ` — markets currently price ${pricedRate.toFixed(2)} %. What moves them is the difference.`
@@ -218,7 +221,7 @@ export function CommunicationPanel({
       </fieldset>
 
       <fieldset className="mt-4">
-        <legend className="text-sm font-medium text-neutral-200">How firmly?</legend>
+        <legend className="text-sm font-medium text-ink">How firmly?</legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {options.map((option) => {
             const selected = option.commitment === commitment
@@ -236,18 +239,18 @@ export function CommunicationPanel({
           })}
         </div>
         {selectedCommitment !== undefined && (
-          <p className="mt-2 text-xs text-neutral-500">{selectedCommitment.detail}</p>
+          <p className="mt-2 text-xs text-ink-faint">{selectedCommitment.detail}</p>
         )}
       </fieldset>
 
       {allowsFreeTone && (
         <fieldset className="mt-4">
-          <legend className="text-sm font-medium text-neutral-200">
+          <legend className="text-sm font-medium text-ink">
             In what tone?
           </legend>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-xs text-ink-faint">
             The decision above implies a{' '}
-            <span className="text-neutral-300">{derivedTone}</span> statement.
+            <span className="text-ink-soft">{derivedTone}</span> statement.
             Departing from it is allowed here, and markets charge for a package
             that argues with itself.
           </p>
@@ -276,18 +279,18 @@ export function CommunicationPanel({
             })}
           </div>
           {chosenTone !== null && (
-            <p className="mt-2 text-xs text-neutral-500">
+            <p className="mt-2 text-xs text-ink-faint">
               {TONE_OPTIONS.find((option) => option.tone === chosenTone)?.detail}
             </p>
           )}
         </fieldset>
       )}
 
-      <div className="mt-4 rounded border border-neutral-800 bg-neutral-900 p-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+      <div className="mt-4 rounded border border-edge bg-sunk p-3">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
           As the wire will carry it
         </h4>
-        <p className="mt-1 text-sm italic text-neutral-300">
+        <p className="mt-1 text-sm italic text-ink-soft">
           {buildStatement(move, signal, commitment)}
         </p>
       </div>

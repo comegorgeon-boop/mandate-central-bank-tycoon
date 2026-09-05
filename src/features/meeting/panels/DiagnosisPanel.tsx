@@ -22,27 +22,27 @@ export function DiagnosisPanel({ diagnosis }: { readonly diagnosis: ShockDiagnos
   return (
     <section
       aria-labelledby="diagnosis-heading"
-      className="rounded border border-sky-900 bg-sky-950/30 p-4"
+      className="rounded border border-edge-accent bg-sunk p-4"
     >
-      <p className="text-xs uppercase tracking-wide text-sky-400">
+      <p className="text-xs uppercase tracking-wide text-accent-strong">
         {named ? 'Learning mandate — analysis' : 'What the data are showing'}
       </p>
-      <h3 id="diagnosis-heading" className="mt-1 text-lg font-semibold text-sky-100">
+      <h3 id="diagnosis-heading" className="mt-1 text-lg font-semibold text-accent-strong">
         {named ? diagnosis.label : 'Read the tells yourself'}
       </h3>
       {diagnosis.summary !== null && (
-        <p className="mt-1 text-sm text-neutral-300">{diagnosis.summary}</p>
+        <p className="mt-1 text-sm text-ink-soft">{diagnosis.summary}</p>
       )}
 
-      <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+      <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-soft">
         {named
           ? 'How you could tell, from the published data'
           : 'What stands out in the published data'}
       </h4>
       <ul className="mt-2 space-y-2">
         {diagnosis.evidence.map((item) => (
-          <li key={item} className="flex gap-2 text-sm text-neutral-300">
-            <span aria-hidden="true" className="text-sky-500">
+          <li key={item} className="flex gap-2 text-sm text-ink-soft">
+            <span aria-hidden="true" className="text-accent-strong">
               ·
             </span>
             <span>{item}</span>
@@ -50,7 +50,7 @@ export function DiagnosisPanel({ diagnosis }: { readonly diagnosis: ShockDiagnos
         ))}
       </ul>
 
-      <p className="mt-4 text-xs text-neutral-500">
+      <p className="mt-4 text-xs text-ink-faint">
         {named
           ? 'The name comes free at this difficulty. The evidence above is what stays ' +
             'on the table when it stops coming free — learn to read that, not the label.'

@@ -38,13 +38,13 @@ export function IndicatorPanel({
 
   return (
     <section aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`} className="text-lg font-semibold text-neutral-50">
+      <h2 id={`${id}-heading`} className="text-lg font-semibold text-ink">
         {title}
       </h2>
-      <p className="mt-1 text-sm text-neutral-400">{intro}</p>
+      <p className="mt-1 text-sm text-ink-soft">{intro}</p>
 
       {rows.length === 0 ? (
-        <p className="mt-4 text-sm text-neutral-400">
+        <p className="mt-4 text-sm text-ink-soft">
           No releases are available for this panel at this meeting.
         </p>
       ) : (
@@ -62,7 +62,7 @@ export function IndicatorPanel({
       )}
 
       {footnote !== undefined && (
-        <p className="mt-4 text-xs text-neutral-600">{footnote}</p>
+        <p className="mt-4 text-xs text-ink-faint">{footnote}</p>
       )}
     </section>
   )

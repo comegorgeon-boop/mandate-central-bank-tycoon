@@ -56,14 +56,14 @@ export default function ResultPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8 text-neutral-200">
-      <p className="text-xs uppercase tracking-wide text-neutral-500">
+    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8 text-onwood">
+      <p className="text-xs uppercase tracking-wide text-onwood-faint">
         {institution.name} · {config.difficulty} · seed {config.seed}
       </p>
-      <h1 className="mt-1 text-2xl font-semibold text-neutral-50">
+      <h1 className="mt-1 text-2xl font-semibold text-onwood">
         {outcome.label ?? 'Mandate ended'}
       </h1>
-      <p className="mt-1 text-sm text-neutral-400">
+      <p className="mt-1 text-sm text-onwood-soft">
         {meetingsServed} of {config.meetingCount} scheduled meetings served.
       </p>
 
@@ -73,44 +73,44 @@ export default function ResultPage() {
         </h2>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
             What happened
           </h3>
           {report.whatHappened.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
               {paragraph}
             </p>
           ))}
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-emerald-400">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-good-onwood">
             What went well
           </h3>
           {report.whatWentWell.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
               {paragraph}
             </p>
           ))}
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-400">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-accent-onwood">
             What went wrong
           </h3>
           {report.whatWentWrong.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
               {paragraph}
             </p>
           ))}
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
             Why this score
           </h3>
           {report.whyThisScore.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-neutral-200">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
               {paragraph}
             </p>
           ))}
@@ -118,12 +118,12 @@ export default function ResultPage() {
       </section>
 
       <section className="mt-10" aria-labelledby="score-heading">
-        <h2 id="score-heading" className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+        <h2 id="score-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           Scorecard
         </h2>
-        <p className="mt-2 text-4xl font-semibold tabular-nums text-neutral-50">
+        <p className="mt-2 text-4xl font-semibold tabular-nums text-onwood">
           {score.score.toLocaleString('en-US')}
-          <span className="ml-2 text-base font-normal text-neutral-500">
+          <span className="ml-2 text-base font-normal text-onwood-faint">
             / {MAX_SCORE.toLocaleString('en-US')}
           </span>
         </p>
@@ -131,7 +131,7 @@ export default function ResultPage() {
         <table className="mt-4 w-full border-collapse text-left text-sm">
           <caption className="sr-only">Score components</caption>
           <thead>
-            <tr className="border-b border-neutral-700 text-xs uppercase tracking-wide text-neutral-500">
+            <tr className="border-b border-edge-room text-xs uppercase tracking-wide text-onwood-faint">
               <th scope="col" className="py-2 pr-2 font-medium">Component</th>
               <th scope="col" className="py-2 pr-2 text-right font-medium">Result</th>
               <th scope="col" className="py-2 text-right font-medium">Weight</th>
@@ -139,17 +139,17 @@ export default function ResultPage() {
           </thead>
           <tbody>
             {score.components.map((component) => (
-              <tr key={component.id} className="border-b border-neutral-800 align-top">
-                <th scope="row" className="py-2 pr-2 font-medium text-neutral-100">
+              <tr key={component.id} className="border-b border-edge-room align-top">
+                <th scope="row" className="py-2 pr-2 font-medium text-onwood">
                   {component.label}
-                  <span className="block text-xs font-normal text-neutral-500">
+                  <span className="block text-xs font-normal text-onwood-faint">
                     {component.explanation}
                   </span>
                 </th>
-                <td className="py-2 pr-2 text-right tabular-nums text-neutral-200">
+                <td className="py-2 pr-2 text-right tabular-nums text-onwood">
                   {Math.round(component.raw * 100)} %
                 </td>
-                <td className="py-2 text-right tabular-nums text-neutral-400">
+                <td className="py-2 text-right tabular-nums text-onwood-soft">
                   {Math.round(component.weight * 100)} %
                 </td>
               </tr>
@@ -157,7 +157,7 @@ export default function ResultPage() {
           </tbody>
         </table>
 
-        <p className="mt-3 text-xs text-neutral-500">
+        <p className="mt-3 text-xs text-onwood-faint">
           Weighted total {Math.round(score.weightedTotal * 100)} %, difficulty
           multiplier ×{score.difficultyMultiplier.toFixed(2)}
           {score.priceStabilityGate < 1 &&
@@ -170,22 +170,22 @@ export default function ResultPage() {
 
       {outcome.causalChain.length > 0 && (
         <section className="mt-8" aria-labelledby="cause-heading">
-          <h2 id="cause-heading" className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+          <h2 id="cause-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
             How it ended
           </h2>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-onwood-soft">
             Several factors contributed, in this order of weight.
           </p>
           <ol className="mt-3 space-y-2">
             {outcome.causalChain.map((factor) => (
-              <li key={factor.label} className="border-l-2 border-neutral-800 pl-3">
-                <p className="text-sm font-medium text-neutral-100">
+              <li key={factor.label} className="border-l-2 border-edge-room pl-3">
+                <p className="text-sm font-medium text-onwood">
                   {factor.label}
-                  <span className="ml-2 font-normal tabular-nums text-neutral-500">
+                  <span className="ml-2 font-normal tabular-nums text-onwood-faint">
                     {Math.round(factor.contribution * 100)} %
                   </span>
                 </p>
-                <p className="text-sm text-neutral-400">{factor.detail}</p>
+                <p className="text-sm text-onwood-soft">{factor.detail}</p>
               </li>
             ))}
           </ol>
@@ -193,10 +193,10 @@ export default function ResultPage() {
       )}
 
       <section className="mt-8" aria-labelledby="charts-heading">
-        <h2 id="charts-heading" className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+        <h2 id="charts-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           The mandate in four charts
         </h2>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-onwood-soft">
           The true path of the economy, one point per meeting. During the run you saw
           only the published version of this: later, noisier and revised.
         </p>
@@ -206,7 +206,7 @@ export default function ResultPage() {
           unit="% per year"
           reference={{ label: 'objective', value: institution.inflationTarget }}
           series={[
-            line('Headline', (i) => history[i].latent.inflationHeadline, 'stroke-neutral-100'),
+            line('Headline', (i) => history[i].latent.inflationHeadline, 'stroke-ink'),
             line('Core', (i) => history[i].latent.inflationCore, 'stroke-sky-400', '5 3'),
           ]}
         />
@@ -215,7 +215,7 @@ export default function ResultPage() {
           title="Unemployment"
           unit="%"
           series={[
-            line('Unemployment', (i) => history[i].latent.unemployment, 'stroke-neutral-100'),
+            line('Unemployment', (i) => history[i].latent.unemployment, 'stroke-ink'),
             line(
               'Sustainable rate',
               (i) => history[i].latent.naturalUnemployment,
@@ -229,7 +229,7 @@ export default function ResultPage() {
           title="Policy rate"
           unit="%"
           series={[
-            line('Policy rate', (i) => history[i].latent.policyRate, 'stroke-neutral-100'),
+            line('Policy rate', (i) => history[i].latent.policyRate, 'stroke-ink'),
           ]}
         />
 
@@ -238,7 +238,7 @@ export default function ResultPage() {
           unit="% of potential"
           reference={{ label: 'potential', value: 0 }}
           series={[
-            line('Output gap', (i) => history[i].latent.outputGap, 'stroke-neutral-100'),
+            line('Output gap', (i) => history[i].latent.outputGap, 'stroke-ink'),
           ]}
         />
       </section>
@@ -247,25 +247,25 @@ export default function ResultPage() {
         <button
           type="button"
           onClick={replaySameSeed}
-          className="rounded border border-neutral-300 bg-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          className="rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
         >
           Replay the same seed
         </button>
         <Link
           to="/play/setup"
-          className="rounded border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          className="rounded border border-edge-room px-4 py-2 text-sm text-onwood hover:bg-inset"
         >
           New economy
         </Link>
         <Link
           to="/"
-          className="rounded border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          className="rounded border border-edge-room px-4 py-2 text-sm text-onwood hover:bg-inset"
         >
           Home
         </Link>
       </div>
 
-      <p className="mt-8 text-xs text-neutral-600">
+      <p className="mt-8 text-xs text-onwood-faint">
         This build keeps no local records, so this report is not stored anywhere and
         is lost when you leave the page.
       </p>

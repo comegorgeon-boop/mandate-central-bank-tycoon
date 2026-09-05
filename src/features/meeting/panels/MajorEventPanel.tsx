@@ -34,32 +34,37 @@ export function MajorEventPanel({
       </h2>
 
       {majorEvent !== null && (
-        <div className="rounded border border-rose-800 bg-rose-950/40 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-rose-400">
+        // A wire report on the table: a light surface, so ink — never the
+        // room's own light-on-dark text, which is how this paragraph became
+        // invisible the moment the panel stopped being dark.
+        <div className="rounded-lg border-l-4 border-bad bg-bad-surface p-4 shadow-panel">
+          <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-bad">
             Breaking · fictional wire report
           </p>
-          <h3 className="mt-1 text-lg font-semibold text-rose-100">{majorEvent.title}</h3>
-          <p className="mt-1 text-sm text-neutral-200">{majorEvent.newswire}</p>
+          <h3 className="mt-1 font-display text-xl font-semibold text-bad-strong">
+            {majorEvent.title}
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-ink">{majorEvent.newswire}</p>
         </div>
       )}
 
       {dispatches.map(({ record, definition, lines, concluded }) => (
         <div
           key={record.eventId}
-          className="rounded border border-neutral-700 bg-neutral-900/60 p-4"
+          className="rounded-lg border-l-4 border-edge-accent bg-room p-4"
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-onwood-soft">
             {concluded ? 'Developing story · concluded' : 'Developing story'}
           </p>
-          <h3 className="mt-1 text-sm font-semibold text-neutral-100">
+          <h3 className="mt-1 text-sm font-semibold text-onwood">
             {definition.title}
-            <span className="ml-2 font-normal text-neutral-500">
+            <span className="ml-2 font-normal text-onwood-faint">
               since meeting {record.meetingIndex + 1}
             </span>
           </h3>
           <ul className="mt-2 space-y-1.5">
             {lines.map((line) => (
-              <li key={line} className="text-sm text-neutral-300">
+              <li key={line} className="text-sm text-onwood-soft">
                 {line}
               </li>
             ))}

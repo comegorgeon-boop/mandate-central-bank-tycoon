@@ -37,12 +37,12 @@ export function CommitteeSplitPanel({
   return (
     <section
       aria-labelledby="committee-heading"
-      className="mt-5 rounded border border-neutral-800 bg-neutral-900 p-4"
+      className="mt-5 rounded border border-edge bg-sunk p-4"
     >
-      <p className="text-xs uppercase tracking-wide text-neutral-500">
+      <p className="text-xs uppercase tracking-wide text-ink-faint">
         Around the table
       </p>
-      <h3 id="committee-heading" className="mt-1 text-base font-semibold text-neutral-100">
+      <h3 id="committee-heading" className="mt-1 text-base font-semibold text-ink">
         {agreed
           ? 'The committee is of one mind this meeting.'
           : 'The committee is divided.'}
@@ -54,26 +54,26 @@ export function CommitteeSplitPanel({
           return (
             <li
               key={view.voice}
-              className="border-l-2 border-neutral-700 pl-3"
+              className="border-l-2 border-edge pl-3"
             >
               <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                <span className="font-medium text-neutral-100">{view.voice}</span>
-                <span className="tabular-nums text-neutral-50">
+                <span className="font-medium text-ink">{view.voice}</span>
+                <span className="tabular-nums text-ink">
                   {moveText(view.basisPoints)}
                 </span>
                 {matches && (
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-ink-faint">
                     — what you have selected
                   </span>
                 )}
               </p>
-              <p className="mt-1 text-sm text-neutral-400">{view.reasoning}</p>
+              <p className="mt-1 text-sm text-ink-soft">{view.reasoning}</p>
             </li>
           )
         })}
       </ul>
 
-      <p className="mt-3 text-xs text-neutral-500">
+      <p className="mt-3 text-xs text-ink-faint">
         {agreed
           ? 'They differ in how heavily they weight the inflation miss against ' +
             'everything else, and on this data that difference does not change the ' +

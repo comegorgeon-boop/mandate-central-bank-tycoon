@@ -26,9 +26,9 @@ const LABEL_TEXT: Readonly<Record<StanceLabel, string>> = {
 }
 
 const LABEL_STYLE: Readonly<Record<StanceLabel, string>> = {
-  restrictive: 'text-sky-300',
-  neutral: 'text-neutral-200',
-  accommodative: 'text-amber-300',
+  restrictive: 'text-accent-strong',
+  neutral: 'text-ink',
+  accommodative: 'text-accent-strong',
 }
 
 export function StancePreview({
@@ -48,27 +48,27 @@ export function StancePreview({
   const crosses = next.label !== current.label
 
   return (
-    <div className="mt-4 rounded border border-neutral-800 bg-neutral-900 p-3">
-      <h3 className="text-sm font-medium text-neutral-200">
+    <div className="mt-4 rounded border border-edge bg-sunk p-3">
+      <h3 className="text-sm font-medium text-ink">
         Where this leaves the stance
       </h3>
 
       <dl className="mt-2 space-y-1 text-sm">
         <div className="flex justify-between gap-4">
-          <dt className="text-neutral-400">Real rate</dt>
-          <dd className="tabular-nums text-neutral-100">
+          <dt className="text-ink-soft">Real rate</dt>
+          <dd className="tabular-nums text-ink">
             {current.realRate === null ? '—' : `${current.realRate.toFixed(2)} %`}
-            <span aria-hidden="true" className="mx-2 text-neutral-600">
+            <span aria-hidden="true" className="mx-2 text-ink-faint">
               →
             </span>
-            <span className="text-neutral-50">{next.realRate.toFixed(2)} %</span>
+            <span className="text-ink">{next.realRate.toFixed(2)} %</span>
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-neutral-400">Stance</dt>
+          <dt className="text-ink-soft">Stance</dt>
           <dd className="text-right">
             <span className={LABEL_STYLE[current.label]}>{LABEL_TEXT[current.label]}</span>
-            <span aria-hidden="true" className="mx-2 text-neutral-600">
+            <span aria-hidden="true" className="mx-2 text-ink-faint">
               →
             </span>
             <span className={`font-medium ${LABEL_STYLE[next.label]}`}>
@@ -78,7 +78,7 @@ export function StancePreview({
         </div>
       </dl>
 
-      <p className="mt-2 text-sm text-neutral-400">
+      <p className="mt-2 text-sm text-ink-soft">
         {crosses
           ? `This move changes the stance: policy would go from ${LABEL_TEXT[current.label]} to ${LABEL_TEXT[next.label]}.`
           : move === 0
@@ -86,7 +86,7 @@ export function StancePreview({
             : `This move is not enough to change the stance: policy stays ${LABEL_TEXT[next.label]}.`}
       </p>
 
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-ink-faint">
         Calculated with expected inflation held at{' '}
         {next.expectedInflation === null
           ? 'its current reading'
