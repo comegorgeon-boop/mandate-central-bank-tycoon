@@ -3,6 +3,8 @@ import { MAX_SCORE, getInstitution } from '../simulation/index.ts'
 import { LineChart, type ChartSeries } from '../components/LineChart.tsx'
 import { useRun } from '../features/game/runContext.ts'
 import { buildMandateReport } from '../features/result/report.ts'
+import { Mascot } from '../components/Mascot.tsx'
+import { closingLine } from '../features/meeting/mascotLine.ts'
 
 /**
  * The post-mandate report.
@@ -271,7 +273,20 @@ export default function ResultPage() {
         </Link>
       </div>
 
-      <p className="mt-8 text-xs text-onwood-faint">
+      <aside className="mt-8 flex items-start gap-3 rounded-lg border border-edge-room bg-room p-4">
+        <Mascot size={92} className="shrink-0" />
+        <p className="text-sm leading-relaxed text-onwood-soft">
+          {closingLine({
+            completed: outcome.status === 'completed',
+            score: score.score,
+            maxScore: MAX_SCORE,
+            conductGate: score.conductGate,
+            supplyRegimeShare: score.supplyRegimeShare,
+          })}
+        </p>
+      </aside>
+
+      <p className="mt-6 text-xs text-onwood-faint">
         This build keeps no local records, so this report is not stored anywhere and
         is lost when you leave the page.
       </p>

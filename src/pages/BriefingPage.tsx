@@ -2,6 +2,8 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { getInstitution, type SeriesId } from '../simulation/index.ts'
 import { useRun } from '../features/game/runContext.ts'
 import { formatMeetings, transmissionLag } from '../features/policy/lag.ts'
+import { Mascot } from '../components/Mascot.tsx'
+import { openingLine } from '../features/meeting/mascotLine.ts'
 
 /**
  * The opening briefing: the mandate, and the economy as it stands before the
@@ -87,6 +89,15 @@ export default function BriefingPage() {
           meeting.
         </p>
       </section>
+
+      {/* The one piece of whimsy in the room, and it carries a point: the
+          tortoise exists because the lag does. See `mascotLine.ts`. */}
+      <aside className="mt-8 flex items-start gap-3 rounded-lg border border-edge-room bg-room p-4">
+        <Mascot size={92} className="shrink-0" />
+        <p className="text-sm leading-relaxed text-onwood-soft">
+          {openingLine(config.difficulty)}
+        </p>
+      </aside>
 
       <button
         type="button"
