@@ -338,7 +338,7 @@ export function PolicyDeskPanel({
           <button
             type="button"
             onClick={confirm}
-            className="rounded border border-good bg-good-surface px-4 py-2 text-sm font-medium text-good-strong hover:bg-good-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+            className="rounded-md border border-good bg-good-surface px-4 py-2 text-sm font-semibold text-good-strong shadow-panel transition-colors hover:bg-panel"
           >
             Confirm and advance
           </button>

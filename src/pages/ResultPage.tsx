@@ -57,60 +57,64 @@ export default function ResultPage() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8 text-onwood">
-      <p className="text-xs uppercase tracking-wide text-onwood-faint">
+      <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
         {institution.name} · {config.difficulty} · seed {config.seed}
       </p>
-      <h1 className="mt-1 text-2xl font-semibold text-onwood">
+      <h1 className="mt-1 font-display text-3xl font-semibold text-onwood">
         {outcome.label ?? 'Mandate ended'}
       </h1>
       <p className="mt-1 text-sm text-onwood-soft">
         {meetingsServed} of {config.meetingCount} scheduled meetings served.
       </p>
 
-      <section className="mt-6 space-y-6" aria-labelledby="report-heading">
+      {/* The postmortem is a document, so it sits on paper like everything
+          else the player reads. The charts inside it draw in ink, which is
+          what made them 1.04:1 while this section was on walnut. */}
+      <div className="mt-6 rounded-lg border border-edge bg-panel p-4 text-ink shadow-panel sm:p-6">
+      <section className="space-y-6" aria-labelledby="report-heading">
         <h2 id="report-heading" className="sr-only">
           The mandate, in full
         </h2>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
             What happened
           </h3>
           {report.whatHappened.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-ink">
               {paragraph}
             </p>
           ))}
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-good-onwood">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-good-strong">
             What went well
           </h3>
           {report.whatWentWell.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-ink">
               {paragraph}
             </p>
           ))}
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-accent-onwood">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-accent-strong">
             What went wrong
           </h3>
           {report.whatWentWrong.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-ink">
               {paragraph}
             </p>
           ))}
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
             Why this score
           </h3>
           {report.whyThisScore.map((paragraph) => (
-            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-onwood">
+            <p key={paragraph} className="mt-2 text-sm leading-relaxed text-ink">
               {paragraph}
             </p>
           ))}
@@ -118,12 +122,12 @@ export default function ResultPage() {
       </section>
 
       <section className="mt-10" aria-labelledby="score-heading">
-        <h2 id="score-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
+        <h2 id="score-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
           Scorecard
         </h2>
-        <p className="mt-2 text-4xl font-semibold tabular-nums text-onwood">
+        <p className="mt-2 text-4xl font-semibold tabular-nums text-ink">
           {score.score.toLocaleString('en-US')}
-          <span className="ml-2 text-base font-normal text-onwood-faint">
+          <span className="ml-2 text-base font-normal text-ink-faint">
             / {MAX_SCORE.toLocaleString('en-US')}
           </span>
         </p>
@@ -131,7 +135,7 @@ export default function ResultPage() {
         <table className="mt-4 w-full border-collapse text-left text-sm">
           <caption className="sr-only">Score components</caption>
           <thead>
-            <tr className="border-b border-edge-room text-xs uppercase tracking-wide text-onwood-faint">
+            <tr className="border-b border-edge text-xs uppercase tracking-wide text-ink-faint">
               <th scope="col" className="py-2 pr-2 font-medium">Component</th>
               <th scope="col" className="py-2 pr-2 text-right font-medium">Result</th>
               <th scope="col" className="py-2 text-right font-medium">Weight</th>
@@ -139,17 +143,17 @@ export default function ResultPage() {
           </thead>
           <tbody>
             {score.components.map((component) => (
-              <tr key={component.id} className="border-b border-edge-room align-top">
-                <th scope="row" className="py-2 pr-2 font-medium text-onwood">
+              <tr key={component.id} className="border-b border-edge align-top">
+                <th scope="row" className="py-2 pr-2 font-medium text-ink">
                   {component.label}
-                  <span className="block text-xs font-normal text-onwood-faint">
+                  <span className="block text-xs font-normal text-ink-faint">
                     {component.explanation}
                   </span>
                 </th>
-                <td className="py-2 pr-2 text-right tabular-nums text-onwood">
+                <td className="py-2 pr-2 text-right tabular-nums text-ink">
                   {Math.round(component.raw * 100)} %
                 </td>
-                <td className="py-2 text-right tabular-nums text-onwood-soft">
+                <td className="py-2 text-right tabular-nums text-ink-soft">
                   {Math.round(component.weight * 100)} %
                 </td>
               </tr>
@@ -157,7 +161,7 @@ export default function ResultPage() {
           </tbody>
         </table>
 
-        <p className="mt-3 text-xs text-onwood-faint">
+        <p className="mt-3 text-xs text-ink-faint">
           Weighted total {Math.round(score.weightedTotal * 100)} %, difficulty
           multiplier ×{score.difficultyMultiplier.toFixed(2)}
           {score.priceStabilityGate < 1 &&
@@ -170,22 +174,22 @@ export default function ResultPage() {
 
       {outcome.causalChain.length > 0 && (
         <section className="mt-8" aria-labelledby="cause-heading">
-          <h2 id="cause-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
+          <h2 id="cause-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
             How it ended
           </h2>
-          <p className="mt-1 text-sm text-onwood-soft">
+          <p className="mt-1 text-sm text-ink-soft">
             Several factors contributed, in this order of weight.
           </p>
           <ol className="mt-3 space-y-2">
             {outcome.causalChain.map((factor) => (
-              <li key={factor.label} className="border-l-2 border-edge-room pl-3">
-                <p className="text-sm font-medium text-onwood">
+              <li key={factor.label} className="border-l-2 border-edge pl-3">
+                <p className="text-sm font-medium text-ink">
                   {factor.label}
-                  <span className="ml-2 font-normal tabular-nums text-onwood-faint">
+                  <span className="ml-2 font-normal tabular-nums text-ink-faint">
                     {Math.round(factor.contribution * 100)} %
                   </span>
                 </p>
-                <p className="text-sm text-onwood-soft">{factor.detail}</p>
+                <p className="text-sm text-ink-soft">{factor.detail}</p>
               </li>
             ))}
           </ol>
@@ -193,10 +197,10 @@ export default function ResultPage() {
       )}
 
       <section className="mt-8" aria-labelledby="charts-heading">
-        <h2 id="charts-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
+        <h2 id="charts-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
           The mandate in four charts
         </h2>
-        <p className="mt-1 text-sm text-onwood-soft">
+        <p className="mt-1 text-sm text-ink-soft">
           The true path of the economy, one point per meeting. During the run you saw
           only the published version of this: later, noisier and revised.
         </p>
@@ -207,7 +211,7 @@ export default function ResultPage() {
           reference={{ label: 'objective', value: institution.inflationTarget }}
           series={[
             line('Headline', (i) => history[i].latent.inflationHeadline, 'stroke-ink'),
-            line('Core', (i) => history[i].latent.inflationCore, 'stroke-sky-400', '5 3'),
+            line('Core', (i) => history[i].latent.inflationCore, 'stroke-good-strong', '5 3'),
           ]}
         />
 
@@ -219,7 +223,7 @@ export default function ResultPage() {
             line(
               'Sustainable rate',
               (i) => history[i].latent.naturalUnemployment,
-              'stroke-amber-400',
+              'stroke-accent-strong',
               '5 3',
             ),
           ]}
@@ -243,7 +247,9 @@ export default function ResultPage() {
         />
       </section>
 
-      <div className="mt-10 flex flex-wrap gap-3">
+      </div>
+
+      <div className="mt-8 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={replaySameSeed}
