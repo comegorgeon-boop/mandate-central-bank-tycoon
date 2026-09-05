@@ -153,9 +153,18 @@ built hard's divided committee, opened the balance sheet and the facilities
 that had been configured since the toolkit was written but never rendered, and
 gave hard the free tone that makes bluffing possible at all.
 
-## 5. A summary tab is missing
+## 5. A summary tab is missing — largely answered
 
 The state of the economy at a glance, what to watch, with charts.
+
+**Answered from two directions rather than one tab.** The Markets panel is the
+glance — every number on it is a price, observed exactly and published with no
+lag, so it is where a decision and a crisis both show up first — and the
+standing reading above the tabs says how the mandate is going in a sentence
+and names why. A trend chart now sits under every published indicator, and the
+between-meetings time-lapse shows the fast channel moving in the quarter it
+moves in. What is still missing is a single screen that holds all of it at
+once, which may or may not be worth building now that its contents exist.
 
 ## 6. Too much information
 
@@ -168,9 +177,31 @@ fewer numbers arranged so they answer a question.
 Note also that this cuts against the current `SERIES` list, which publishes
 everything at every difficulty and distinguishes them only by noise and lag.
 
-## 7. The interface will need to look good, but later
+## 7. The interface will need to look good, but later — built
 
-Explicitly not a priority.
+Explicitly not a priority when this was written, and then the priority: the
+player's verdict after the difficulty work was "it is fair, it is measured, it
+is illegible and it is flat".
+
+Built as a two-layer token system — named materials, then semantic roles, so no
+component names a colour — in a boardroom of dark walnut, brass, cream paper,
+deep green and burgundy, with the reading surfaces on paper because that is
+what made it legible. Two directions ship and the choice is in the settings.
+Every text node on every screen clears WCAG AA in both, verified by an audit
+that walks the rendered page rather than by inspection.
+
+The three things that made it a *game* rather than a dressed spreadsheet are
+recorded here because they were design decisions, not styling:
+
+- **The interval between meetings plays out.** Four frames, one per internal
+  sub-step, showing only the exactly-observed market prices — because those are
+  the only series a player could really watch move. Inflation is deliberately
+  absent, and its absence teaches the lag this whole game is built on better
+  than any panel of text.
+- **The confirmation screen projects the whole package**, by running the engine
+  forward twice and differencing, with the counterfactual beside the outcome.
+- **A mandate going well says so, and names why.** The interface used to signal
+  only danger, which made its best outcome the absence of feedback.
 
 ## What this implies for the balance work
 

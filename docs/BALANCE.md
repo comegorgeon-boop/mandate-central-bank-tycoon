@@ -1774,7 +1774,13 @@ smaller crisis a crisis. A banking crisis is a banking crisis whatever mode was
 selected. At medium's 1.0, with **no shock diluted**, competent play completed
 51 % against 26 % on the Fed and 34 % against 18 % on the ECB.
 
-### Hard does not meet the bar, and that is reported rather than fixed
+### Hard did not meet the bar — since fixed, and how
+
+> **Resolved in the session that followed.** Competent play now completes
+> **55–65 %** of hard mandates against passive's 43–44 %, with no shock
+> magnitude touched. See "Hard, made winnable" at the end of this document.
+> The diagnosis below is left as it was written, including the part of it that
+> turned out to be wrong, because the wrong part is the instructive one.
 
 Competent play completes **27–37 %** of hard mandates. The instruction was
 explicit — say so rather than dilute the shocks — so this is the honest state
@@ -1892,3 +1898,111 @@ spiral.
 | `scoring/winnability.test.ts` | sabotage stops collapsing or stops being revoked at any difficulty, or easy and medium stop being completable |
 | `features/policy/guidancePreview.test.ts` | the estimate shown at confirmation drifts from what `applyPolicyPackage` actually does |
 | `pages/consoleCheck.test.tsx` | any panel throws or warns at any difficulty, or a difficulty stops reaching the instruments its brief describes |
+
+
+---
+
+# Hard, made winnable
+
+Engine 1.3.0. The previous session reported hard as failing its winnability
+bar at 27–37 % completion and named the liquidity facilities as the cause.
+Measuring it properly settled it — and said the diagnosis was wrong about the
+mechanism, which is worth recording as carefully as the fix.
+
+## The diagnosis that was wrong
+
+`liquidity_support_without_stress` fires in **0 %** of meetings. The
+contradiction competent play was actually tripping was
+`easing_rate_while_tightening_balance_sheet`, in **14–24 %** of them — and it
+was the *benchmark* doing it, not the engine. `policy/toolkitRule.ts` had a
+single stress threshold, so it set balance-sheet runoff and took it off again
+as a noisy published print crossed back and forth over that one bar. A
+committee does not reverse its balance-sheet stance because a print moved two
+points.
+
+With separate escalate and stand-down bars, and no runoff while cutting, the
+facilities turn out to be net-**positive**: the toolkit rule beats the
+rate-only rule at hard (44 % against 40 %), where before it lost (31 % against
+41 %). The engine's pricing was right the whole time.
+
+## The two double-counts
+
+Both are the same shape, and the second is the one that mattered.
+
+**`thresholdLeniency` at hard was 0.82** — a *smaller* crisis counted as a
+crisis, on a mode that already throws shocks 1.45x larger, 1.35x more severe,
+more often, at 1.7x the observation noise, over four times the meetings. A
+banking crisis is a banking crisis whatever mode was selected. At medium's 1.0,
+competent play completes 51 % against 26 % on the Fed and 34 % against 18 % on
+the ECB.
+
+**`credibilitySensitivity` multiplied every term of the credibility target**,
+including the inflation miss and the banking stress — whose size at hard is
+already carried by the bigger shocks. Measured over 100 mandates played
+identically well at each difficulty, with zero broken promises and zero
+contradictions in both:
+
+| | credibility trough |
+| --- | --- |
+| medium | 60 |
+| hard | **34** |
+| dismissal bar | 25 |
+
+Competent play at hard spent its whole mandate nine points from revocation for
+reasons that had nothing to do with how it was played, and 23–28 % of sound
+mandates were revoked. Sensitivity now scales what the committee *did* — broken
+promises, contradictions, reversals — and not what happened to it. Public trust
+judges outcomes only and has no conduct term, so none of it is scaled. The
+trough moves to 44 and dismissals fall to 4–11 %.
+
+## Where the ladder sits now
+
+150 seeds, events on, competent play is the toolkit rule:
+
+| bucket | competent | passive | sabotage | complete (c/p/s) | sabotage revoked |
+| --- | --- | --- | --- | --- | --- |
+| fed/easy | 7170 | 7052 | 499 | 100 / 100 / 0 % | 100 % |
+| fed/medium | 7300 | 7211 | 359 | 99 / 99 / 0 % | 100 % |
+| fed/hard | 6481 | 6074 | 205 | **65 / 43 / 0 %** | 94 % |
+| ecb/easy | 6777 | 6660 | 476 | 100 / 100 / 0 % | 100 % |
+| ecb/medium | 5582 | 5273 | 338 | 100 / 95 / 0 % | 99 % |
+| ecb/hard | 4214 | 4044 | 161 | **55 / 44 / 0 %** | 91 % |
+
+Skill is worth twenty points of survival at hard, failure modes stay balanced
+(banking 40–53, spiral 27–31, dismissal 19–22 per 150), and **competent play
+beats passive at every bucket for the first time** — the long-standing
+"fed/medium and fed/hard are passive-dominant" finding this document has
+carried since phase 3 is closed.
+
+## The interface work, and why it changed no number
+
+The same session rebuilt the interface: a design-token system, a markets panel,
+a between-meetings time-lapse, a package projection on the confirmation screen,
+and a standing reading that celebrates a mandate going well rather than only
+warning about one going badly. Two new published series came with it — a
+ten-year yield and a fictional equity index, both pure functions of state the
+engine already computes.
+
+**The balance sweep is byte-identical before and after**: every bucket, every
+rule, every median. That is worth recording rather than assuming, because
+adding a published series would have reseeded every measurement in this
+document if observation noise were drawn sequentially from a shared generator.
+It is drawn from stateless hash-based generators keyed by seed, series id,
+period and vintage, so a new series draws its own noise and shifts nothing.
+
+Two guards were added that are not about balance but catch the same class of
+defect — a claim the build does not honour:
+
+| Guard | Fails when |
+| --- | --- |
+| `observation/interval.test.ts` | the animated interval stops being the states the integrator actually passed through, its last frame stops being the next meeting's state, or a *statistic* is ever animated as though it were observable in real time |
+| `policy/projection.test.ts` | the confirmation screen's projection stops being the engine's own answer, stops showing the trade-off, or — the load-bearing one — ever writes back to the run it is projecting, which would mean looking at the confirmation screen changed the game |
+
+## Still open
+
+- **`marketExpectedRate` reaches its rail in three *completed* ecb/hard
+  mandates in 150.** Up from one, because more hard runs now survive to the
+  end; the underlying tail is unchanged. Not reproducible outside the sweep's
+  own rule, and not diagnosed.
+- Everything else in the previous section's "Still open" is closed: hard is
+  winnable, competent beats passive everywhere, and the ECB is selectable.
