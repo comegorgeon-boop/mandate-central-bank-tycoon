@@ -74,7 +74,7 @@ function magnitudeOf(
  * whether the words matched the moment they were said into, not the moment
  * the decision itself just created.
  */
-function crisisIntensity(latent: LatentState): number {
+export function crisisIntensity(latent: LatentState): number {
   const volatility = Math.max(0, latent.marketVolatility - VOLATILITY.base) / 25
   const banking = Math.max(0, latent.bankingStress - BANKING.base) / 30
   const spread = Math.max(0, latent.creditSpread - SPREADS.base) / 1.5

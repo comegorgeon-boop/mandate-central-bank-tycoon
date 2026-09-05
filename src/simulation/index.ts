@@ -57,6 +57,9 @@ export {
   GUIDANCE_HORIZON_MEETINGS,
   THRESHOLDS,
 } from './config/thresholds.ts'
+// The two blocks the Policy Desk's guidance preview is derived from, so the
+// estimate the player is shown cannot drift from the mechanism behind it.
+export { COMMUNICATION, EXPECTATIONS } from './config/model.ts'
 
 // ---- Engine ---------------------------------------------------------------
 export {
