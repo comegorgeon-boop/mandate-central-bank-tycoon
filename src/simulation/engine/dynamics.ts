@@ -438,36 +438,56 @@ export function advanceSubstep(
       dt
 
   // ---- 15. Institutional standing -----------------------------------------
+  //
+  // `credibilitySensitivity` scales what the committee *did*, not what happened
+  // to it. That distinction is load-bearing and was not made here before.
+  //
+  // A harder difficulty should be less forgiving of your own errors — a broken
+  // promise, a contradictory package, a whipsawed rate — and it is: the
+  // conduct terms below and in `applyPolicyPackage` all carry the multiplier.
+  // But the *economic* terms are already larger at a harder difficulty, because
+  // its shocks are 1.45x bigger and 1.35x more severe, so multiplying the
+  // resulting inflation miss and banking stress by 1.35 on top charged twice
+  // for the same violence. Measured over 100 mandates played identically well
+  // at each difficulty, with zero broken promises and zero contradictions in
+  // both: the credibility trough sat at 60 on medium and **34 on hard**,
+  // against a dismissal bar of 25 — so competent play at hard spent its whole
+  // mandate nine points from revocation for reasons that had nothing to do
+  // with how it was played. It is the same mistake `thresholdLeniency` was
+  // making next door, and it dismissed 23-28 % of otherwise sound mandates.
   const sensitivity = diff.credibilitySensitivity
   const cred = INSTITUTIONAL.credibility
   // The headline miss is discounted by how much of it is cost-push pushed in
   // from outside domestic demand. A central bank's standing does not collapse
   // because headline is high during an oil shock; it collapses when people stop
   // believing inflation will be brought back — which is the anchoring term
-  // immediately below, left at full strength. See `supplyMissForgiveness`.
+  // immediately below. See `supplyMissForgiveness`.
   const missCharged =
     1 - cred.supplyMissForgiveness * supplyRegimePressure(latent)
   const credibilityTarget =
     cred.ceiling -
-    cred.inflationMiss *
-      Math.abs(latent.inflationHeadline - target) *
-      missCharged *
-      sensitivity -
-    cred.anchoring * (1 - latent.anchoring) * sensitivity -
+    // What happened to you: unscaled, because the difficulty is already in the
+    // size of the miss and of the stress.
+    cred.inflationMiss * Math.abs(latent.inflationHeadline - target) * missCharged -
+    cred.anchoring * (1 - latent.anchoring) -
+    cred.bankingStress * latent.bankingStress -
+    // What you did: scaled, because a harder mandate judges your own errors
+    // more harshly.
     cred.brokenPromise * ctx.guidance.brokenPromises * sensitivity +
-    Math.min(cred.keptPromiseCap, cred.keptPromise * ctx.guidance.keptPromises) -
-    cred.bankingStress * latent.bankingStress * sensitivity
+    Math.min(cred.keptPromiseCap, cred.keptPromise * ctx.guidance.keptPromises)
   next.credibility =
     latent.credibility +
     cred.adjustment *
       (boundTarget('credibility', credibilityTarget) - latent.credibility) *
       dt
 
+  // The public judges outcomes and nothing else — there is no conduct term
+  // here at all — so none of it is scaled, for the same reason.
   const pub = INSTITUTIONAL.publicTrust
   const publicTrustTarget =
     pub.ceiling -
-    pub.inflation * Math.max(0, latent.inflationHeadline - target) * sensitivity -
-    pub.unemployment * Math.max(0, unemploymentGap(latent)) * sensitivity -
+    pub.inflation * Math.max(0, latent.inflationHeadline - target) -
+    pub.unemployment * Math.max(0, unemploymentGap(latent)) -
     pub.policyRate * Math.max(0, latent.policyRate - pub.policyRateTolerance)
   next.publicTrust =
     latent.publicTrust +

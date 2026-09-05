@@ -143,10 +143,13 @@ describe('sabotage costs, at every difficulty', () => {
 
 describe('competent play can finish', () => {
   // Easy is a tutorial and must never trap; medium must be comfortably
-  // survivable for a policy that reads its data. Hard is deliberately not
-  // asserted here — it does not meet this bar, and docs/BALANCE.md records the
-  // measurement and the diagnosis rather than a threshold quietly lowered to
-  // make a test pass.
+  // survivable; hard must be *winnable*, which it was not until the two
+  // double-counts were removed — `thresholdLeniency` pulling the definition of
+  // catastrophe in on top of bigger shocks, and `credibilitySensitivity`
+  // multiplying an inflation miss whose size already carried the difficulty.
+  // Neither fix touched a shock magnitude. Measured at 150 seeds, competent
+  // play completes 100 / 99-100 / 55-65 % against passive's 100 / 95-99 /
+  // 43-44 %.
   for (const institution of INSTITUTIONS) {
     it(`completes every easy mandate on ${institution}`, () => {
       const result = play(institution, 'easy', (session) =>
@@ -160,6 +163,27 @@ describe('competent play can finish', () => {
         toolkitPackage(session, institution, 'medium'),
       )
       expect(result.completed).toBeGreaterThanOrEqual(RUNS - 2)
+    })
+
+    it(`wins more hard mandates than it loses on ${institution}`, () => {
+      const result = play(institution, 'hard', (session) =>
+        toolkitPackage(session, institution, 'hard'),
+      )
+      expect(result.completed).toBeGreaterThan(RUNS / 2)
+    })
+
+    it(`makes skill worth something at hard on ${institution}`, () => {
+      // The mode must be losable too, and losable *less* when it is played
+      // well — otherwise it is a lottery rather than the hardest difficulty.
+      const competent = play(institution, 'hard', (session) =>
+        toolkitPackage(session, institution, 'hard'),
+      )
+      const passive = play(institution, 'hard', () => ({
+        actions: [],
+        communication: null,
+      }))
+      expect(competent.completed).toBeGreaterThan(passive.completed)
+      expect(passive.completed).toBeLessThan(RUNS)
     })
   }
 })

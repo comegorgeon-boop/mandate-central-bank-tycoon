@@ -42,15 +42,20 @@ import { staffRecommendation } from './staffRule.ts'
  */
 
 /**
- * Banking stress above which the facilities are worth escalating.
+ * Banking stress at which the facilities are worth escalating, and the lower
+ * level at which they are wound back.
  *
- * Read off the *published* proxy, which carries a meeting of publication lag
- * and, at hard, six points of noise. Set well clear of the level at which
- * `detectContradictions` starts asking what the central bank can see that
- * markets cannot, so a noisy print alone never escalates a backstop into a
- * calm system.
+ * Two bars rather than one, because a single one makes the rule *thrash*. Read
+ * off the published proxy, which carries a meeting of publication lag and, at
+ * hard, six points of noise: a rule that escalates above 45 and stands down
+ * below 45 flips its whole balance-sheet stance on measurement error, and
+ * measured that way it was setting runoff and taking it off again often enough
+ * to trip `easing_rate_while_tightening_balance_sheet` in 14-24 % of meetings.
+ * A committee does not reverse its balance-sheet policy because a print moved
+ * two points, and neither should the benchmark that stands in for one.
  */
-const STRESS_WATCH = 45
+const STRESS_ESCALATE = 45
+const STRESS_STAND_DOWN = 30
 const STRESS_SEVERE = 65
 
 /** Credit spreads, in percentage points, that count as a funding squeeze. */
@@ -81,7 +86,16 @@ export function toolkitPackage(
   const spread = indicators.credit_spread?.value ?? 0
   const stance = session.state.stance
 
-  const strained = stress >= STRESS_WATCH || spread >= SPREAD_SQUEEZE
+  // Hysteresis: once the facilities are up they stay up until stress has
+  // genuinely receded, rather than following each print up and down.
+  const alreadySupporting =
+    stance.runoffPace === 0 ||
+    stance.discountWindowLevel > 0 ||
+    stance.targetedRefinancing > 0 ||
+    stance.assetPurchasePace > 0
+  const strained = alreadySupporting
+    ? stress >= STRESS_STAND_DOWN || spread >= SPREAD_SQUEEZE
+    : stress >= STRESS_ESCALATE || spread >= SPREAD_SQUEEZE
   const severe = stress >= STRESS_SEVERE
 
   // Liquidity, where the institution has it. Escalated against real stress and
@@ -108,9 +122,13 @@ export function toolkitPackage(
     }
   }
 
-  // Do not drain reserves into a squeeze.
+  // Do not drain reserves into a squeeze — and do not drain them while easing
+  // either. Cutting the rate with the balance sheet still running off is a
+  // package arguing with itself through two channels at once, and the engine
+  // charges for it every meeting it continues, which is right: it is exactly
+  // the mixed signal real committees are criticised for.
   if (has(institution, difficulty, 'balance_sheet_runoff')) {
-    const wanted = strained ? 0 : 1
+    const wanted = strained || move < 0 ? 0 : 1
     if (Math.abs(wanted - stance.runoffPace) > 1e-9) {
       actions.push({ instrument: 'balance_sheet_runoff', magnitude: wanted })
     }
