@@ -97,13 +97,26 @@ export function StanceStrip({
     credibility === null || previousCredibility === null
       ? null
       : Math.round(credibility - previousCredibility)
+  // Approval sits beside credibility because the two answer different
+  // questions and a player who conflates them will misread both: markets ask
+  // whether you will do what you said, the public asks whether prices and
+  // jobs are all right. They routinely move in opposite directions, and
+  // watching this one climb is the clearest sign a mandate is going well
+  // rather than merely not going wrong.
+  const approval = observation.indicators.public_approval?.value ?? null
+  const previousApproval =
+    previousObservation?.indicators.public_approval?.value ?? null
+  const approvalMove =
+    approval === null || previousApproval === null
+      ? null
+      : Math.round(approval - previousApproval)
 
   return (
     <section
       aria-label="Policy stance"
       className="mt-4 rounded border border-edge-room bg-room/60 p-4"
     >
-      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div>
           <dt className="text-xs uppercase tracking-wide text-onwood-faint">
             Policy rate
@@ -151,6 +164,32 @@ export function StanceStrip({
                   'the last meeting. '
                 : ''}
               How far your statements are believed — it scales everything they do.
+            </span>
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-onwood-faint">
+            Public approval
+          </dt>
+          <dd>
+            <span
+              className={`text-lg font-semibold tabular-nums ${
+                approvalMove === null || approvalMove === 0
+                  ? 'text-onwood'
+                  : approvalMove > 0
+                    ? 'text-good-onwood'
+                    : 'text-bad-onwood'
+              }`}
+            >
+              {approval === null ? '—' : Math.round(approval)}
+            </span>
+            <span className="mt-0.5 block text-xs text-onwood-soft">
+              {approvalMove !== null && approvalMove !== 0
+                ? `${approvalMove > 0 ? '+' : '−'}${Math.abs(approvalMove)} since the ` +
+                  'last meeting. '
+                : ''}
+              What the public makes of the prices and the jobs they live with.
             </span>
           </dd>
         </div>

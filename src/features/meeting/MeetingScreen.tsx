@@ -15,6 +15,8 @@ import { MajorEventPanel } from './panels/MajorEventPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
+import { StandingPanel } from './panels/StandingPanel.tsx'
+import { readStanding } from './standing.ts'
 import { PricesPanel } from './panels/PricesPanel.tsx'
 import { regimeObjective } from './objective.ts'
 import { registerFor } from './register.ts'
@@ -80,6 +82,9 @@ export function MeetingScreen({
   // What winning looks like *now*. Under a cost-push shock this is not the
   // standing objective, and the score follows it — see `objective.ts`.
   const objective = regimeObjective(session.observation, institution.inflationTarget)
+  // How the mandate is going, in both directions. The interface used to
+  // signal only danger; a mandate going well now says so, and names why.
+  const standing = readStanding(session.observation, session.outcome, config.institution)
   const meetingNumber = session.state.meetingIndex + 1
   const severeWarnings = session.outcome.warnings.filter(
     (warning) => warning.severity === 'severe',
@@ -121,19 +126,7 @@ export function MeetingScreen({
         </div>
       ) : (
         <>
-          {severeWarnings.length > 0 && (
-            <div
-              role="alert"
-              className="mt-4 rounded-lg border-l-4 border-bad bg-bad-surface p-3 text-sm text-bad-strong shadow-panel"
-            >
-              <p className="font-display text-base font-semibold">Mandate at risk</p>
-              <ul className="mt-1 list-disc pl-5">
-                {severeWarnings.map((warning) => (
-                  <li key={warning.id}>{warning.message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <StandingPanel standing={standing} severeWarnings={severeWarnings} />
 
           <MajorEventPanel
             majorEvent={session.majorEvent}

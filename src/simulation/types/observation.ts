@@ -15,6 +15,7 @@ export type SeriesId =
   | 'output_gap_estimate'
   | 'consumer_confidence'
   | 'credibility_index'
+  | 'public_approval'
   | 'policy_rate'
   | 'market_expected_rate'
   | 'long_rate'

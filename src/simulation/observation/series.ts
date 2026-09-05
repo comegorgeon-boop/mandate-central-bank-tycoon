@@ -357,6 +357,30 @@ export const SERIES: readonly SeriesDefinition[] = [
 
   // ---- Policy and markets. Observed exactly: these are prices. ------------
   {
+    id: 'public_approval',
+    label: 'Public approval',
+    unit: 'index',
+    definition:
+      'How the public rates the institution. Distinct from credibility, which ' +
+      'is what forecasters and markets think: the public judges the prices ' +
+      'and the jobs they live with, not whether a promise about the rate path ' +
+      'was kept.',
+    meaning:
+      'It rises when inflation is close to the objective and people are in ' +
+      'work, and falls when either slips — and it feels headline inflation, ' +
+      'not core. It buys nothing mechanically and can be ignored for a whole ' +
+      'mandate, which is exactly why watching it climb is the clearest signal ' +
+      'that the mandate is going well rather than merely not going wrong.',
+    read: (latent) => latent.publicTrust,
+    category: 'survey',
+    publicationLagMeetings: 0,
+    revisionLagMeetings: 0,
+    baseNoiseSd: 3.0,
+    baseRevisionSd: 0,
+    decimals: 0,
+    institutions: BOTH,
+  },
+  {
     id: 'policy_rate',
     label: 'Policy rate',
     unit: '%',
