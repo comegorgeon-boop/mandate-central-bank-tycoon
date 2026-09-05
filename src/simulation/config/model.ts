@@ -60,6 +60,27 @@ export const HEADLINE = {
   supplyAmplifier: 2.4,
 } as const
 
+/**
+ * When a cost-push shock is large enough that the inflation target stops being
+ * available at any policy the desk could run.
+ *
+ * One band, read in two places that must agree: `engine/dynamics.ts` uses it to
+ * decide how much of an inflation miss the institution's standing should be
+ * charged for, and `scoring/calculateScore.ts` uses it to decide what objective
+ * the mandate is judged on. They were separate judgements once and disagreed —
+ * the score forgave a miss the end conditions were still ending the mandate
+ * over.
+ *
+ * A linear ramp rather than a threshold, so there is no cliff a player could
+ * park under.
+ */
+export const SUPPLY_REGIME_BAND = {
+  /** Below this, ordinary weather: nothing is forgiven. */
+  floor: 0.8,
+  /** At and above this, the target was not available at all. */
+  full: 3.0,
+} as const
+
 /** Adaptive, partly anchored inflation expectations. */
 export const EXPECTATIONS = {
   /** Speed of one-year expectations. */
@@ -336,6 +357,25 @@ export const INSTITUTIONAL = {
     ceiling: 90,
     /** Penalty per percentage point of average inflation miss. */
     inflationMiss: 8.0,
+    /**
+     * How much of the headline-miss penalty is forgiven when the miss is
+     * cost-push pushed in from outside domestic demand.
+     *
+     * A central bank's standing does not collapse because headline inflation is
+     * high during an oil shock. It collapses when people stop believing
+     * inflation will be brought back — which is the anchoring term below, and
+     * which is left at full strength. Charging the full headline miss on top
+     * was the same error the score made and, unlike the score, it *ends
+     * mandates*: measured over 100 hard runs, a competent toolkit-playing
+     * policy was dismissed 34-35 times, and loosening every failure threshold
+     * only converted banking crises into dismissals (34 -> 48) because this
+     * term, not the thresholds, was the binding constraint.
+     *
+     * Not one. A committee that lets a supply shock run into the price level
+     * indefinitely does lose standing — but through the anchor slipping, which
+     * is the channel that means it.
+     */
+    supplyMissForgiveness: 0.75,
     /** Penalty for unanchored long-run expectations. */
     anchoring: 35.0,
     /** Penalty per guidance reversal not justified by a large shock. */
@@ -491,7 +531,7 @@ export const COMMUNICATION = {
    * toward dismissal territory on its own. See docs/BALANCE.md, "Conduct has
    * to cost, independent of the economy".
    */
-  inconsistencyCost: { easy: 15, medium: 4.5, hard: 4.5 },
+  inconsistencyCost: { easy: 15, medium: 12, hard: 12 },
   /**
    * Credibility and market-trust cost of sharply reversing the *previous*
    * meeting's rate move, per point of the smaller of the two moves reversed,
@@ -528,8 +568,27 @@ export const COMMUNICATION = {
    * independent of the economy".
    */
   reversalCost: 10.0,
-  /** Reversals per mandate before `reversalCost` starts charging for them. */
-  freeReversals: 2,
+  /**
+   * Reversals per mandate before `reversalCost` starts charging for them,
+   * per difficulty.
+   *
+   * A per-difficulty record, and measured rather than guessed. The cost used to
+   * be gated off above easy entirely, on the finding that medium and hard's
+   * observation noise makes a rule's own target jump legitimately far more
+   * often — which is true, and which a single allowance tuned for easy's much
+   * quieter data read as sabotage. The answer is a bigger allowance where the
+   * data are noisier and the mandate longer, not no allowance at all: sixty
+   * seeds per bucket, mean reversals per mandate,
+   *
+   *            competent (toolkit rule)   deliberate sabotage
+   *   easy               0.0                      9.0
+   *   medium             0.6 - 0.8               14.5 - 14.9
+   *   hard               2.1 - 3.4               13.8 - 15.2
+   *
+   * so a bar set between the two columns bills a pattern of whiplash at every
+   * difficulty and never bills a committee reacting to genuinely noisy data.
+   */
+  freeReversals: { easy: 2, medium: 3, hard: 6 },
   /** Public trust gained by an earned reassurance, per unit of crisis intensity, before reach. */
   reassuranceTrust: 6.0,
   /** Market volatility added by an alarmed tone, before the crisis amplifier. */

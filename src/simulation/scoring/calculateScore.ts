@@ -23,7 +23,7 @@ import {
   STRESS_PENALTY_FLOOR,
   SUPPLY_REGIME,
 } from '../config/scoring.ts'
-import { unemploymentGap } from '../engine/indices.ts'
+import { supplyRegimePressure, unemploymentGap } from '../engine/indices.ts'
 
 /**
  * Scoring, from 0 to 10,000.
@@ -138,19 +138,6 @@ function shockResponseScore(state: SimulationState): {
 }
 
 /**
- * How much of this meeting sat under a cost-push regime, 0 to 1.
- *
- * A linear ramp rather than a threshold, so no player can park just under a
- * cliff, and read from the latent shock rather than from the published prints
- * because scoring is not an information problem — the mandate is judged on the
- * world that happened, not on the estimate of it.
- */
-function supplyRegimePressure(latent: LatentSnapshot['latent']): number {
-  const { floor, full } = SUPPLY_REGIME
-  return clamp((latent.supplyShock - floor) / (full - floor), 0, 1)
-}
-
-/**
  * The component weights this mandate is actually judged on.
  *
  * Under cost-push pressure, weight moves out of price stability and into
@@ -262,9 +249,10 @@ export function calculateScore(
   const shock = shockResponseScore(state)
 
   // ---- Policy volatility --------------------------------------------------
+  const difficultyId = state.config.difficulty
   const { churn, reversals } = policyChurn(state)
   const yearsServed = Math.max(YEARS_PER_MEETING, state.timeYears)
-  const allowance = POLICY_VOLATILITY_ALLOWANCE_PER_YEAR * yearsServed
+  const allowance = POLICY_VOLATILITY_ALLOWANCE_PER_YEAR[difficultyId] * yearsServed
   const excess = Math.max(0, churn - allowance) + 0.25 * reversals
   const volatilityRaw = performance(excess, SCORE_SCALES.policyVolatility)
 
@@ -372,33 +360,33 @@ export function calculateScore(
       floor + (1 - floor) * (priceRaw / PRICE_STABILITY_GATE.threshold)
   }
 
-  // The conduct gate. Both institutions: erratic, self-contradictory policy
-  // guts the score independent of how the real economy absorbed it — see
-  // CONDUCT_GATE's own doc comment for why this has to be a gate on the
-  // decisions themselves rather than trusted to the weighted blend above.
-  // Easy only, for the same reason `COMMUNICATION.reversalCost` is: tuned
-  // against easy's own calm observation noise, and the inputs it reads
-  // (contradictions, reversals) are legitimately far more frequent at
-  // medium/hard's noise levels for reasons that have nothing to do with
-  // incoherent conduct. Medium and hard are out of scope for the session
-  // that built this.
-  let conductGate = 1
-  if (state.config.difficulty === 'easy') {
-    const billedContradictionCost = Math.max(
-      0,
-      state.contradictionCost - CONDUCT_GATE.freeContradictionCost,
-    )
-    const billedBrokenPromises = Math.max(
-      0,
-      state.guidance.brokenPromises - CONDUCT_GATE.freeBrokenPromises,
-    )
-    conductGate = Math.max(
-      CONDUCT_GATE.floor,
-      Math.exp(-Math.max(0, churn - allowance) / CONDUCT_GATE.churnScale) *
-        Math.exp(-billedContradictionCost / CONDUCT_GATE.contradictionScale) *
-        Math.exp(-billedBrokenPromises / CONDUCT_GATE.brokenPromiseScale),
-    )
-  }
+  // The conduct gate. Both institutions, and now every difficulty: erratic,
+  // self-contradictory policy guts the score independent of how the real
+  // economy absorbed it — see CONDUCT_GATE's own doc comment for why this has
+  // to be a gate on the decisions themselves rather than trusted to the
+  // weighted blend above.
+  //
+  // It applied at easy alone until the two populations were measured at every
+  // difficulty. They separate by six to twenty times everywhere; what medium
+  // and hard needed was not exemption but a free allowance matched to the
+  // conduct their own noise legitimately produces. Until then, sabotage was
+  // very nearly free above easy: measured on this build before the change, a
+  // deliberately sabotaging mandate scored 6331 against competent play's 7446
+  // on fed/medium, and on ecb/medium it beat competent play outright.
+  const billedContradictionCost = Math.max(
+    0,
+    state.contradictionCost - CONDUCT_GATE.freeContradictionCost[difficultyId],
+  )
+  const billedBrokenPromises = Math.max(
+    0,
+    state.guidance.brokenPromises - CONDUCT_GATE.freeBrokenPromises[difficultyId],
+  )
+  const conductGate = Math.max(
+    CONDUCT_GATE.floor,
+    Math.exp(-Math.max(0, churn - allowance) / CONDUCT_GATE.churnScale) *
+      Math.exp(-billedContradictionCost / CONDUCT_GATE.contradictionScale) *
+      Math.exp(-billedBrokenPromises / CONDUCT_GATE.brokenPromiseScale),
+  )
 
   const scaled = clamp(
     weightedTotal * priceStabilityGate * conductGate * difficulty.scoreMultiplier,

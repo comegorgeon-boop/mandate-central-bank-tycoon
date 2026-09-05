@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { LatentSnapshot, SimulationState } from '../types/state.ts'
 import type { EndConditionResult } from '../types/scoring.ts'
 import { SIMULATION_VERSION } from '../version.ts'
-import { SCORE_WEIGHTS, SUPPLY_REGIME } from '../config/scoring.ts'
+import { SUPPLY_REGIME_BAND } from '../config/model.ts'
+import { SCORE_WEIGHTS } from '../config/scoring.ts'
 import { createInitialState, createRunConfig } from '../engine/initialState.ts'
 import { calculateScore } from './calculateScore.ts'
 
@@ -81,7 +82,7 @@ describe('the objective under a cost-push regime', () => {
   })
 
   it('moves weight out of price stability once the shock dominates', () => {
-    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME.full), COMPLETED)
+    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME_BAND.full), COMPLETED)
     expect(shocked.supplyRegimeShare).toBe(1)
 
     const weightOf = (id: string): number =>
@@ -97,7 +98,7 @@ describe('the objective under a cost-push regime', () => {
   })
 
   it('still judges the same total, on a different question', () => {
-    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME.full), COMPLETED)
+    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME_BAND.full), COMPLETED)
     const total = shocked.components.reduce(
       (sum, component) => sum + component.weight,
       0,
@@ -109,7 +110,7 @@ describe('the objective under a cost-push regime', () => {
 
   it('scores the same miss higher when the target was genuinely unreachable', () => {
     const calm = calculateScore(mandateUnderPressure(0), COMPLETED)
-    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME.full), COMPLETED)
+    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME_BAND.full), COMPLETED)
 
     // Identical inflation path in both. The only difference is whether any
     // policy on the desk could have removed the pressure behind it.
@@ -129,7 +130,7 @@ describe('the objective under a cost-push regime', () => {
 
   it('softens the ECB safeguard without removing it', () => {
     const calm = calculateScore(mandateUnderPressure(0), COMPLETED)
-    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME.full), COMPLETED)
+    const shocked = calculateScore(mandateUnderPressure(SUPPLY_REGIME_BAND.full), COMPLETED)
 
     // The gate exists so employment cannot buy past a failure on inflation. A
     // price level pushed up by a shock nothing on the desk reaches is not that

@@ -223,7 +223,14 @@ describe('dismissal requires a sustained collapse, not unpopularity', () => {
 describe('difficulty changes how forgiving the thresholds are', () => {
   it('needs a worse economy to fail on easy than on hard', () => {
     // Banking stress that ends a hard run leaves an easy run merely warned.
-    const overrides = { bankingStress: 78 }
+    //
+    // 90, not 78. Hard's `thresholdLeniency` used to pull every catastrophe
+    // bar 18 % in, so 78 was enough to end a hard mandate; it now sits at
+    // medium's 1.0, because hard's difficulty is the shocks, the noise and the
+    // length rather than a narrower definition of catastrophe. What this test
+    // protects is unchanged and is the thing that matters: easy is forgiving,
+    // hard is not.
+    const overrides = { bankingStress: 90 }
     const hard = evaluateRepeatedly(stateWith('fed', 'hard', overrides), 4)
     const easy = evaluateRepeatedly(stateWith('fed', 'easy', overrides), 4)
 

@@ -57,7 +57,13 @@ export const LATENT_BOUNDS: Readonly<
 
   supplyShock: [-8, 12],
   demandShock: [-8, 8],
-  confidenceShock: [-6, 6],
+  // Widened from [-6, 6]. The stationary spread of the process itself is 0.7,
+  // so six was already far outside anything the stochastic side produces — but
+  // the major events each push confidence 1.7 to 2.2, and once they were
+  // unlocked above easy, hard's 1.35 severity multiplier let three of them
+  // inside one window reach the rail. A safety rail that a plausible run can
+  // touch is not sitting where this file says its rails sit.
+  confidenceShock: [-9, 9],
   productivityShock: [-3, 3],
   financialShock: [-6, 8],
   geopoliticalRisk: [0, 100],

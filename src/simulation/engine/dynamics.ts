@@ -35,6 +35,7 @@ import {
   purchaseEffectiveness,
   realPolicyRate,
   realRateGap,
+  supplyRegimePressure,
   taylorBenchmark,
   transmissionEfficiency,
   unemploymentGap,
@@ -439,9 +440,19 @@ export function advanceSubstep(
   // ---- 15. Institutional standing -----------------------------------------
   const sensitivity = diff.credibilitySensitivity
   const cred = INSTITUTIONAL.credibility
+  // The headline miss is discounted by how much of it is cost-push pushed in
+  // from outside domestic demand. A central bank's standing does not collapse
+  // because headline is high during an oil shock; it collapses when people stop
+  // believing inflation will be brought back — which is the anchoring term
+  // immediately below, left at full strength. See `supplyMissForgiveness`.
+  const missCharged =
+    1 - cred.supplyMissForgiveness * supplyRegimePressure(latent)
   const credibilityTarget =
     cred.ceiling -
-    cred.inflationMiss * Math.abs(latent.inflationHeadline - target) * sensitivity -
+    cred.inflationMiss *
+      Math.abs(latent.inflationHeadline - target) *
+      missCharged *
+      sensitivity -
     cred.anchoring * (1 - latent.anchoring) * sensitivity -
     cred.brokenPromise * ctx.guidance.brokenPromises * sensitivity +
     Math.min(cred.keptPromiseCap, cred.keptPromise * ctx.guidance.keptPromises) -

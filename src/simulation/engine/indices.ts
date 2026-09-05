@@ -7,8 +7,10 @@ import {
   FINANCIAL_CONDITIONS,
   FRAGMENTATION,
   SPREADS,
+  SUPPLY_REGIME_BAND,
   TAYLOR,
 } from '../config/model.ts'
+import { clamp } from '../config/bounds.ts'
 import { getInstitution } from '../config/institutions.ts'
 
 /** Derived quantities shared by several blocks of the model. */
@@ -117,4 +119,24 @@ export function taylorBenchmark(
     TAYLOR.inflationWeight * (latent.inflationCore - target) +
     TAYLOR.gapWeight[institution] * latent.outputGap
   )
+}
+
+/**
+ * How far a cost-push shock has pushed the inflation target out of reach, 0 to 1.
+ *
+ * Zero in ordinary weather; one where no policy the desk could run would have
+ * returned inflation to target inside a mandate, because the pressure comes
+ * from outside domestic demand and the only trajectories that reach target get
+ * there by destroying output.
+ *
+ * Lives here, alongside the other derived readings, because two very different
+ * parts of the game have to agree on it: `dynamics.ts` charges the
+ * institution's standing for an inflation miss, and `calculateScore.ts` decides
+ * what objective the mandate is judged on. A version of this that lived in only
+ * one of them would let the score forgive a miss the end conditions were still
+ * ending the mandate over — which is exactly what happened.
+ */
+export function supplyRegimePressure(latent: LatentState): number {
+  const { floor, full } = SUPPLY_REGIME_BAND
+  return clamp((latent.supplyShock - floor) / (full - floor), 0, 1)
 }

@@ -93,6 +93,17 @@ export interface DifficultyConfig {
   /**
    * Multiplier on failure thresholds. Above 1 means catastrophes need a more
    * extreme economy before they trigger, so easy mode is forgiving.
+   *
+   * Medium's 1.0 is the reference, and hard sits there too. It used to sit at
+   * 0.82, which said that at hard a *smaller* crisis counts as a crisis — and
+   * that is difficulty counted twice, since hard already throws shocks 1.45x
+   * larger, 1.35x more severe, more often, at 1.7x the observation noise, over
+   * a mandate four times as long. A banking crisis is a banking crisis whatever
+   * mode was selected; moving the definition of catastrophe in as well is
+   * arbitrary rather than demanding, and it was measurably fatal. Over 100 hard
+   * mandates played with the whole toolkit, competent policy completed 26 % at
+   * 0.82 against 51 % at 1.0 on the Fed, and 18 % against 34 % on the ECB —
+   * with the same shocks, the same noise, the same everything else.
    */
   readonly thresholdLeniency: number
   /** Extra consecutive meetings a breach must hold before ending the run. */
@@ -258,7 +269,9 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     openingCrisisCharacters: null,
     clueThreshold: 0.22,
     credibilitySensitivity: 1.35,
-    thresholdLeniency: 0.82,
+    // The same bar as medium. Hard's difficulty is the shocks, the noise, the
+    // lag and the length — not a narrower definition of catastrophe.
+    thresholdLeniency: 1.0,
     breachPatience: 0,
     scoreMultiplier: 1.15,
     showsPolicyHints: false,

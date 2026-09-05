@@ -59,10 +59,28 @@ export const SCORE_SCALES = {
 } as const
 
 /**
- * Policy churn the player may use for free before the volatility component
- * starts to bite, in cumulative percentage points of rate change per year.
+ * Policy churn the player may use for free before the volatility component and
+ * the conduct gate start to bite, in cumulative percentage points of rate
+ * change per year, per difficulty.
+ *
+ * Per-difficulty because a committee reading noisier data moves more often
+ * without being erratic, and a single figure tuned for easy's quiet prints
+ * calls that erratic. Measured over 60 seeds per bucket, mean churn per year:
+ *
+ *            competent (toolkit rule)   deliberate sabotage
+ *   easy               0.49                     6.67
+ *   medium             1.46 - 1.50             11.60 - 11.93
+ *   hard               1.73 - 1.92              7.39 - 8.09
+ *
+ * Left at 2.0 on easy, where it was measured. At the harder modes the old
+ * single value was biting competent play in 114 of 150 hard mandates, pulling
+ * a median conduct gate to 0.78 for a rule doing nothing but react to the data
+ * in front of it — which is how competent play came to score *below* passive
+ * at hard the first time the gate was opened above easy.
  */
-export const POLICY_VOLATILITY_ALLOWANCE_PER_YEAR = 2.0
+export const POLICY_VOLATILITY_ALLOWANCE_PER_YEAR: Readonly<
+  Record<'easy' | 'medium' | 'hard', number>
+> = { easy: 2.0, medium: 3.0, hard: 3.5 }
 
 /**
  * Banking stress above which the financial stability component starts to bite.
@@ -127,11 +145,45 @@ export const PRICE_STABILITY_GATE = {
 export const CONDUCT_GATE = {
   churnScale: 4.0,
   contradictionScale: 10.0,
-  /** Contradiction severity forgiven before the contradiction factor bites. */
-  freeContradictionCost: 0.7,
+  /**
+   * Contradiction severity forgiven before the contradiction factor bites,
+   * per difficulty.
+   *
+   * The gate applied at easy alone until it was measured elsewhere. Sixty
+   * seeds per bucket, mean accumulated contradiction cost per mandate:
+   *
+   *            competent (toolkit rule)   deliberate sabotage
+   *   easy               0.00                     7.00
+   *   medium             1.23 - 1.31             10.83 - 11.13
+   *   hard               1.85 - 1.87             10.35 - 11.33
+   *
+   * A committee reading noisier data contradicts itself more often without
+   * meaning to, which is what the wider allowances are for — and the two
+   * populations are six to nine times apart at every difficulty, so a bar
+   * between them bills the pattern and never the accident.
+   */
+  freeContradictionCost: { easy: 0.7, medium: 2.5, hard: 3.0 },
   brokenPromiseScale: 3.0,
-  /** Broken promises forgiven before the broken-promise factor bites. */
-  freeBrokenPromises: 1,
+  /**
+   * Broken promises forgiven before the broken-promise factor bites, per
+   * difficulty.
+   *
+   * Deliberately generous above easy, and this is the one conduct signal that
+   * does **not** separate the two populations — it inverts. Measured over the
+   * same runs, mean broken promises per mandate: competent honest guidance
+   * breaks 1.3 at medium and 3.5-4.2 at hard, while deliberate sabotage breaks
+   * 0.0 to 0.6, because a saboteur rewriting its promise every meeting never
+   * holds one long enough to mature into a default. Billing this at a bar
+   * tuned for easy would therefore have punished exactly the honest play it
+   * exists to protect and left the sabotage untouched — the precise inversion
+   * of `engine/guidance.test.ts`'s falsifiable criterion that this gate has
+   * already been caught causing twice.
+   *
+   * So the allowance covers what honest play at each difficulty actually
+   * produces. What catches sabotage is the churn and contradiction factors,
+   * which separate cleanly.
+   */
+  freeBrokenPromises: { easy: 1, medium: 3, hard: 6 },
   floor: 0.03,
 } as const
 
@@ -147,6 +199,12 @@ export const CONDUCT_GATE = {
  * mandate opening on a supply crisis scored 3117 on the ECB against 7039 for a
  * political one, and beat doing nothing by 300 points. That is not difficulty;
  * it is being marked down for a target nobody could have hit.
+ *
+ * The band itself — where "ordinary weather" ends and "the target was not
+ * available" begins — is `config/model.ts`'s `SUPPLY_REGIME_BAND`, shared with
+ * the engine's own credibility equation. They must agree: a score that forgave
+ * a miss the end conditions were still ending the mandate over would be two
+ * different games.
  *
  * So the *objective* moves with the regime, and the score follows it. Under
  * cost-push pressure, weight shifts out of `price_stability` and into the two
@@ -164,15 +222,6 @@ export const CONDUCT_GATE = {
  * — so it can never be farmed by choosing to do nothing.
  */
 export const SUPPLY_REGIME = {
-  /**
-   * Outstanding cost-push pressure at which a meeting counts fully as
-   * "the target was not available", in units of `latent.supplyShock`.
-   *
-   * Below `floor` the regime is ordinary weather and nothing shifts; the ramp
-   * between them is linear, so there is no cliff a player could sit on.
-   */
-  floor: 0.8,
-  full: 3.0,
   /**
    * Share of the mandate under cost-push pressure at which the full shift
    * applies.

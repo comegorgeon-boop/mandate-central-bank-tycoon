@@ -627,9 +627,12 @@ export function applyPolicyPackage(
   // so the last two entries are exactly "walking into this meeting" and
   // "walking into the previous one" — their difference is last meeting's move.
   //
-  // The count itself is tracked at every difficulty (cheap, and a natural
-  // extension point later), but the credibility/trust cost is easy-only —
-  // see `COMMUNICATION.reversalCost`'s doc comment for why.
+  // Billed at every difficulty, against a free allowance that widens with the
+  // noise and the mandate length — see `COMMUNICATION.freeReversals`. It used
+  // to be billed on easy alone, because one allowance tuned for easy's quiet
+  // data read medium and hard's legitimately jumpier committees as sabotage.
+  // Measured, the two are nowhere near each other at any difficulty: competent
+  // play reverses 0.0 to 3.4 times a mandate, deliberate sabotage 9 to 15.
   const sinceLast = state.history.at(-1)
   const sinceTwoAgo =
     state.history.length >= 2 ? state.history[state.history.length - 2] : undefined
@@ -642,15 +645,14 @@ export function applyPolicyPackage(
       Math.sign(previousMove) !== Math.sign(actualMove)
     ) {
       reversalCount += 1
-      if (state.config.difficulty === 'easy') {
-        // The first `freeReversals` are a genuine pivot's benefit of the
-        // doubt; the cost escalates with how many have already happened.
-        const billedAt = reversalCount - COMMUNICATION.freeReversals
-        if (billedAt > 0) {
-          const reversed = Math.min(Math.abs(actualMove), Math.abs(previousMove))
-          latent.credibility -= COMMUNICATION.reversalCost * reversed * billedAt * sensitivity
-          latent.marketTrust -= COMMUNICATION.reversalCost * reversed * billedAt
-        }
+      // The first `freeReversals` are a genuine pivot's benefit of the doubt;
+      // the cost escalates with how many have already happened.
+      const billedAt =
+        reversalCount - COMMUNICATION.freeReversals[state.config.difficulty]
+      if (billedAt > 0) {
+        const reversed = Math.min(Math.abs(actualMove), Math.abs(previousMove))
+        latent.credibility -= COMMUNICATION.reversalCost * reversed * billedAt * sensitivity
+        latent.marketTrust -= COMMUNICATION.reversalCost * reversed * billedAt
       }
     }
   }
