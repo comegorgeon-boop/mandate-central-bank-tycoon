@@ -2,12 +2,14 @@ import type { DiagnosticEvent } from '../types/core.ts'
 import type { LatentState } from '../types/state.ts'
 
 /**
- * Documented computational safety bounds for every latent variable.
+ * Documented bounds for every latent variable.
  *
- * These are not gameplay limits: they sit far outside any plausible economy
- * and exist only to keep the integrator from producing NaN or Infinity. When
- * one bites, a DiagnosticEvent is recorded so instability is visible in the
- * developer tooling rather than silently absorbed.
+ * Most of these are computational safety rails: they sit far outside any
+ * plausible economy and exist only to keep the integrator from producing NaN
+ * or Infinity. When one bites, a DiagnosticEvent is recorded so instability is
+ * visible in the developer tooling rather than silently absorbed.
+ *
+ * A minority are not safety rails at all — see `SATURATING` below.
  */
 export const LATENT_BOUNDS: Readonly<
   Record<keyof LatentState, readonly [number, number]>
@@ -61,6 +63,47 @@ export const LATENT_BOUNDS: Readonly<
   geopoliticalRisk: [0, 100],
 }
 
+/**
+ * Variables whose bounds are the definition of the variable, not a safety rail.
+ *
+ * `bankingStress`, `credibility` and the rest of these are 0-100 indices. One
+ * hundred is not "the integrator has come apart"; it is the top of the scale,
+ * and an index pinned there during a bank failure is the model working. The
+ * end conditions read exactly that — `bankingCrisis.failStress` is capped at 95
+ * — so saturation is a state the game is built to have opinions about.
+ *
+ * The distinction is recorded here because its absence produced a real, and
+ * lasting, false alarm. The developer sweep flags any run that recorded a
+ * clamp diagnostic, so `geopoliticalRisk` reaching 100 in one or two runs out
+ * of 150 has been printing as a balance warning since engine 1.0.0 and was
+ * carried in docs/BALANCE.md for several sessions as "pre-existing, not
+ * diagnosed". It was never a defect. Unlocking the major events above easy
+ * would have added `marketVolatility` and `bankingStress` to the same list of
+ * phantoms, since hard's severity multiplier of 1.35 makes a bank failure's
+ * `+50` stress land on an index that only has so much room.
+ *
+ * Saturation is still *clamped* here, exactly as before — the arithmetic is
+ * unchanged — and still recorded, as `kind: 'saturated'`, so it stays
+ * inspectable. What changes is that it is no longer reported as instability.
+ */
+const SATURATING: ReadonlySet<keyof LatentState> = new Set([
+  'anchoring',
+  'bankingStress',
+  'marketVolatility',
+  'geopoliticalRisk',
+  'credibility',
+  'publicTrust',
+  'marketTrust',
+  'politicalPressure',
+  'debtPressure',
+  'reserves',
+])
+
+/** True when hitting this variable's bound is the scale ending, not a fault. */
+export function saturates(variable: keyof LatentState): boolean {
+  return SATURATING.has(variable)
+}
+
 const LATENT_KEYS = Object.keys(LATENT_BOUNDS) as (keyof LatentState)[]
 
 /** Plain numeric clamp with no diagnostics. */
@@ -108,7 +151,9 @@ export function clampLatentState(
         variable: key,
         rawValue: raw,
         clampedValue: corrected[key],
-        kind: raw < min ? 'min' : 'max',
+        // An index reaching the end of its own scale is not a fault. The
+        // arithmetic is identical either way; only the label differs.
+        kind: SATURATING.has(key) ? 'saturated' : raw < min ? 'min' : 'max',
       })
     }
   }

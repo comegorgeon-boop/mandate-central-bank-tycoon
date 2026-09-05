@@ -84,6 +84,28 @@ export function inflationImpulse(event: GameEvent, ctx: EventContext): number {
   return total
 }
 
+/**
+ * The same reading, but of what lands *on the day* rather than over the arc.
+ *
+ * `inflationImpulse` counts the delayed half in full, which is right for the
+ * symmetry guard: an event whose spike is immediate and whose relief arrives
+ * three meetings later is balanced over its life, and reading only the first
+ * half would call it inflationary. It is the wrong reading for the question
+ * "may this land on top of the shock already running", which is about the
+ * pressure the economy carries now, not about how the arc eventually closes.
+ * `DifficultyConfig.costPushCeiling` asks the second question.
+ */
+export function immediateInflationImpulse(
+  event: GameEvent,
+  ctx: EventContext,
+): number {
+  let total = 0
+  for (const effect of event.immediate(ctx)) {
+    total += (INFLATION_WEIGHTS[effect.variable] ?? 0) * effect.delta
+  }
+  return total
+}
+
 export type InflationDirection = 'inflationary' | 'disinflationary' | 'neutral'
 
 /**

@@ -263,11 +263,16 @@ export function createInitialState(
     history: [{ meetingIndex: 0, timeYears: 0, latent }],
   }
 
-  // The easy-mode opener (docs/DIRECTION.md): a healthy economy, then a
-  // major, named event that breaks it before the player's first decision.
-  // Defaults on, so real play always gets it; test harnesses that need an
+  // The scripted opener (docs/DIRECTION.md): a healthy economy, then a major,
+  // named event that breaks it before the player's first decision. Defaults
+  // on, so real play always gets it; test harnesses that need an
   // uncontaminated baseline pass `openingEvent: false`.
-  if ((options.openingEvent ?? true) && config.difficulty === 'easy') {
+  //
+  // Which difficulties get one, and which kinds of crisis they may draw, is
+  // `DifficultyConfig.openingCrisisCharacters` — `applyOpeningCrisis` is a
+  // no-op where that is null, so the difficulty rule lives in the config
+  // rather than being spelled a second time here.
+  if (options.openingEvent ?? true) {
     state = applyOpeningCrisis(state)
     // `history[0]` was captured above, before the crisis. The observation
     // layer reads history for "current period" values (`generateObservation`

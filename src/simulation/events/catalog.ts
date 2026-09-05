@@ -29,6 +29,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Energy and commodities --------------------------------------------
   {
     id: 'energy_price_spike',
+    shockCharacter: 'supply',
     family: 'energy_commodity',
     title: 'Energy price spike',
     newswire:
@@ -63,6 +64,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'energy_price_relief',
+    shockCharacter: 'supply',
     family: 'energy_commodity',
     title: 'Energy prices fall back',
     newswire:
@@ -120,6 +122,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Productivity -------------------------------------------------------
   {
     id: 'productivity_surge',
+    shockCharacter: 'supply',
     family: 'productivity',
     title: 'Productivity surprises to the upside',
     newswire:
@@ -154,6 +157,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Supply chains ------------------------------------------------------
   {
     id: 'supply_chain_disruption',
+    shockCharacter: 'supply',
     family: 'supply_chain',
     title: 'Shipping disruption lengthens delivery times',
     newswire:
@@ -186,6 +190,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'supply_chain_normalisation',
+    shockCharacter: 'supply',
     family: 'supply_chain',
     title: 'Shipping capacity catches up with demand',
     newswire:
@@ -229,6 +234,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Fiscal -------------------------------------------------------------
   {
     id: 'fiscal_expansion',
+    shockCharacter: 'demand',
     family: 'fiscal',
     title: 'Legislature passes a large spending package',
     newswire:
@@ -264,6 +270,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'fiscal_consolidation',
+    shockCharacter: 'demand',
     family: 'fiscal',
     title: 'Legislature agrees a deficit reduction package',
     newswire:
@@ -302,6 +309,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Banking ------------------------------------------------------------
   {
     id: 'bank_funding_scare',
+    shockCharacter: 'financial',
     family: 'banking',
     title: 'Funding scare at a mid-sized lender',
     newswire:
@@ -338,6 +346,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'deposit_flight',
+    shockCharacter: 'financial',
     family: 'banking',
     title: 'Deposits leave the weakest lenders',
     newswire:
@@ -374,6 +383,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Housing ------------------------------------------------------------
   {
     id: 'housing_correction',
+    shockCharacter: 'financial',
     family: 'housing',
     title: 'House prices turn down sharply',
     newswire:
@@ -409,6 +419,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Geopolitics --------------------------------------------------------
   {
     id: 'geopolitical_escalation',
+    shockCharacter: 'supply',
     family: 'geopolitical',
     title: 'Geopolitical tensions escalate',
     newswire:
@@ -442,6 +453,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'geopolitical_dealescalation',
+    shockCharacter: 'supply',
     family: 'geopolitical',
     title: 'Negotiated settlement eases a long-running dispute',
     newswire:
@@ -486,6 +498,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Exchange rate ------------------------------------------------------
   {
     id: 'currency_pressure',
+    shockCharacter: 'demand',
     family: 'exchange_rate',
     title: 'Currency comes under sustained pressure',
     newswire:
@@ -521,6 +534,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'currency_appreciation',
+    shockCharacter: 'demand',
     family: 'exchange_rate',
     title: 'Currency rallies on safe-haven inflows',
     newswire:
@@ -564,6 +578,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Wages --------------------------------------------------------------
   {
     id: 'wage_round_breakout',
+    shockCharacter: 'supply',
     family: 'wages',
     title: 'Wage round settles well above expectations',
     newswire:
@@ -598,6 +613,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Data revisions -----------------------------------------------------
   {
     id: 'benchmark_revision',
+    shockCharacter: 'institutional',
     family: 'data_revision',
     title: 'Benchmark revision rewrites the recent past',
     newswire:
@@ -628,6 +644,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Communication ------------------------------------------------------
   {
     id: 'communication_leak',
+    shockCharacter: 'institutional',
     family: 'communication',
     title: 'Deliberations leak before the statement',
     newswire:
@@ -656,6 +673,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Market cycle -------------------------------------------------------
   {
     id: 'market_melt_up',
+    shockCharacter: 'financial',
     family: 'market_cycle',
     title: 'Risk assets melt up',
     newswire:
@@ -684,6 +702,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'market_crash',
+    shockCharacter: 'financial',
     family: 'market_cycle',
     title: 'Leveraged positions unwind',
     newswire:
@@ -719,6 +738,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Natural disasters --------------------------------------------------
   {
     id: 'natural_disaster',
+    shockCharacter: 'supply',
     family: 'natural_disaster',
     title: 'Severe weather disrupts a major region',
     newswire:
@@ -758,6 +778,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Innovation and confidence ------------------------------------------
   {
     id: 'investment_boom',
+    shockCharacter: 'demand',
     family: 'innovation',
     title: 'Investment boom in a new general-purpose technology',
     newswire:
@@ -793,15 +814,21 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
 
   // ===== Major events ========================================================
   //
-  // Mandate-defining crises rather than background noise: `tier: 'major'`,
-  // scoped to `minDifficulty`/`maxDifficulty` 'easy' only (medium/hard are out
-  // of scope for this batch — their catalog and balance stay untouched, since
-  // `eligibleEvents` filters these out entirely once `ctx.difficulty` is above
-  // the ceiling). Rare (`baseWeight` well under the minors' 0.7-1.2) and
-  // singular (`maxOccurrences: 1`) as *random* draws — one of them also fires
-  // unconditionally at the first meeting of every easy mandate, via
+  // Mandate-defining crises rather than background noise: `tier: 'major'`.
+  // Rare (`baseWeight` well under the minors' 0.7-1.2) and singular
+  // (`maxOccurrences: 1`) as *random* draws — one of them also fires
+  // unconditionally at the first meeting of an easy mandate, via
   // `events/openingCrisis.ts`, which is not gated by weight or probability at
-  // all. Each carries a real multi-sentence `newswire` and 2-3 `dispatchLines`
+  // all.
+  //
+  // These were briefly scoped `maxDifficulty: 'easy'`, from the session that
+  // added them with medium and hard explicitly out of scope. That ceiling is
+  // gone: a mode whose whole subject is stagflation and tail risk cannot be
+  // the one mode with no mandate-defining crisis in it, and the difficulty
+  // work now lives on the axis that belongs to it — `shockMix` decides which
+  // *kind* of crisis each mode is fed, `costPushCeiling` decides whether they
+  // may pile onto one another, and `openingCrisisCharacters` decides which may
+  // open a mandate at all. Each carries a real multi-sentence `newswire` and 2-3 `dispatchLines`
   // so the story keeps developing over the meetings after it breaks, without
   // needing any new persisted state: `events/dispatches.ts` derives what's
   // been revealed so far from `meetingIndex - record.meetingIndex` alone.
@@ -824,6 +851,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // correctly — both are free or cheap against the balance guard.
   {
     id: 'geopolitical_crisis_outbreak',
+    shockCharacter: 'supply',
     family: 'geopolitical_crisis',
     title: 'War breaks out along a key trade corridor',
     newswire:
@@ -834,7 +862,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Naval insurers have quietly widened war-risk premiums across the corridor for three straight weeks.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -879,6 +906,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'domestic_political_shock',
+    shockCharacter: 'demand',
     family: 'domestic_political',
     title: "Government loses its majority in a snap vote",
     newswire:
@@ -889,7 +917,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: "Coalition whips have failed to guarantee the numbers for next week's budget vote.",
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -936,6 +963,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'banking_failure',
+    shockCharacter: 'financial',
     family: 'banking_failure',
     title: 'A major regional lender collapses overnight',
     newswire:
@@ -946,7 +974,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Overnight funding costs for mid-sized lenders have detached sharply from the rest of the banking system.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -995,6 +1022,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'housing_market_crash',
+    shockCharacter: 'financial',
     family: 'housing_crash',
     title: 'Property markets seize up nationwide',
     newswire:
@@ -1005,7 +1033,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Mortgage applications have fallen for five consecutive months while completed-but-unsold inventory keeps building.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -1052,6 +1079,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'supply_rupture',
+    shockCharacter: 'supply',
     family: 'supply_rupture',
     title: 'Export ban cuts off a critical input overnight',
     newswire:
@@ -1062,7 +1090,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Buyers have reported abrupt cancellations of scheduled cargoes with no replacement offered.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -1089,6 +1116,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'market_panic',
+    shockCharacter: 'financial',
     family: 'market_panic',
     title: 'Leveraged trades unwind in a disorderly rout',
     newswire:
@@ -1101,7 +1129,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: null,
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,

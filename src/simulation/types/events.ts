@@ -27,6 +27,34 @@ export type EventFamily =
   | 'supply_rupture'
   | 'market_panic'
 
+/**
+ * The kind of *decision problem* an event sets, as distinct from its subject.
+ *
+ * The family says what happened; this says what it asks of the committee, and
+ * it is the axis difficulty is built on. A demand shock moves prices and
+ * activity the same way, so one instrument addresses both and there is no
+ * trade-off to manage. A supply shock moves them opposite ways, so every
+ * available move buys one half of the mandate by selling the other — which is
+ * the hardest problem in monetary policy, and exactly what a tutorial must not
+ * open with. A financial shock tightens conditions on its own, doing part of
+ * policy's work uninvited. An institutional one moves standing, politics or the
+ * measurements themselves rather than the economy under them.
+ *
+ * Declared per event rather than derived, because the derivation would have to
+ * guess: a shock is identified by which variables it moves *and* by which way
+ * it moves them together, and several events move three or four at once.
+ * `events/character.test.ts` checks each declaration against the effects the
+ * event actually delivers, so a declaration cannot quietly go stale.
+ */
+export type ShockCharacter = 'demand' | 'supply' | 'financial' | 'institutional'
+
+export const SHOCK_CHARACTERS: readonly ShockCharacter[] = [
+  'demand',
+  'supply',
+  'financial',
+  'institutional',
+]
+
 /** An additive nudge to one latent variable. */
 export interface EventEffect {
   readonly variable: EffectTarget
@@ -74,6 +102,12 @@ export interface EventContext {
  */
 export interface GameEvent {
   readonly id: string
+  /**
+   * What this asks of the committee. Difficulty is built on this axis: easy
+   * suppresses `supply`, medium opens it, hard amplifies it and lets several
+   * run at once. See `DifficultyConfig.shockMix`.
+   */
+  readonly shockCharacter: ShockCharacter
   readonly family: EventFamily
   readonly title: string
   /** Fictional newswire headline. Always labelled fictional in the UI. */

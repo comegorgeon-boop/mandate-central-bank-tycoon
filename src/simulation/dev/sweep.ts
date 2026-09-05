@@ -153,7 +153,12 @@ function main(): void {
         const score = calculateScore(session.state, session.outcome)
 
         scores.push(score.score)
+        // `saturated` is excluded on purpose: a 0-100 index reaching the top of
+        // its own scale is the model working, not the integrator failing, and
+        // reporting it here is what kept a phantom `geopoliticalRisk` warning
+        // in docs/BALANCE.md for several sessions. See `config/bounds.ts`.
         for (const diagnostic of session.state.diagnostics) {
+          if (diagnostic.kind === 'saturated') continue
           clampedVariables.set(
             diagnostic.variable,
             (clampedVariables.get(diagnostic.variable) ?? 0) + 1,

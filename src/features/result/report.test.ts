@@ -5,6 +5,7 @@ import {
   calculateScore,
   createRunConfig,
   evaluateEndConditions,
+  isMajorEvent,
   playRun,
   type EndConditionResult,
 } from '../../simulation/index.ts'
@@ -67,13 +68,26 @@ describe('the mandate report', () => {
     expect(report.whatHappened.join(' ')).toContain(opener.title)
   })
 
-  it('does not reference a major event on medium, where none fire', () => {
-    const { state, outcome, score } = completedSession('report-medium', 'medium')
+  it('opens with no scripted crisis on medium, where the mandate is not handed a culprit', () => {
+    const { state } = completedSession('report-medium', 'medium')
     expect(state.eventLog.some((record) => record.meetingIndex === 0)).toBe(false)
+  })
 
-    const report = buildMandateReport(state, outcome, score)
-    nonEmpty(report.whatHappened)
-    expect(report.whatHappened.join(' ')).toMatch(/quiet|smaller development/)
+  it('falls back to the smaller developments when no major event ever fired', () => {
+    // Majors are rare random draws above easy, so this searches for a mandate
+    // that happened not to draw one rather than asserting a difficulty never
+    // produces them — which is what this test used to do, back when they were
+    // scoped out of medium and hard entirely.
+    for (let index = 0; index < 40; index += 1) {
+      const { state, outcome, score } = completedSession(`report-quiet-${index}`, 'medium')
+      if (state.eventLog.some((record) => isMajorEvent(record.eventId))) continue
+
+      const report = buildMandateReport(state, outcome, score)
+      nonEmpty(report.whatHappened)
+      expect(report.whatHappened.join(' ')).toMatch(/quiet|smaller development/)
+      return
+    }
+    throw new Error('no seed in 40 produced a mandate free of major events')
   })
 
   it('omits the promise-ledger callouts when nothing was ever announced', () => {

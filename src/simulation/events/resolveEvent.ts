@@ -13,6 +13,7 @@ import { clampLatentState } from '../config/bounds.ts'
 import { DIFFICULTY_ORDER, getDifficulty, meetsDifficulty } from '../config/difficulty.ts'
 import { applyEffects } from '../engine/advanceTrueState.ts'
 import { EVENT_CATALOG } from './catalog.ts'
+import { NEUTRAL_BAND, immediateInflationImpulse } from './inflationImpulse.ts'
 
 /**
  * Procedural event resolution.
@@ -52,6 +53,23 @@ export function buildEventContext(state: SimulationState): EventContext {
   }
 }
 
+/**
+ * Whether a second cost-push shock may land on the one already running.
+ *
+ * Only *adverse* supply events are held back: a relief is the thing that ends
+ * the episode, and gating it on the same ceiling would mean the worse the
+ * shock the less able the economy is to recover from it. The reading is of
+ * what the event delivers on the day, not over its whole arc — see
+ * `immediateInflationImpulse`.
+ */
+function costPushBlocked(event: GameEvent, ctx: EventContext): boolean {
+  const ceiling = getDifficulty(ctx.difficulty).costPushCeiling
+  if (!Number.isFinite(ceiling)) return false
+  if (event.shockCharacter !== 'supply') return false
+  if (ctx.latent.supplyShock <= ceiling) return false
+  return immediateInflationImpulse(event, ctx) > NEUTRAL_BAND
+}
+
 /** Events that could fire in this state, before any random draw. */
 export function eligibleEvents(
   ctx: EventContext,
@@ -60,6 +78,7 @@ export function eligibleEvents(
   return catalog.filter((event) => {
     if (!event.institutions.includes(ctx.institution)) return false
     if (!meetsDifficulty(ctx.difficulty, event.minDifficulty)) return false
+    if (costPushBlocked(event, ctx)) return false
     if (
       event.maxDifficulty !== undefined &&
       DIFFICULTY_ORDER[ctx.difficulty] > DIFFICULTY_ORDER[event.maxDifficulty]
@@ -83,13 +102,21 @@ export function eligibleEvents(
   })
 }
 
-/** Selection weights for a set of eligible events, in the same order. */
+/**
+ * Selection weights for a set of eligible events, in the same order.
+ *
+ * The difficulty's `shockMix` scales each event by what it *asks of the
+ * committee* — a demand shock has a right answer, a supply shock has only a
+ * choice of which half of the mandate to sacrifice — so the diet of problems
+ * a mode serves is a property of the mode rather than of the draw.
+ */
 function selectionWeights(
   events: readonly GameEvent[],
   ctx: EventContext,
 ): readonly number[] {
+  const mix = getDifficulty(ctx.difficulty).shockMix
   return events.map((event) => {
-    const multiplier = event.weight(ctx)
+    const multiplier = event.weight(ctx) * mix[event.shockCharacter]
     return Number.isFinite(multiplier) && multiplier > 0
       ? event.baseWeight * multiplier
       : 0

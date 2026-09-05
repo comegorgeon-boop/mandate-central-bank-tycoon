@@ -24,10 +24,16 @@ export interface RunConfig {
 
 /**
  * Recorded whenever a computed value had to be clamped back into its
- * documented safety bounds, or came out non-finite.
+ * documented bounds, or came out non-finite.
  *
  * Clamping keeps the simulation running, but instability is never hidden:
  * these entries are surfaced in the developer tooling and the postmortem.
+ *
+ * `saturated` is the one kind that is *not* instability: a 0-100 index reached
+ * the top or bottom of its own scale, which is a state the model is built to
+ * have opinions about rather than a sign that the integrator came apart. It is
+ * still recorded so it stays inspectable, and deliberately not reported as a
+ * fault. See `config/bounds.ts`'s `SATURATING`.
  */
 export interface DiagnosticEvent {
   /** Internal step index at which the clamp fired. */
@@ -35,7 +41,7 @@ export interface DiagnosticEvent {
   readonly variable: string
   readonly rawValue: number
   readonly clampedValue: number
-  readonly kind: 'min' | 'max' | 'non_finite'
+  readonly kind: 'min' | 'max' | 'non_finite' | 'saturated'
 }
 
 /** A discrete time position inside a run. */
