@@ -83,10 +83,18 @@ export function MarketsPanel({
               ? row.value - previous
               : null
           const riseIsGood = RISE_IS_GOOD[row.seriesId]
-          const tone =
+          // One verdict, used for the figure and for the line, so a falling
+          // index is never drawn in the colour of good news.
+          const verdict: 'neutral' | 'good' | 'bad' =
             change === null || riseIsGood === undefined || Math.abs(change) < 1e-9
-              ? 'text-ink-soft'
+              ? 'neutral'
               : change > 0 === riseIsGood
+                ? 'good'
+                : 'bad'
+          const tone =
+            verdict === 'neutral'
+              ? 'text-ink-soft'
+              : verdict === 'good'
                 ? 'text-good'
                 : 'text-bad'
 
@@ -117,13 +125,7 @@ export function MarketsPanel({
                   values={row.trend}
                   label={row.label}
                   decimals={decimals}
-                  tone={
-                    riseIsGood === undefined
-                      ? 'neutral'
-                      : riseIsGood
-                        ? 'rise-good'
-                        : 'rise-bad'
-                  }
+                  tone={verdict}
                 />
               </div>
 

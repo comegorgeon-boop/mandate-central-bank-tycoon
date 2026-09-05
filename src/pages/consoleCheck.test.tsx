@@ -31,6 +31,11 @@ function playWholeMandate(difficulty: Difficulty): void {
   fireEvent.click(screen.getByRole('button', { name: 'Enter the first meeting' }))
 
   for (let meeting = 1; meeting <= MEETING_COUNT[difficulty]; meeting += 1) {
+    // The interval between meetings plays first; skip it, exactly as a
+    // player in a hurry would.
+    const skipInterval = screen.queryByRole('button', { name: 'Skip to the meeting' })
+    if (skipInterval !== null) fireEvent.click(skipInterval)
+
     // A mandate can end early — dismissal, a banking crisis, an inflation
     // spiral — and then the meeting screen is gone and the result screen is up.
     // That is a real outcome and the common one at hard, not a failure of this
@@ -131,17 +136,25 @@ describe('the toolkit each difficulty actually reaches', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start the mandate' }))
     fireEvent.click(screen.getByRole('button', { name: 'Enter the first meeting' }))
 
-    for (let meeting = 0; meeting < advance; meeting += 1) {
-      fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-      fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
-      fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))
+    // The interval plays first and the same-day reaction second; a player in a
+    // hurry skips both, which is what this does before each meeting's desk.
+    const reachTheDesk = (): void => {
+      const skip = screen.queryByRole('button', { name: 'Skip to the meeting' })
+      if (skip !== null) fireEvent.click(skip)
       const onward = screen.queryByRole('button', {
         name: 'Continue to the next meeting',
       })
       if (onward !== null) fireEvent.click(onward)
+      fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     }
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
+    for (let meeting = 0; meeting < advance; meeting += 1) {
+      reachTheDesk()
+      fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))
+    }
+
+    reachTheDesk()
   }
 
   it('gives easy the rate and the words, and nothing else', () => {

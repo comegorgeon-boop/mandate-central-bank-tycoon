@@ -5,7 +5,8 @@ import type { PolicyPackage, PolicyValidation } from '../types/policy.ts'
 import type { EndConditionResult } from '../types/scoring.ts'
 import type { SimulationState } from '../types/state.ts'
 import { applyPolicyPackage } from '../engine/applyPolicyPackage.ts'
-import { advanceTrueState } from '../engine/advanceTrueState.ts'
+import { advanceTrueStateTraced } from '../engine/advanceTrueState.ts'
+import { buildIntervalFrames, type IntervalFrame } from '../observation/interval.ts'
 import { createInitialState } from '../engine/initialState.ts'
 import { isMajorEvent } from '../events/catalog.ts'
 import { resolveEvent } from '../events/resolveEvent.ts'
@@ -69,6 +70,15 @@ export interface RunSession {
   readonly majorEvent: ResolvedEventRecord | null
   /** Warning signals for risks that may materialise. */
   readonly clues: readonly string[]
+  /**
+   * The interval just elapsed, sub-step by sub-step, for the interface to
+   * play. Empty at the first meeting, where no time has passed yet.
+   *
+   * Carries exactly-observed market prices only — never latent state — so a
+   * component can watch the quarter go by without being handed the truth the
+   * rest of the interface is careful to withhold. See `observation/interval.ts`.
+   */
+  readonly interval: readonly IntervalFrame[]
 }
 
 export type MeetingResult =
@@ -125,6 +135,7 @@ export function startRun(config: RunConfig): RunSession {
     newswire: [],
     majorEvent: opener,
     clues: [],
+    interval: [],
   }
 }
 
@@ -174,7 +185,7 @@ export function submitMeeting(
 
   // Events happen between meetings, on top of the confirmed decision.
   const resolution = resolveEvent(applied.state)
-  const advanced = advanceTrueState(resolution.state)
+  const { state: advanced, steps } = advanceTrueStateTraced(resolution.state)
   const outcome = evaluateEndConditions(advanced, session.outcome.breachCounters)
 
   // Majors get the dedicated banner, not the generic newswire list — see
@@ -197,6 +208,11 @@ export function submitMeeting(
       newswire,
       majorEvent,
       clues: resolution.clues,
+      interval: buildIntervalFrames(
+        steps,
+        resolution.state.timeYears,
+        session.state.config.institution,
+      ),
     },
   }
 }

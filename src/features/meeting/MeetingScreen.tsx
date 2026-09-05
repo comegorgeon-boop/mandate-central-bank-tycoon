@@ -19,6 +19,8 @@ import { PricesPanel } from './panels/PricesPanel.tsx'
 import { regimeObjective } from './objective.ts'
 import { registerFor } from './register.ts'
 import { SettingsPanel } from '../settings/SettingsPanel.tsx'
+import { shouldPlayInterval, useSettings } from '../settings/settings.ts'
+import { IntervalPlayer } from './IntervalPlayer.tsx'
 
 /**
  * One policy meeting.
@@ -59,8 +61,13 @@ export function MeetingScreen({
   readonly onConfirm: (pkg: PolicyPackage) => MeetingResult
 }) {
   const [panel, setPanel] = useState<PanelId>('brief')
-  // This component is remounted at every meeting, so the reaction to the
-  // decision that opened this meeting is shown exactly once.
+  const { settings } = useSettings()
+  // This component is remounted at every meeting, so each of these is shown
+  // exactly once, in order: first the interval that has just elapsed, then the
+  // same-day reaction to the decision that opened it, then the meeting.
+  const [playingInterval, setPlayingInterval] = useState(
+    () => session.interval.length > 0 && shouldPlayInterval(settings),
+  )
   const [showReaction, setShowReaction] = useState(
     session.onTheDay !== null && session.previousObservation !== null,
   )
@@ -96,7 +103,14 @@ export function MeetingScreen({
         </div>
       </header>
 
-      {showReaction && session.previousObservation !== null && session.onTheDay !== null ? (
+      {playingInterval ? (
+        <div className="mt-5">
+          <IntervalPlayer
+            frames={session.interval}
+            onDone={() => setPlayingInterval(false)}
+          />
+        </div>
+      ) : showReaction && session.previousObservation !== null && session.onTheDay !== null ? (
         <div className="mt-5">
           <ReactionPanel
             before={session.previousObservation}

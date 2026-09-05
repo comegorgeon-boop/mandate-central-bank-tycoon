@@ -39,7 +39,16 @@ function startRunOnSeed(seed: string): void {
  * Dismisses the same-day reaction screen that opens every meeting after the
  * first, so the caller lands on the meeting proper.
  */
+/**
+ * Gets from a confirmed decision to the next meeting's screens.
+ *
+ * Two things now sit between them, in order: the interval playing out, and the
+ * same-day reaction to the decision that opened it. Both are skippable, and a
+ * player in a hurry skips both, which is what this does.
+ */
 function passTheReaction(): void {
+  const skipInterval = screen.queryByRole('button', { name: 'Skip to the meeting' })
+  if (skipInterval !== null) fireEvent.click(skipInterval)
   const onward = screen.queryByRole('button', { name: 'Continue to the next meeting' })
   if (onward !== null) fireEvent.click(onward)
 }
@@ -101,6 +110,7 @@ describe('the playable loop', () => {
     expect(within(panel()).getByRole('heading', { name: 'Labor' })).toBeInTheDocument()
     expect(within(panel()).getByText('Unemployment rate')).toBeInTheDocument()
 
+    passTheReaction()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     expect(within(panel()).getByRole('heading', { name: 'Policy Desk' })).toBeInTheDocument()
   })
@@ -122,6 +132,7 @@ describe('the playable loop', () => {
 
     decideThisMeeting('+50 bp')
 
+    passTheReaction()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     expect(screen.getByRole('button', { name: 'Hold' })).toHaveAttribute(
       'aria-pressed',
@@ -137,6 +148,7 @@ describe('the playable loop', () => {
     startRunOnSeed('FLOOR')
 
     const current = policyRateInForce()
+    passTheReaction()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
 
     for (const cut of [25, 50, 75, 100]) {

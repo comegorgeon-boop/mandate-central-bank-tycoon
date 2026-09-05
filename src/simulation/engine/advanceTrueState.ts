@@ -45,23 +45,62 @@ function dueEffects(
   step: number,
 ): {
   readonly due: readonly EventEffect[]
+  /** Which events those consequences belonged to, for the interval trace. */
+  readonly dueEventIds: readonly string[]
   readonly remaining: readonly PendingEventEffect[]
 } {
-  if (pending.length === 0) return { due: [], remaining: pending }
+  if (pending.length === 0) return { due: [], dueEventIds: [], remaining: pending }
 
   const due: EventEffect[] = []
+  const dueEventIds: string[] = []
   const remaining: PendingEventEffect[] = []
   for (const entry of pending) {
     if (entry.fireAtStep <= step) {
       due.push(...entry.effects)
+      if (!dueEventIds.includes(entry.eventId)) dueEventIds.push(entry.eventId)
     } else {
       remaining.push(entry)
     }
   }
-  return { due, remaining: remaining.length === pending.length ? pending : remaining }
+  return {
+    due,
+    dueEventIds,
+    remaining: remaining.length === pending.length ? pending : remaining,
+  }
+}
+
+/**
+ * One internal sub-step of the interval, as the engine actually computed it.
+ *
+ * Produced so the interface can show the quarter *passing* rather than cutting
+ * to its end. Nothing here is interpolated or invented: these are the states
+ * the integrator went through, and the alternative — tweening between two
+ * meetings — would be an animation that shows the player something the model
+ * never computed.
+ */
+export interface IntervalStep {
+  readonly stepIndex: number
+  readonly latent: LatentState
+  /** Events whose queued consequences landed immediately before this step. */
+  readonly landedEventIds: readonly string[]
+}
+
+export interface AdvanceResult {
+  readonly state: SimulationState
+  readonly steps: readonly IntervalStep[]
 }
 
 export function advanceTrueState(state: SimulationState): SimulationState {
+  return advanceTrueStateTraced(state).state
+}
+
+/**
+ * The same advance, keeping the sub-steps it passed through.
+ *
+ * `advanceTrueState` is this with the trace discarded, so there is exactly one
+ * implementation and the animation can never drift from the simulation.
+ */
+export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
   const institution = getInstitution(state.config.institution)
   const difficulty = getDifficulty(state.config.difficulty)
   const kernel = buildLagKernel(state.config.difficulty)
@@ -73,12 +112,16 @@ export function advanceTrueState(state: SimulationState): SimulationState {
   let pending = state.pendingEffects
   let stepIndex = state.stepIndex
 
+  const steps: IntervalStep[] = []
+
   for (let substep = 0; substep < SUBSTEPS_PER_MEETING; substep += 1) {
     // Queued consequences land before the step that integrates them.
-    const { due, remaining } = dueEffects(pending, stepIndex)
+    const { due, dueEventIds, remaining } = dueEffects(pending, stepIndex)
+    let landedEventIds: readonly string[] = []
     if (due.length > 0) {
       latent = clampLatentState(applyEffects(latent, due), stepIndex, diagnostics)
       pending = remaining
+      landedEventIds = dueEventIds
     }
 
     const advanced = advanceSubstep(
@@ -98,24 +141,28 @@ export function advanceTrueState(state: SimulationState): SimulationState {
     stepIndex += 1
     latent = clampLatentState(advanced.latent, stepIndex, diagnostics)
     lags = advanced.lags
+    steps.push({ stepIndex, latent, landedEventIds })
   }
 
   const meetingIndex = state.meetingIndex + 1
   const timeYears = state.timeYears + YEARS_PER_MEETING
 
   return {
-    ...state,
-    meetingIndex,
-    stepIndex,
-    timeYears,
-    latent,
-    lags,
-    rng: prng.getState(),
-    pendingEffects: pending,
-    diagnostics:
-      diagnostics.length > 0
-        ? [...state.diagnostics, ...diagnostics]
-        : state.diagnostics,
-    history: [...state.history, { meetingIndex, timeYears, latent }],
+    state: {
+      ...state,
+      meetingIndex,
+      stepIndex,
+      timeYears,
+      latent,
+      lags,
+      rng: prng.getState(),
+      pendingEffects: pending,
+      diagnostics:
+        diagnostics.length > 0
+          ? [...state.diagnostics, ...diagnostics]
+          : state.diagnostics,
+      history: [...state.history, { meetingIndex, timeYears, latent }],
+    },
+    steps,
   }
 }

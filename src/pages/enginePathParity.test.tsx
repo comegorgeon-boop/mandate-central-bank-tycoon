@@ -159,6 +159,11 @@ function playThroughTheInterface(): {
   const confirmedRates: number[] = []
 
   for (let meeting = 1; meeting <= MEETINGS; meeting += 1) {
+    // The interval between meetings plays first; skip it, exactly as a
+    // player in a hurry would.
+    const skipInterval = screen.queryByRole('button', { name: 'Skip to the meeting' })
+    if (skipInterval !== null) fireEvent.click(skipInterval)
+
     const reaction = screen.queryByRole('button', {
       name: 'Continue to the next meeting',
     })

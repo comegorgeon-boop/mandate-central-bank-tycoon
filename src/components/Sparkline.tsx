@@ -8,13 +8,21 @@
  * hidden from assistive technology only when that equivalent is present.
  */
 
-/** Which direction of travel this series calls good, if either. */
-export type SparklineTone = 'neutral' | 'rise-good' | 'rise-bad'
+/**
+ * How the line is coloured.
+ *
+ * The *realised* verdict, not the series' semantics. An earlier version took
+ * "which way is good for this series" and coloured a falling equity index
+ * green, because rising is good for equities — which is precisely backwards
+ * for the reader, who sees a green line going down. Callers work out the
+ * verdict and pass it; this only draws it.
+ */
+export type SparklineTone = 'neutral' | 'good' | 'bad'
 
 const TONE_CLASS: Readonly<Record<SparklineTone, string>> = {
   neutral: 'text-ink-faint',
-  'rise-good': 'text-good',
-  'rise-bad': 'text-bad',
+  good: 'text-good',
+  bad: 'text-bad',
 }
 
 /**

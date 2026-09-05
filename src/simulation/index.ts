@@ -93,7 +93,14 @@ export { revealedDispatches, type RevealedDispatch } from './events/dispatches.t
 
 // ---- Observation ----------------------------------------------------------
 export { generateObservation } from './observation/generateObservation.ts'
-export { FORECAST_SERIES, SERIES, getSeries, seriesFor } from './observation/series.ts'
+export { EQUITY_BASE, FORECAST_SERIES, SERIES, getSeries, seriesFor } from './observation/series.ts'
+export {
+  LIVE_SERIES,
+  buildIntervalFrames,
+  calendarLabel,
+  type IntervalDispatch,
+  type IntervalFrame,
+} from './observation/interval.ts'
 export { diagnoseShock } from './observation/diagnose.ts'
 export {
   readStance,
