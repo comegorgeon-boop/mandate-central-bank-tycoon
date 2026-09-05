@@ -77,6 +77,37 @@ describe('console hygiene', () => {
   }
 })
 
+describe('both institutions are reachable', () => {
+  // The ECB has been fully built, balanced and measured in every sweep since
+  // the engine existed, and the setup screen offered only the Fed — half the
+  // content unplayable for no reason.
+  // Asserted on the *rate instrument's* own institution-specific label, which
+  // only `config/instruments.ts` can produce, so this proves the choice reached
+  // the engine rather than that a button was pressed.
+  for (const [label, rateLabel] of [
+    ['Federal Reserve', /Federal funds target range/],
+    ['European Central Bank', /Main refinancing rate/],
+  ] as const) {
+    it(`starts a mandate at the ${label}`, () => {
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <App />
+        </MemoryRouter>,
+      )
+      fireEvent.click(screen.getByRole('link', { name: 'Play now' }))
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label}`) }))
+      fireEvent.change(screen.getByLabelText('Scenario seed', { selector: 'input' }), {
+        target: { value: 'BOTH' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Start the mandate' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter the first meeting' }))
+      fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
+
+      expect(screen.getAllByText(rateLabel).length).toBeGreaterThan(0)
+    })
+  }
+})
+
 describe('the toolkit each difficulty actually reaches', () => {
   /**
    * Opens the desk, optionally a few meetings in.

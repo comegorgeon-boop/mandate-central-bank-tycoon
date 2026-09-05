@@ -4,6 +4,7 @@ import {
   MEETING_COUNT,
   getInstitution,
   type Difficulty,
+  type Institution,
 } from '../simulation/index.ts'
 import { useRun } from '../features/game/runContext.ts'
 import { MAX_SEED_LENGTH, randomSeed, sanitizeSeed } from '../features/game/seed.ts'
@@ -53,19 +54,20 @@ const DIFFICULTY_COPY: Readonly<
 }
 
 const DIFFICULTIES: readonly Difficulty[] = ['easy', 'medium', 'hard']
+const INSTITUTIONS: readonly Institution[] = ['fed', 'ecb']
 
 export default function SetupPage() {
   const navigate = useNavigate()
   const { begin } = useRun()
   const [seed, setSeed] = useState(randomSeed)
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
+  const [institution, setInstitution] = useState<Institution>('fed')
 
-  const fed = getInstitution('fed')
   const trimmed = sanitizeSeed(seed)
 
   const start = (): void => {
     if (trimmed.length === 0) return
-    begin({ institution: 'fed', difficulty, seed: trimmed })
+    begin({ institution, difficulty, seed: trimmed })
     navigate('/play/briefing')
   }
 
@@ -77,18 +79,42 @@ export default function SetupPage() {
         not an official product of, any central bank.
       </p>
 
-      <section className="mt-8" aria-labelledby="institution-heading">
-        <h2 id="institution-heading" className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
+      <fieldset className="mt-8">
+        <legend className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
           Institution
-        </h2>
-        <div className="mt-2 rounded border border-neutral-700 bg-neutral-900 p-3">
-          <p className="font-medium text-neutral-100">{fed.name}</p>
-          <p className="mt-1 text-sm text-neutral-400">{fed.mandateSummary}</p>
-        </div>
-        <p className="mt-2 text-xs text-neutral-500">
-          The European Central Bank is not part of this build.
+        </legend>
+        <p className="mt-1 text-sm text-neutral-400">
+          The mandate you serve, and therefore what you are judged on.
         </p>
-      </section>
+        <div className="mt-2 flex flex-col gap-2">
+          {INSTITUTIONS.map((id) => {
+            const selected = id === institution
+            const config = getInstitution(id)
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setInstitution(id)}
+                className={`rounded border p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 ${
+                  selected
+                    ? 'border-neutral-300 bg-neutral-800'
+                    : 'border-neutral-700 bg-neutral-900 hover:bg-neutral-800'
+                }`}
+              >
+                <span
+                  className={`font-medium ${selected ? 'text-neutral-50' : 'text-neutral-100'}`}
+                >
+                  {config.name}
+                </span>
+                <span className="mt-1 block text-sm text-neutral-400">
+                  {config.mandateSummary}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
 
       <fieldset className="mt-6">
         <legend className="text-sm font-semibold uppercase tracking-wide text-neutral-300">
