@@ -3,6 +3,7 @@ import {
   type IndicatorObservation,
   type ReleaseCategory,
 } from '../simulation/index.ts'
+import { plainHeadline, type Register } from '../features/meeting/register.ts'
 import { TrendChart } from './TrendChart.tsx'
 
 /**
@@ -15,6 +16,12 @@ import { TrendChart } from './TrendChart.tsx'
  *
  * The trend chart is not decoration. A single reading shows no direction, and
  * in macroeconomics the direction usually decides the policy.
+ *
+ * What leads the row is the difficulty's `Register`. On the learning mandate a
+ * plain sentence is the headline and the figure is the note underneath it; from
+ * medium the figure leads; at hard the plain-language reading of what a move
+ * means is withdrawn entirely and only the technical definition remains. See
+ * `features/meeting/register.ts`.
  */
 
 const CATEGORY_LABEL: Readonly<Record<ReleaseCategory, string>> = {
@@ -48,25 +55,45 @@ function formatChange(
 export function IndicatorRow({
   observation,
   reference = null,
-  referenceLabel,
+  referenceLabel = 'objective',
+  register = 'plain',
 }: {
   readonly observation: IndicatorObservation
   /** A line to read the series against, such as the inflation objective. */
   readonly reference?: number | null
   readonly referenceLabel?: string
+  /** Which language this difficulty publishes its numbers in. */
+  readonly register?: Register
 }) {
   const decimals = getSeries(observation.seriesId)?.decimals ?? 2
   const change = formatChange(observation.value, observation.previous, decimals)
+  const figure = (
+    <span className="tabular-nums text-lg text-neutral-50">
+      {formatValue(observation.value, decimals)}
+      <span className="ml-1 text-xs text-neutral-400">{observation.unit}</span>
+    </span>
+  )
 
   return (
     <li className="border-b border-neutral-800 py-4 last:border-b-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="font-medium text-neutral-100">{observation.label}</span>
-        <span className="tabular-nums text-lg text-neutral-50">
-          {formatValue(observation.value, decimals)}
-          <span className="ml-1 text-xs text-neutral-400">{observation.unit}</span>
-        </span>
-      </div>
+      {register === 'plain' ? (
+        <div>
+          <p className="font-medium text-neutral-100">
+            {plainHeadline(observation, reference, referenceLabel)}
+          </p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="text-xs uppercase tracking-wide text-neutral-500">
+              {observation.label}
+            </span>
+            {figure}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <span className="font-medium text-neutral-100">{observation.label}</span>
+          {figure}
+        </div>
+      )}
 
       <TrendChart
         label={observation.label}
@@ -76,7 +103,10 @@ export function IndicatorRow({
         referenceLabel={referenceLabel}
       />
 
-      <p className="mt-2 text-sm text-neutral-400">{observation.meaning}</p>
+      {/* What a move means is a reading, and hard reads nothing for you. */}
+      {register !== 'technical' && (
+        <p className="mt-2 text-sm text-neutral-400">{observation.meaning}</p>
+      )}
 
       <p className="mt-2 text-xs text-neutral-500">
         {observation.missing ? (

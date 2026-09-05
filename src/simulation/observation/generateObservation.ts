@@ -308,11 +308,19 @@ export function generateObservation(
     diagnosis: null,
   }
 
-  // The diagnosis reads the latent state to name the shock, so it is built
+  // The diagnosis reads the latent state to identify the shock, so it is built
   // last, from the published set, and only where the difficulty allows it.
-  if (!difficulty.namesShocks) return published
+  //
+  // The two halves are gated separately, and used not to be. `namesShocks`
+  // alone decided whether the whole panel existed, so medium — which
+  // docs/BALANCE.md's own information ladder describes as "shock not named,
+  // evidence still shown" — was in fact getting neither. The evidence is what
+  // survives down the ladder; the name is what is withdrawn.
+  if (!difficulty.namesShocks && !difficulty.showsShockEvidence) return published
   return {
     ...published,
-    diagnosis: diagnoseShock(state.latent, published, state.config.institution),
+    diagnosis: diagnoseShock(state.latent, published, state.config.institution, {
+      named: difficulty.namesShocks,
+    }),
   }
 }

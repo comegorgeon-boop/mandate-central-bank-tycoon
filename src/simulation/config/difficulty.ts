@@ -104,19 +104,50 @@ export interface DifficultyConfig {
   /**
    * Whether the shock in progress is named outright.
    *
-   * The evidence that identifies a shock is published at every difficulty; only
-   * the name is withheld. That ordering is deliberate — a player who learned
-   * the name without the evidence would have learned nothing transferable.
+   * The name is the first thing withdrawn as difficulty rises, and the
+   * evidence outlives it by a rung — see `showsShockEvidence`. That ordering
+   * is deliberate and it is the reverse of the obvious one: a player who
+   * learned the name without the evidence would have learned nothing
+   * transferable.
    */
   readonly namesShocks: boolean
   /**
+   * Whether the tells that identify the shock are assembled and put in front
+   * of the player, quoting the published series that show them.
+   *
+   * Separate from `namesShocks`, and one rung further down the ladder, because
+   * the evidence is the transferable half. This flag used not to exist and the
+   * panel was gated on `namesShocks` alone, so medium got neither the name nor
+   * the evidence — contradicting the ladder docs/BALANCE.md had recorded as
+   * settled since phase 3.
+   *
+   * False at hard does not mean the evidence is gone: every series it quotes
+   * is still published on the indicator panels. What goes is having it read
+   * for you.
+   */
+  readonly showsShockEvidence: boolean
+  /**
    * Whether the staff put a recommendation to the committee before it decides.
    *
-   * At easy the rule is reliable. When the higher difficulties are built it
-   * stays on the same noisy published data as the player, so it becomes a
-   * fallible colleague rather than an oracle that has to be taken away.
+   * At easy the rule is reliable. At medium it is the same rule on the same
+   * noisy published data the player has — a fallible colleague rather than an
+   * oracle, which needs no new mechanism: `policy/staffRule.ts` reads the
+   * observation set, so at medium's noise it is wrong for the same reasons the
+   * player is wrong. At hard there is no single recommendation at all; see
+   * `splitsCommittee`.
    */
   readonly showsStaffRecommendation: boolean
+  /**
+   * Whether the committee is shown as divided: several recommendations from
+   * the same rule at different inflation weights, put without a resolution.
+   *
+   * The alternative to withdrawing advice outright at hard, and the better
+   * one: silence teaches nothing, while a split committee is what a real
+   * governing council actually looks like when the data are ambiguous. The
+   * player has to decide which of the colleagues in front of them is right,
+   * which is the skill the mode is about.
+   */
+  readonly splitsCommittee: boolean
   /** Whether a communication package is required at each meeting. */
   readonly requiresCommunication: boolean
 }
@@ -151,7 +182,9 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     scoreMultiplier: 0.85,
     showsPolicyHints: true,
     namesShocks: true,
+    showsShockEvidence: true,
     showsStaffRecommendation: true,
+    splitsCommittee: false,
     requiresCommunication: false,
   },
   medium: {
@@ -181,7 +214,11 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     scoreMultiplier: 1.0,
     showsPolicyHints: false,
     namesShocks: false,
-    showsStaffRecommendation: false,
+    // The rung the ladder is actually about: the name goes, the reading stays.
+    showsShockEvidence: true,
+    // Shown, and fallible — it reads the same noisy prints the player does.
+    showsStaffRecommendation: true,
+    splitsCommittee: false,
     requiresCommunication: true,
   },
   hard: {
@@ -209,7 +246,11 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     scoreMultiplier: 1.15,
     showsPolicyHints: false,
     namesShocks: false,
+    // Nothing is read for you. Every series the evidence would have quoted is
+    // still published; assembling them into a case is the player's job.
+    showsShockEvidence: false,
     showsStaffRecommendation: false,
+    splitsCommittee: true,
     requiresCommunication: true,
   },
 }

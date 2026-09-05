@@ -1,5 +1,6 @@
 import { IndicatorRow } from '../../../components/IndicatorRow.tsx'
 import type { ObservationSet, SeriesId } from '../../../simulation/index.ts'
+import type { Register } from '../register.ts'
 
 /**
  * Shared layout for the information panels.
@@ -17,6 +18,7 @@ export function IndicatorPanel({
   footnote,
   references = {},
   referenceLabel = 'objective',
+  register,
 }: {
   readonly id: string
   readonly title: string
@@ -27,6 +29,8 @@ export function IndicatorPanel({
   /** Per-series line to read the trend against, such as the inflation target. */
   readonly references?: Partial<Record<SeriesId, number>>
   readonly referenceLabel?: string
+  /** Which language this difficulty publishes its numbers in. */
+  readonly register: Register
 }) {
   const rows = seriesIds
     .map((seriesId) => observation.indicators[seriesId])
@@ -51,6 +55,7 @@ export function IndicatorPanel({
               observation={row}
               reference={references[row.seriesId] ?? null}
               referenceLabel={referenceLabel}
+              register={register}
             />
           ))}
         </ul>

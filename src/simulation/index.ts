@@ -101,7 +101,10 @@ export {
 
 // ---- Policy ---------------------------------------------------------------
 export {
+  committeeAgrees,
+  committeeViews,
   staffRecommendation,
+  type CommitteeView,
   type StaffRecommendation,
 } from './policy/staffRule.ts'
 

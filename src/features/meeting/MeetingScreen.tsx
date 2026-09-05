@@ -14,6 +14,7 @@ import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MajorEventPanel } from './panels/MajorEventPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { PricesPanel } from './panels/PricesPanel.tsx'
+import { registerFor } from './register.ts'
 
 /**
  * One policy meeting.
@@ -57,6 +58,9 @@ export function MeetingScreen({
 
   const { config } = session.state
   const institution = getInstitution(config.institution)
+  // Difficulty decides the language the numbers are published in, not only
+  // which of them are shown. See `features/meeting/register.ts`.
+  const register = registerFor(config.difficulty)
   const meetingNumber = session.state.meetingIndex + 1
   const severeWarnings = session.outcome.warnings.filter(
     (warning) => warning.severity === 'severe',
@@ -169,9 +173,12 @@ export function MeetingScreen({
               <PricesPanel
                 observation={session.observation}
                 inflationTarget={institution.inflationTarget}
+                register={register}
               />
             )}
-            {panel === 'labor' && <LaborPanel observation={session.observation} />}
+            {panel === 'labor' && (
+              <LaborPanel observation={session.observation} register={register} />
+            )}
             {panel === 'desk' && (
               <PolicyDeskPanel session={session} onConfirm={onConfirm} />
             )}

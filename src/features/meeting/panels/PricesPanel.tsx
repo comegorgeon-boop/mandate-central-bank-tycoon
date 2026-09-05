@@ -1,4 +1,5 @@
 import type { ObservationSet, SeriesId } from '../../../simulation/index.ts'
+import type { Register } from '../register.ts'
 import { IndicatorPanel } from './IndicatorPanel.tsx'
 
 /**
@@ -21,9 +22,11 @@ const PRICE_SERIES: readonly SeriesId[] = [
 export function PricesPanel({
   observation,
   inflationTarget,
+  register,
 }: {
   readonly observation: ObservationSet
   readonly inflationTarget: number
+  readonly register: Register
 }) {
   return (
     <IndicatorPanel
@@ -38,6 +41,7 @@ export function PricesPanel({
         inflation_expectations_1y: inflationTarget,
         inflation_expectations: inflationTarget,
       }}
+      register={register}
       footnote="Price statistics describe a period that has already passed and are revised afterwards. Expectations and market pricing are the timelier read."
     />
   )

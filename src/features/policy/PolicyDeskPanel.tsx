@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   COMMUNICATION_AVAILABILITY,
   POLICY_RATE_FLOOR,
+  committeeViews,
   detectContradictions,
   getDifficulty,
   getInstitution,
@@ -14,6 +15,7 @@ import {
   type PolicyValidation,
   type RunSession,
 } from '../../simulation/index.ts'
+import { CommitteeSplitPanel } from './CommitteeSplitPanel.tsx'
 import { CommunicationPanel } from './CommunicationPanel.tsx'
 import { StaffAdvicePanel } from './StaffAdvicePanel.tsx'
 import { StancePreview } from './StancePreview.tsx'
@@ -82,6 +84,18 @@ export function PolicyDeskPanel({
       difficultyConfig.showsStaffRecommendation
         ? staffRecommendation(session.observation, institution, difficulty)
         : null,
+    [difficultyConfig, session.observation, institution, difficulty],
+  )
+
+  // Hard replaces the single recommendation with a divided committee rather
+  // than removing advice altogether: an empty screen teaches nothing, while a
+  // disagreement between colleagues reading the same numbers is exactly the
+  // decision the mode is about.
+  const committee = useMemo(
+    () =>
+      difficultyConfig.splitsCommittee
+        ? committeeViews(session.observation, institution, difficulty)
+        : [],
     [difficultyConfig, session.observation, institution, difficulty],
   )
 
@@ -270,6 +284,10 @@ export function PolicyDeskPanel({
 
       {advice !== null && (
         <StaffAdvicePanel recommendation={advice} selectedMove={move} />
+      )}
+
+      {committee.length > 0 && (
+        <CommitteeSplitPanel views={committee} selectedMove={move} />
       )}
 
       <CommunicationPanel

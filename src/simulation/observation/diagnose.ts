@@ -256,15 +256,23 @@ function evidenceFor(
 /**
  * Identifies the disturbance currently dominating the economy.
  *
- * Called only where the difficulty grants it. The latent state is read here to
- * name the shock — this is the one place the learning mode is allowed to be
- * omniscient — and never leaves this function: only the label and the
- * published evidence reach the player.
+ * The latent state is read here to identify the shock — this is the one place
+ * the learning mode is allowed to be omniscient — and never leaves this
+ * function: only the label, where the difficulty grants one, and the published
+ * evidence reach the player.
+ *
+ * `named` withdraws the name while keeping the reading. The identification
+ * still happens either way, because the evidence is *the tells for the shock
+ * that is actually running* — an evidence list assembled without knowing which
+ * shock it was describing would be a list of every indicator, which is the
+ * same as no list at all. What the player loses at medium is the conclusion,
+ * not the argument.
  */
 export function diagnoseShock(
   latent: LatentState,
   observation: ObservationSet,
   institution: Institution,
+  { named }: { readonly named: boolean },
 ): ShockDiagnosis {
   let kind: ShockKind = 'none'
   let strongest = QUIET_THRESHOLD
@@ -280,9 +288,9 @@ export function diagnoseShock(
   }
 
   return {
-    kind,
-    label: LABEL[kind],
-    summary: SUMMARY[kind],
+    kind: named ? kind : null,
+    label: named ? LABEL[kind] : null,
+    summary: named ? SUMMARY[kind] : null,
     evidence: evidenceFor(kind, observation, institution),
   }
 }
