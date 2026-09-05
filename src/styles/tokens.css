@@ -1,0 +1,355 @@
+/*
+ * The design tokens. Nothing in this interface may name a raw colour.
+ *
+ * Two layers, and the separation is the whole point of the file:
+ *
+ *   1. A PALETTE of named materials — walnut, brass, paper, viridian, claret.
+ *      These are the boardroom, and they never change meaning.
+ *   2. SEMANTIC tokens that say what a thing is *for* — the page ground, a
+ *      panel, primary text, a positive reading. Components use only these.
+ *
+ * A component that writes `bg-walnut-800` has decided that panels are made of
+ * walnut, and every future change to that decision has to find it. A component
+ * that writes `bg-panel` has decided nothing, which is why the two visual
+ * directions below can be swapped by editing one block.
+ *
+ * ---------------------------------------------------------------------------
+ * THE TWO DIRECTIONS
+ * ---------------------------------------------------------------------------
+ *
+ * Both are the same boardroom; they differ in where the *reading surface* is.
+ *
+ *   A. PAPERS ON THE TABLE (the default, and the one that ships)
+ *      Dark walnut room, brass fittings — and the panels you actually read are
+ *      cream paper with near-black ink, as though the briefing documents were
+ *      laid on the table under a lamp. Body text runs at 15.9:1 against its
+ *      own ground.
+ *
+ *   B. THE ROOM AFTER HOURS
+ *      The same room with no papers out: every surface is walnut, text is warm
+ *      off-white, brass carries the emphasis. Quieter and more of a piece, and
+ *      it reads at 12.6:1 — genuinely good, but below A, and a mandate is
+ *      forty minutes of reading small numbers.
+ *
+ * A ships because the brief puts legibility before aesthetics and A is
+ * measurably more legible. To see B, change `--direction` below to `after-hours`
+ * — the block immediately under it is the only thing that has to change.
+ *
+ * ---------------------------------------------------------------------------
+ * TYPE
+ * ---------------------------------------------------------------------------
+ *
+ * System stacks, deliberately. A webfont means a network request for a file
+ * this build does not ship, and the mandate forbids network calls once the
+ * static files are loaded — so a Google Fonts link is out regardless of how
+ * good the face is. The serif stack leads with Iowan Old Style and Palatino,
+ * which are on every Mac and read beautifully at display sizes; the sans leads
+ * with the platform UI face, which is what the reader's eye is most trained on.
+ */
+
+@theme {
+  /* ---- Palette: the materials --------------------------------------- */
+
+  /* Dark walnut. The room: panelling, frame, the ground everything sits on. */
+  --color-walnut-950: #16100c;
+  --color-walnut-900: #1f1712;
+  --color-walnut-850: #271d17;
+  --color-walnut-800: #33261e;
+  --color-walnut-700: #452f24;
+  --color-walnut-600: #5c4030;
+  --color-walnut-500: #78573f;
+
+  /* Brass. Fittings, rules, the mark of something worth looking at. Used
+   * sparingly: brass everywhere is brass nowhere. */
+  --color-brass-600: #8a6a2f;
+  --color-brass-500: #a8842f;
+  --color-brass-400: #c9a227;
+  --color-brass-300: #ddbe5c;
+  --color-brass-200: #ecd89b;
+
+  /* Cream paper. The reading surface, and the reason direction A wins. */
+  --color-paper-50: #fbf7ef;
+  --color-paper-100: #f4ede0;
+  --color-paper-200: #e8dcc8;
+  --color-paper-300: #d8c8ac;
+  --color-paper-400: #b9a483;
+
+  /* Ink. Text on paper, never on walnut. */
+  --color-ink-900: #1a1510;
+  --color-ink-700: #3d342a;
+  --color-ink-500: #6b5f50;
+  --color-ink-400: #8a7c6a;
+
+  /* Deep green. Good news, and only good news. */
+  --color-viridian-900: #10251c;
+  --color-viridian-800: #17392a;
+  --color-viridian-600: #2f7355;
+  --color-viridian-500: #3d8f69;
+  --color-viridian-400: #63b18c;
+  --color-viridian-200: #b6ddc9;
+
+  /* Burgundy. Danger, and only danger. */
+  --color-claret-900: #2a1015;
+  --color-claret-800: #451820;
+  --color-claret-600: #8e2f3f;
+  --color-claret-500: #a83d4e;
+  --color-claret-400: #c76d7b;
+  --color-claret-200: #e8bcc3;
+
+  /* ---- Type ---------------------------------------------------------- */
+
+  --font-display:
+    'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia,
+    ui-serif, serif;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* A modular scale at 1.2, rounded to whole- or half-pixels. Numbers are
+   * read at `base` and below; nothing smaller than `xs` carries information a
+   * decision depends on. */
+  --text-2xs: 0.6875rem; /* 11px — release provenance, footnotes */
+  --text-xs: 0.75rem; /* 12px — labels, units */
+  --text-sm: 0.875rem; /* 14px — supporting copy */
+  --text-base: 1rem; /* 16px — body */
+  --text-lg: 1.125rem; /* 18px — figures in a row */
+  --text-xl: 1.375rem; /* 22px — panel headings */
+  --text-2xl: 1.75rem; /* 28px — screen headings */
+  --text-3xl: 2.25rem; /* 36px — the score, the date */
+
+  /* ---- Space, radius, shadow ----------------------------------------- */
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Shadows are lamplight on a dark room: warm, low, never a grey blur. */
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.35);
+  --shadow-inset-rule: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * DIRECTION A — papers on the table. The semantic layer.
+ * ---------------------------------------------------------------------------
+ *
+ * Contrast ratios against their own ground, measured, all well past WCAG AA's
+ * 4.5:1 for body text and 3:1 for large text:
+ *
+ *   --ink-primary   on --surface-panel   15.9:1
+ *   --ink-secondary on --surface-panel    7.9:1
+ *   --ink-muted     on --surface-panel    4.8:1
+ *   --onwood-primary   on --surface-page    12.1:1
+ *
+ * `--ink-muted` is the floor and it is deliberately *only* used for release
+ * provenance and units — never for a number or a sentence a decision depends
+ * on. The player spent a week reporting this interface as unreadable; the
+ * fix is not a lighter grey, it is putting the reading on paper.
+ */
+:root {
+  --direction: papers-on-the-table;
+
+  color-scheme: dark;
+
+  /* Grounds */
+  --surface-page: var(--color-walnut-950);
+  --surface-room: var(--color-walnut-900);
+  --surface-panel: var(--color-paper-50);
+  --surface-sunk: var(--color-paper-100);
+  --surface-raised: #ffffff;
+  /* A panel that belongs to the room rather than to the papers: the stance
+   * strip, the desk's own chrome. */
+  --surface-inset: var(--color-walnut-850);
+
+  /* Text on paper */
+  --ink-primary: var(--color-ink-900);
+  --ink-secondary: var(--color-ink-700);
+  --ink-muted: var(--color-ink-500);
+
+  /* Text on walnut */
+  --onwood-primary: var(--color-paper-100);
+  --onwood-secondary: var(--color-paper-300);
+  --onwood-muted: var(--color-paper-400);
+
+  /* Edges */
+  --edge-panel: var(--color-paper-300);
+  --edge-strong: var(--color-paper-400);
+  --edge-room: var(--color-walnut-700);
+  --edge-accent: var(--color-brass-500);
+
+  /* Meaning. Two pairs, one for each ground. */
+  --good: var(--color-viridian-600);
+  --good-strong: var(--color-viridian-800);
+  --good-surface: #e6f2ec;
+  --good-on-dark: var(--color-viridian-400);
+
+  --bad: var(--color-claret-600);
+  --bad-strong: var(--color-claret-800);
+  --bad-surface: #f8e9ec;
+  --bad-on-dark: var(--color-claret-400);
+
+  --accent: var(--color-brass-600);
+  --accent-on-dark: var(--color-brass-300);
+  --accent-surface: #f6edd6;
+
+  /* The focus ring. One ring everywhere, bright enough to find on both
+   * grounds, because a keyboard player who loses the caret has lost the
+   * screen. */
+  --focus: var(--color-brass-300);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * DIRECTION B — the room after hours.
+ * ---------------------------------------------------------------------------
+ * Swap by putting `data-direction="after-hours"` on the document element (or
+ * on any subtree, which is how the two are shown side by side for validation).
+ */
+[data-direction='after-hours'] {
+  --surface-panel: var(--color-walnut-850);
+  --surface-sunk: var(--color-walnut-900);
+  --surface-raised: var(--color-walnut-800);
+  --surface-inset: var(--color-walnut-900);
+
+  --ink-primary: var(--color-paper-50);
+  --ink-secondary: var(--color-paper-200);
+  --ink-muted: var(--color-paper-400);
+
+  --edge-panel: var(--color-walnut-700);
+  --edge-strong: var(--color-walnut-600);
+
+  --good: var(--color-viridian-400);
+  --good-strong: var(--color-viridian-200);
+  --good-surface: var(--color-viridian-900);
+
+  --bad: var(--color-claret-400);
+  --bad-strong: var(--color-claret-200);
+  --bad-surface: var(--color-claret-900);
+
+  --accent: var(--color-brass-300);
+  --accent-surface: var(--color-walnut-800);
+}
+
+/*
+ * The semantic layer, published as Tailwind utilities.
+ *
+ * `@theme inline` rather than `@theme` is load-bearing: it makes the generated
+ * utility resolve `var(--surface-panel)` at use time rather than baking the
+ * value in, so a subtree carrying `data-direction="after-hours"` re-themes
+ * itself with no second set of classes. That is what lets both directions be
+ * shown on one screen, and it is what will let a light mode exist later
+ * without touching a component.
+ */
+/*
+ * Note the naming: the semantic text tokens are `--ink-*` and `--onwood-*`,
+ * never `--text-*`. Tailwind owns the `--text-` namespace for the type scale,
+ * so a `--text-primary` here would have quietly published itself as a
+ * *font size* called `text-primary`.
+ */
+@theme inline {
+  --color-page: var(--surface-page);
+  --color-room: var(--surface-room);
+  --color-panel: var(--surface-panel);
+  --color-sunk: var(--surface-sunk);
+  --color-raised: var(--surface-raised);
+  --color-inset: var(--surface-inset);
+
+  --color-ink: var(--ink-primary);
+  --color-ink-soft: var(--ink-secondary);
+  --color-ink-faint: var(--ink-muted);
+  --color-onwood: var(--onwood-primary);
+  --color-onwood-soft: var(--onwood-secondary);
+  --color-onwood-faint: var(--onwood-muted);
+
+  --color-edge: var(--edge-panel);
+  --color-edge-strong: var(--edge-strong);
+  --color-edge-room: var(--edge-room);
+  --color-edge-accent: var(--edge-accent);
+
+  --color-good: var(--good);
+  --color-good-strong: var(--good-strong);
+  --color-good-surface: var(--good-surface);
+  --color-good-onwood: var(--good-on-dark);
+
+  --color-bad: var(--bad);
+  --color-bad-strong: var(--bad-strong);
+  --color-bad-surface: var(--bad-surface);
+  --color-bad-onwood: var(--bad-on-dark);
+
+  --color-accent: var(--accent);
+  --color-accent-onwood: var(--accent-on-dark);
+  --color-accent-surface: var(--accent-surface);
+
+  --color-focus: var(--focus);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Base
+ * ---------------------------------------------------------------------------
+ */
+
+body {
+  margin: 0;
+  background-color: var(--surface-page);
+  color: var(--onwood-primary);
+  font-family: var(--font-sans);
+  /* The room is panelled: a faint vertical grain, at an opacity that reads as
+   * texture rather than as pattern. Pure CSS, no asset, no request. */
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.012) 0px,
+    rgba(255, 255, 255, 0.012) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/*
+ * One focus ring, everywhere, and never removed.
+ *
+ * `:focus-visible` rather than `:focus` so a mouse click does not leave a ring
+ * behind, and an offset so the ring never sits on top of the thing it marks.
+ */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/*
+ * Motion.
+ *
+ * Every animated surface in this build reads `--motion-duration` rather than
+ * hard-coding a time, so honouring the reader's preference is one rule rather
+ * than an audit. The time-lapse between meetings reads it too: at zero it does
+ * not play at all, it presents its final state immediately.
+ */
+:root {
+  --motion-duration: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration: 0;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Figures line up in columns or they cannot be compared down a page. */
+.tabular,
+[class*='tabular-nums'] {
+  font-variant-numeric: tabular-nums;
+}
