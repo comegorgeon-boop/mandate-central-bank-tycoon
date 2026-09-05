@@ -10,6 +10,7 @@ import {
   getInstrumentRange,
   setsStandingLevel,
   standingLevel,
+  projectPackage,
   staffRecommendation,
   type CommunicationCommitment,
   type CommunicationTone,
@@ -23,6 +24,7 @@ import {
 import { BalanceSheetPanel } from './BalanceSheetPanel.tsx'
 import { formatMagnitude } from './InstrumentStepper.tsx'
 import { guidancePreview } from './guidancePreview.ts'
+import { ProjectionPanel } from './ProjectionPanel.tsx'
 import { CommitteeSplitPanel } from './CommitteeSplitPanel.tsx'
 import { CommunicationPanel } from './CommunicationPanel.tsx'
 import { StaffAdvicePanel } from './StaffAdvicePanel.tsx'
@@ -307,6 +309,19 @@ export function PolicyDeskPanel({
             </div>
           )
         })()}
+
+        {/* The learning mandate gets the whole package projected, not just the
+            words: it is the mode where a player is meant to form an
+            expectation and then check it. Above easy the projection is
+            withdrawn with the rest of the reading — see the information
+            ladder — and the fan charts remain. */}
+        {difficultyConfig.showsPolicyHints &&
+          (() => {
+            const projection = projectPackage(session.state, buildPackage())
+            return projection === null ? null : (
+              <ProjectionPanel projection={projection} />
+            )
+          })()}
 
         <StancePreview observation={session.observation} move={move} />
 

@@ -113,6 +113,13 @@ export {
 
 // ---- Policy ---------------------------------------------------------------
 export {
+  PROJECTION_HORIZON,
+  projectPackage,
+  projectionTarget,
+  type PackageProjection,
+  type ProjectedSeries,
+} from './policy/projection.ts'
+export {
   committeeAgrees,
   committeeViews,
   staffRecommendation,
