@@ -24,7 +24,8 @@ import { Sparkline } from '../../components/Sparkline.tsx'
  * understands the lag this whole game is built on better than any panel of
  * text could explain it.
  *
- * It is skippable on any key or click, and can be switched off entirely; a
+ * It is skippable by Enter, Space, Escape or a click, and can be switched off
+ * entirely; a
  * reader who has asked their system for reduced motion never sees it at all.
  * See `features/settings/settings.ts`.
  */
@@ -116,6 +117,14 @@ export function IntervalPlayer({
   // Held in a ref so the effect below does not restart on every tick.
   const doneRef = useRef(onDone)
   doneRef.current = onDone
+  const skipRef = useRef<HTMLButtonElement>(null)
+
+  // The interval takes over the screen, so it takes the caret with it: a
+  // keyboard user should land on the one control here rather than at the top
+  // of a document whose contents have just been replaced.
+  useEffect(() => {
+    skipRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     if (frames.length === 0) {
@@ -140,10 +149,21 @@ export function IntervalPlayer({
     return () => globalThis.clearInterval(timer)
   }, [frames])
 
-  // Any key, anywhere, skips. A player on their fortieth mandate should not
-  // have to find a button.
+  // A *deliberate* key skips — not any key.
+  //
+  // "Any key" sounds friendlier and is hostile: Tab is a key, so a keyboard
+  // user dismissed the interval the instant they tried to navigate it, and
+  // could never reach the skip button at all. Measured by tabbing through the
+  // whole game, which is how this was caught. Enter, Space and Escape are the
+  // three a player actually means, and everything else is left for reading.
   useEffect(() => {
-    const skip = (): void => doneRef.current()
+    const skip = (event: KeyboardEvent): void => {
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
+        // Space scrolls the page by default, which would fight the skip.
+        event.preventDefault()
+        doneRef.current()
+      }
+    }
     globalThis.addEventListener('keydown', skip)
     return () => globalThis.removeEventListener('keydown', skip)
   }, [])
@@ -174,6 +194,7 @@ export function IntervalPlayer({
           </h2>
         </div>
         <button
+          ref={skipRef}
           type="button"
           onClick={() => doneRef.current()}
           className="rounded-md border border-edge px-3 py-1.5 text-xs font-medium text-ink hover:bg-sunk"
