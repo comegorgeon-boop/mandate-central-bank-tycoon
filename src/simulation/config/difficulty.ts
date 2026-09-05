@@ -148,6 +148,21 @@ export interface DifficultyConfig {
    * which is the skill the mode is about.
    */
   readonly splitsCommittee: boolean
+  /**
+   * Whether the committee may choose the tone of its statement freely, instead
+   * of having it derived from the decision it just took.
+   *
+   * False everywhere but hard, and that is the difference between a game in
+   * which communication is an instrument and one in which bluffing is a move.
+   * With the tone derived, the words cannot contradict the deed: a hawkish
+   * decision produces a hawkish statement by construction, so
+   * `detectContradictions` has nothing to detect and the whole
+   * saying-one-thing-doing-another axis is unreachable. Opening it at hard is
+   * what makes the free-tone mode the player asked for possible — and it is
+   * already priced, by `detectContradictions` and by the conduct gate, so
+   * nothing new has to be built to punish it.
+   */
+  readonly choosesTone: boolean
   /** Whether a communication package is required at each meeting. */
   readonly requiresCommunication: boolean
 }
@@ -185,6 +200,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     showsShockEvidence: true,
     showsStaffRecommendation: true,
     splitsCommittee: false,
+    choosesTone: false,
     requiresCommunication: false,
   },
   medium: {
@@ -219,6 +235,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     // Shown, and fallible — it reads the same noisy prints the player does.
     showsStaffRecommendation: true,
     splitsCommittee: false,
+    choosesTone: false,
     requiresCommunication: true,
   },
   hard: {
@@ -251,6 +268,8 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     showsShockEvidence: false,
     showsStaffRecommendation: false,
     splitsCommittee: true,
+    // The words may depart from the deed here, and only here.
+    choosesTone: true,
     requiresCommunication: true,
   },
 }

@@ -5,6 +5,7 @@ import type {
   InstrumentDefinition,
   InstrumentId,
   InstrumentRange,
+  PolicyStance,
 } from '../types/policy.ts'
 import { meetsDifficulty } from './difficulty.ts'
 
@@ -283,6 +284,45 @@ export function availableInstruments(
       instrument.availableTo.includes(institution) &&
       meetsDifficulty(difficulty, instrument.availableFrom),
   )
+}
+
+/**
+ * Where each instrument's standing level lives in the stance.
+ *
+ * `policy_rate` and `forward_guidance` are deliberately absent: both are
+ * expressed as a *change* rather than a level — the rate moves from where it
+ * is, and guidance is recorded in `GuidanceState` rather than in the stance at
+ * all — so neither has a "current level" a control could read back.
+ *
+ * Kept beside the definitions rather than in a desk component, so that opening
+ * an instrument to a difficulty stays a change to this file and to
+ * `deriveStance`, and never to a screen.
+ */
+const STANCE_FIELD: Readonly<Partial<Record<InstrumentId, keyof PolicyStance>>> = {
+  asset_purchases: 'assetPurchasePace',
+  balance_sheet_runoff: 'runoffPace',
+  iorb_spread: 'iorbSpread',
+  discount_window: 'discountWindowLevel',
+  reverse_repo: 'reverseRepoLevel',
+  swap_lines: 'swapLinesLevel',
+  deposit_facility_spread: 'depositFacilitySpread',
+  minimum_reserves: 'minimumReserves',
+  targeted_refinancing: 'targetedRefinancing',
+  transmission_protection: 'transmissionProtection',
+}
+
+/** The level an instrument currently stands at, or null if it sets no level. */
+export function standingLevel(
+  stance: PolicyStance,
+  instrument: InstrumentId,
+): number | null {
+  const field = STANCE_FIELD[instrument]
+  return field === undefined ? null : stance[field]
+}
+
+/** True when this instrument sets a standing level rather than a change. */
+export function setsStandingLevel(instrument: InstrumentId): boolean {
+  return STANCE_FIELD[instrument] !== undefined
 }
 
 /**

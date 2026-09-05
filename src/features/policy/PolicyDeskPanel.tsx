@@ -8,13 +8,20 @@ import {
   getInstitution,
   getInstrument,
   getInstrumentRange,
+  setsStandingLevel,
+  standingLevel,
   staffRecommendation,
   type CommunicationCommitment,
+  type CommunicationTone,
+  type InstrumentId,
   type MeetingResult,
+  type PolicyAction,
   type PolicyPackage,
   type PolicyValidation,
   type RunSession,
 } from '../../simulation/index.ts'
+import { BalanceSheetPanel } from './BalanceSheetPanel.tsx'
+import { formatMagnitude } from './InstrumentStepper.tsx'
 import { CommitteeSplitPanel } from './CommitteeSplitPanel.tsx'
 import { CommunicationPanel } from './CommunicationPanel.tsx'
 import { StaffAdvicePanel } from './StaffAdvicePanel.tsx'
@@ -26,11 +33,19 @@ import { buildStatement, deriveTone } from './statement.ts'
 /**
  * The Policy Desk.
  *
- * This build exposes a single instrument, the policy rate. Its allowed moves,
- * increments, floor and transmission characteristics all come from the
- * engine's configuration rather than from this component, so unlocking the
- * rest of the toolkit later means rendering more instruments, not rewriting
- * the arithmetic.
+ * What the committee can reach is `config/instruments.ts`'s
+ * `availableInstruments`, not a list in this file: the rate and the words have
+ * dedicated controls because each is a *change* rather than a level, and
+ * everything else — the balance sheet, the facilities, the corridor — is
+ * rendered generically from its own definition by `BalanceSheetPanel`. Allowed
+ * moves, increments, floors and transmission characteristics all come from the
+ * engine's configuration, so opening an instrument to a difficulty is a change
+ * to the config and never to a screen.
+ *
+ * That indirection was already the intention and was not, until now, the fact:
+ * the desk rendered a hard-coded policy rate at every difficulty, so four
+ * instruments configured `availableFrom: 'medium'` when the toolkit was
+ * written had never once been reachable by a player.
  */
 
 const CHANNEL_LABEL: Readonly<Record<string, string>> = {
@@ -63,6 +78,14 @@ export function PolicyDeskPanel({
   const [move, setMove] = useState(0)
   const [signal, setSignal] = useState(0)
   const [commitment, setCommitment] = useState<CommunicationCommitment>('none')
+  // Standing levels the player has moved this meeting, keyed by instrument.
+  // Absent means "leave it where it is", which is why this is a sparse record
+  // rather than a full stance: an untouched facility must produce no action at
+  // all, so the package says nothing about instruments the committee did not
+  // discuss.
+  const [levels, setLevels] = useState<Partial<Record<InstrumentId, number>>>({})
+  // Only reachable where the difficulty lets the words depart from the deed.
+  const [chosenTone, setChosenTone] = useState<CommunicationTone | null>(null)
   const [reviewing, setReviewing] = useState(false)
   const [validation, setValidation] = useState<PolicyValidation | null>(null)
 
@@ -119,18 +142,41 @@ export function PolicyDeskPanel({
   const pricedGap =
     marketRate === null ? 0 : Math.round((marketRate - currentRate) * 100)
 
+  // Only instruments the player actually moved reach the package. An
+  // untouched facility must produce no action at all: `deriveStance` writes
+  // every action it is given straight into the standing stance, so emitting
+  // the current level as an action would be harmless today and a silent
+  // overwrite the moment anything else could move a facility.
+  const levelActions: PolicyAction[] = Object.entries(levels)
+    .filter(([id, value]) => {
+      const instrumentId = id as InstrumentId
+      if (!setsStandingLevel(instrumentId)) return false
+      const standing = standingLevel(session.state.stance, instrumentId) ?? 0
+      return Math.abs(value - standing) > 1e-9
+    })
+    .map(([id, value]) => ({ instrument: id as InstrumentId, magnitude: value }))
+
   // The desk always publishes a statement. What varies is whether the words
   // put anything on the record: a remark colours the tone and no more, while
   // a leaning or a commitment registers the announced path with the engine.
+  //
+  // The tone is derived from the decision everywhere the difficulty does not
+  // let the words depart from the deed. Where it does — hard only — saying one
+  // thing while doing another becomes possible, which is what makes bluffing a
+  // move rather than an impossibility. It is priced: `detectContradictions`
+  // charges credibility and market trust for a package that argues with itself.
+  const tone = chosenTone ?? deriveTone(move, signal, commitment)
+
   const buildPackage = (): PolicyPackage => ({
     actions: [
       ...(move === 0 ? [] : [{ instrument: 'policy_rate', magnitude: move } as const]),
       ...(commitment === 'none'
         ? []
         : [{ instrument: 'forward_guidance', magnitude: signal } as const]),
+      ...levelActions,
     ],
     communication: {
-      tone: deriveTone(move, signal, commitment),
+      tone,
       emphasis: 'inflation',
       commitment,
       channel: 'statement',
@@ -167,6 +213,20 @@ export function PolicyDeskPanel({
               {currentRate.toFixed(2)} % → {resultingRate.toFixed(2)} %
             </dd>
           </div>
+          {levelActions.map((action) => {
+            const definition = getInstrument(action.instrument)
+            if (definition === undefined) return null
+            const standing = standingLevel(session.state.stance, action.instrument) ?? 0
+            return (
+              <div key={action.instrument} className="flex justify-between gap-4 py-2">
+                <dt className="text-neutral-400">{definition.label[institution]}</dt>
+                <dd className="tabular-nums text-neutral-50">
+                  {formatMagnitude(standing, definition.unit)} →{' '}
+                  {formatMagnitude(action.magnitude, definition.unit)}
+                </dd>
+              </div>
+            )
+          })}
           <div className="flex flex-col gap-1 py-2">
             <dt className="text-neutral-400">The statement</dt>
             <dd className="italic text-neutral-200">
@@ -290,6 +350,14 @@ export function PolicyDeskPanel({
         <CommitteeSplitPanel views={committee} selectedMove={move} />
       )}
 
+      <BalanceSheetPanel
+        institution={institution}
+        difficulty={difficulty}
+        stance={session.state.stance}
+        levels={levels}
+        onChange={(id, next) => setLevels((current) => ({ ...current, [id]: next }))}
+      />
+
       <CommunicationPanel
         move={move}
         signal={signal}
@@ -300,8 +368,12 @@ export function PolicyDeskPanel({
         guidance={session.state.guidance}
         meetingIndex={session.state.meetingIndex}
         observation={session.observation}
+        derivedTone={deriveTone(move, signal, commitment)}
+        chosenTone={difficultyConfig.choosesTone ? chosenTone : null}
+        allowsFreeTone={difficultyConfig.choosesTone}
         onSignal={setSignal}
         onCommitment={setCommitment}
+        onTone={setChosenTone}
       />
 
       <dl className="mt-5 divide-y divide-neutral-800 border-y border-neutral-800 text-sm">

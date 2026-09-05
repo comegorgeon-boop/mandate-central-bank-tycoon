@@ -39,6 +39,8 @@ export {
   availableInstruments,
   getInstrument,
   getInstrumentRange,
+  setsStandingLevel,
+  standingLevel,
 } from './config/instruments.ts'
 export { LATENT_BOUNDS, isWithinBounds } from './config/bounds.ts'
 export {

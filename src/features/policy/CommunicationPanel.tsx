@@ -1,5 +1,6 @@
 import type {
   CommunicationCommitment,
+  CommunicationTone,
   GuidanceState,
   ObservationSet,
 } from '../../simulation/index.ts'
@@ -7,6 +8,7 @@ import { GUIDANCE_HORIZON_MEETINGS } from '../../simulation/index.ts'
 import {
   COMMITMENT_OPTIONS,
   PATH_OPTIONS,
+  TONE_OPTIONS,
   buildStatement,
 } from './statement.ts'
 
@@ -114,8 +116,12 @@ export function CommunicationPanel({
   guidance,
   meetingIndex,
   observation,
+  derivedTone,
+  chosenTone,
+  allowsFreeTone,
   onSignal,
   onCommitment,
+  onTone,
 }: {
   readonly move: number
   readonly signal: number
@@ -128,8 +134,14 @@ export function CommunicationPanel({
   readonly guidance: GuidanceState
   readonly meetingIndex: number
   readonly observation: ObservationSet
+  /** The tone the decision implies, shown as the default and the comparison. */
+  readonly derivedTone: CommunicationTone
+  /** A tone deliberately chosen against it, where the difficulty allows one. */
+  readonly chosenTone: CommunicationTone | null
+  readonly allowsFreeTone: boolean
   readonly onSignal: (signal: number) => void
   readonly onCommitment: (commitment: CommunicationCommitment) => void
+  readonly onTone: (tone: CommunicationTone | null) => void
 }) {
   const announcedRate = selectedRate + signal / 100
   const options = COMMITMENT_OPTIONS.filter((option) =>
@@ -227,6 +239,49 @@ export function CommunicationPanel({
           <p className="mt-2 text-xs text-neutral-500">{selectedCommitment.detail}</p>
         )}
       </fieldset>
+
+      {allowsFreeTone && (
+        <fieldset className="mt-4">
+          <legend className="text-sm font-medium text-neutral-200">
+            In what tone?
+          </legend>
+          <p className="mt-1 text-xs text-neutral-500">
+            The decision above implies a{' '}
+            <span className="text-neutral-300">{derivedTone}</span> statement.
+            Departing from it is allowed here, and markets charge for a package
+            that argues with itself.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={chosenTone === null}
+              onClick={() => onTone(null)}
+              className={`${buttonBase} ${chosenTone === null ? selectedClasses : unselectedClasses}`}
+            >
+              Let the decision speak
+            </button>
+            {TONE_OPTIONS.map((option) => {
+              const selected = option.tone === chosenTone
+              return (
+                <button
+                  key={option.tone}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onTone(option.tone)}
+                  className={`${buttonBase} ${selected ? selectedClasses : unselectedClasses}`}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
+          {chosenTone !== null && (
+            <p className="mt-2 text-xs text-neutral-500">
+              {TONE_OPTIONS.find((option) => option.tone === chosenTone)?.detail}
+            </p>
+          )}
+        </fieldset>
+      )}
 
       <div className="mt-4 rounded border border-neutral-800 bg-neutral-900 p-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
