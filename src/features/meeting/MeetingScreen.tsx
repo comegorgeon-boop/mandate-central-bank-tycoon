@@ -13,7 +13,9 @@ import { DiagnosisPanel } from './panels/DiagnosisPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MajorEventPanel } from './panels/MajorEventPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
+import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
 import { PricesPanel } from './panels/PricesPanel.tsx'
+import { regimeObjective } from './objective.ts'
 import { registerFor } from './register.ts'
 
 /**
@@ -61,6 +63,9 @@ export function MeetingScreen({
   // Difficulty decides the language the numbers are published in, not only
   // which of them are shown. See `features/meeting/register.ts`.
   const register = registerFor(config.difficulty)
+  // What winning looks like *now*. Under a cost-push shock this is not the
+  // standing objective, and the score follows it — see `objective.ts`.
+  const objective = regimeObjective(session.observation, institution.inflationTarget)
   const meetingNumber = session.state.meetingIndex + 1
   const severeWarnings = session.outcome.warnings.filter(
     (warning) => warning.severity === 'severe',
@@ -110,6 +115,10 @@ export function MeetingScreen({
             eventLog={session.state.eventLog}
             meetingIndex={session.state.meetingIndex}
           />
+
+          <div className="mt-4">
+            <ObjectivePanel objective={objective} />
+          </div>
 
           <StanceStrip
             observation={session.observation}

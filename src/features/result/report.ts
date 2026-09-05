@@ -164,6 +164,16 @@ function describeWhatWentWrong(state: SimulationState, score: ScoreBreakdown): r
 /** Below this, the conduct gate is treated as the dominant story, not a footnote. */
 const CONDUCT_GATE_DOMINANT = 0.5
 
+/**
+ * Above this share of the mandate under cost-push pressure, the moved objective
+ * is worth a paragraph.
+ *
+ * A brush with a supply shock at one meeting out of thirty-two does not change
+ * what the mandate was about, and saying so would be noise. A tenth of the
+ * mandate does.
+ */
+const SUPPLY_REGIME_WORTH_SAYING = 0.1
+
 function describeWhyThisScore(
   state: SimulationState,
   score: ScoreBreakdown,
@@ -191,6 +201,24 @@ function describeWhyThisScore(
         `rather than the economy: ${reasons.join(', ')}. Erratic, self-contradictory policy is ` +
         `judged independently of how the economy happened to absorb it — the whole score was ` +
         `scaled by a further ×${score.conductGate.toFixed(2)} for it, on top of everything below.`,
+    )
+  }
+
+  // Said before the components are ranked, because it changes what the ranking
+  // means: under a cost-push regime the mandate was not judged on the standing
+  // objective at all, and a player who is told that only implicitly — by
+  // noticing price stability carries less weight than they expected — has been
+  // judged by a rule nobody stated.
+  if (score.supplyRegimeShare > SUPPLY_REGIME_WORTH_SAYING) {
+    paragraphs.push(
+      `Costs were being pushed up from outside domestic demand for much of this mandate, ` +
+        `so returning inflation to ${inst.inflationTarget.toFixed(1)} % inside it was not ` +
+        `available at any policy the desk could have run: the tightening required would have ` +
+        `worked by destroying output rather than by removing the shock. The mandate was ` +
+        `therefore judged on the objective that regime actually sets — holding the ` +
+        `expectations anchor, and keeping the total damage down — with ` +
+        `${(score.supplyRegimeShare * 100).toFixed(0)} % of the shift applied. Price stability ` +
+        `still counts; it counts for less than it would have in ordinary weather.`,
     )
   }
 

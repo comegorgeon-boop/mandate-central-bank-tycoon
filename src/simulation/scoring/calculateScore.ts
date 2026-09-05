@@ -21,6 +21,7 @@ import {
   SCORE_WEIGHTS,
   SHOCK_RESPONSE,
   STRESS_PENALTY_FLOOR,
+  SUPPLY_REGIME,
 } from '../config/scoring.ts'
 import { unemploymentGap } from '../engine/indices.ts'
 
@@ -59,6 +60,7 @@ function rootMeanSquare(values: readonly number[]): number {
   for (const value of values) total += value * value
   return Math.sqrt(total / values.length)
 }
+
 
 function mean(values: readonly number[]): number {
   if (values.length === 0) return 0
@@ -135,6 +137,55 @@ function shockResponseScore(state: SimulationState): {
   }
 }
 
+/**
+ * How much of this meeting sat under a cost-push regime, 0 to 1.
+ *
+ * A linear ramp rather than a threshold, so no player can park just under a
+ * cliff, and read from the latent shock rather than from the published prints
+ * because scoring is not an information problem — the mandate is judged on the
+ * world that happened, not on the estimate of it.
+ */
+function supplyRegimePressure(latent: LatentSnapshot['latent']): number {
+  const { floor, full } = SUPPLY_REGIME
+  return clamp((latent.supplyShock - floor) / (full - floor), 0, 1)
+}
+
+/**
+ * The component weights this mandate is actually judged on.
+ *
+ * Under cost-push pressure, weight moves out of price stability and into
+ * anchoring and shock response — the objective a committee is really held to
+ * when returning inflation to target is not available. See `SUPPLY_REGIME`.
+ *
+ * The moved weight is redistributed rather than discarded, so the set still
+ * sums to one and a supply-shocked mandate is judged on the same total as any
+ * other. It is a different question, not an easier one.
+ */
+function regimeWeights(
+  base: Readonly<Record<ScoreComponentId, number>>,
+  history: readonly LatentSnapshot[],
+): { readonly weights: Readonly<Record<ScoreComponentId, number>>; readonly share: number } {
+  const pressure =
+    history.length === 0 ? 0 : mean(history.map((s) => supplyRegimePressure(s.latent)))
+  // Saturating, not linear: a mandate cannot spend all of itself at the peak of
+  // a shock, so the raw mean tops out around a third even when cost-push was
+  // the whole story. See `SUPPLY_REGIME.shareAtFullShift`.
+  const share = clamp(pressure / SUPPLY_REGIME.shareAtFullShift, 0, 1)
+  if (share <= 0) return { weights: base, share: 0 }
+
+  const moved = base.price_stability * SUPPLY_REGIME.maxShift * share
+  return {
+    share,
+    weights: {
+      ...base,
+      price_stability: base.price_stability - moved,
+      anchoring: base.anchoring + moved * SUPPLY_REGIME.anchoringShare,
+      shock_response:
+        base.shock_response + moved * (1 - SUPPLY_REGIME.anchoringShare),
+    },
+  }
+}
+
 /** Cumulative rate churn and direction reversals over the run. */
 function policyChurn(state: SimulationState): {
   readonly churn: number
@@ -164,11 +215,20 @@ export function calculateScore(
 ): ScoreBreakdown {
   const institution = getInstitution(state.config.institution)
   const difficulty = getDifficulty(state.config.difficulty)
-  const weights = SCORE_WEIGHTS[state.config.institution]
   const target = institution.inflationTarget
   const history = state.history
+  // What the mandate is judged on, which is not fixed: under a cost-push
+  // regime the objective itself moves. See `SUPPLY_REGIME`.
+  const { weights, share: supplyRegimeShare } = regimeWeights(
+    SCORE_WEIGHTS[state.config.institution],
+    history,
+  )
 
   // ---- Price stability ----------------------------------------------------
+  //
+  // Measured honestly and in full, in every regime. What a cost-push shock
+  // changes is not how far inflation sat from target — that is a fact — but
+  // how much of the verdict the fact carries. See `SUPPLY_REGIME`.
   const headlineMisses = history.map((s) => s.latent.inflationHeadline - target)
   const coreMisses = history.map((s) => s.latent.inflationCore - target)
   const priceRmse =
@@ -222,7 +282,11 @@ export function calculateScore(
       id: 'price_stability',
       label: 'Price stability',
       raw: priceRaw,
-      explanation: `Inflation sat ${priceRmse.toFixed(2)} points from the ${target.toFixed(1)} % objective on average over the mandate, measured across headline and core.`,
+      explanation:
+        `Inflation sat ${priceRmse.toFixed(2)} points from the ${target.toFixed(1)} % objective on average over the mandate, measured across headline and core.` +
+        (supplyRegimeShare > 0.05
+          ? ` Costs were being pushed up from outside domestic demand for much of the mandate, so this counts for less than usual here — ${(supplyRegimeShare * 100).toFixed(0)} % of the way toward the regime's own objective, which is the anchor and the total damage rather than the target itself.`
+          : ''),
     },
     {
       id: 'employment_output',
@@ -293,11 +357,19 @@ export function calculateScore(
   )
 
   // The ECB safeguard. The Fed's mandate is coequal, so its gate is always 1.
+  //
+  // Its floor rises with the cost-push regime, for the same reason the weights
+  // move: the gate exists so that strong employment cannot buy past a *failure*
+  // on inflation, and a price level pushed up by a shock no instrument reaches
+  // is not that failure. Softened, never removed — the gate still bites hardest
+  // on the mandates that let the anchor go with it.
   let priceStabilityGate = 1
   if (state.config.institution === 'ecb' && priceRaw < PRICE_STABILITY_GATE.threshold) {
-    priceStabilityGate =
+    const floor =
       PRICE_STABILITY_GATE.floor +
-      (1 - PRICE_STABILITY_GATE.floor) * (priceRaw / PRICE_STABILITY_GATE.threshold)
+      (1 - PRICE_STABILITY_GATE.floor) * SUPPLY_REGIME.maxShift * supplyRegimeShare
+    priceStabilityGate =
+      floor + (1 - floor) * (priceRaw / PRICE_STABILITY_GATE.threshold)
   }
 
   // The conduct gate. Both institutions: erratic, self-contradictory policy
@@ -340,6 +412,7 @@ export function calculateScore(
     weightedTotal,
     priceStabilityGate,
     conductGate,
+    supplyRegimeShare,
     difficultyMultiplier: difficulty.scoreMultiplier,
     bucketKey: scoreBucketKey(
       state.config.institution,

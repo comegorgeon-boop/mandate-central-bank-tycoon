@@ -39,6 +39,15 @@ export interface ScoreBreakdown {
    * it. See `config/scoring.ts`'s `CONDUCT_GATE`.
    */
   readonly conductGate: number
+  /**
+   * Share of the mandate spent under cost-push pressure, 0..1.
+   *
+   * Above zero, the objective the mandate was judged on has moved: weight
+   * leaves `price_stability` for `anchoring` and `shock_response`, because
+   * returning inflation to target was not available. See `config/scoring.ts`'s
+   * `SUPPLY_REGIME`. The postmortem reads this to say so in words.
+   */
+  readonly supplyRegimeShare: number
   readonly difficultyMultiplier: number
   /** institution:difficulty:simulationVersion. Records never mix buckets. */
   readonly bucketKey: string

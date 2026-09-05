@@ -136,6 +136,89 @@ export const CONDUCT_GATE = {
 } as const
 
 /**
+ * What winning looks like when returning inflation to target is not available.
+ *
+ * Every other component in this file judges the same objective in every state
+ * of the world. Under a cost-push shock that is not a demanding standard, it is
+ * an impossible one: the shock raises prices and cuts output at once, no
+ * instrument in the game removes it, and the only trajectories that reach
+ * target inside a mandate get there by crushing the real economy — which is the
+ * error the engine is built to punish. Measured before this existed, an easy
+ * mandate opening on a supply crisis scored 3117 on the ECB against 7039 for a
+ * political one, and beat doing nothing by 300 points. That is not difficulty;
+ * it is being marked down for a target nobody could have hit.
+ *
+ * So the *objective* moves with the regime, and the score follows it. Under
+ * cost-push pressure, weight shifts out of `price_stability` and into the two
+ * components that measure what a central bank is actually judged on in that
+ * regime: `anchoring` — did five-year expectations stay put, so the shock
+ * stayed a price-level event rather than becoming an inflation regime — and
+ * `shock_response` — was the first round looked through rather than answered by
+ * destroying output. This is flexible inflation targeting, which is what real
+ * committees say they do and what the textbooks call the right answer.
+ *
+ * Two things this deliberately does *not* do. It never shifts all the weight:
+ * a committee that lets inflation run to double digits through an oil shock has
+ * still failed, and `maxShift` keeps most of the price-stability weight in
+ * place. And it is driven by the *latent* shock, which the player cannot cause
+ * — so it can never be farmed by choosing to do nothing.
+ */
+export const SUPPLY_REGIME = {
+  /**
+   * Outstanding cost-push pressure at which a meeting counts fully as
+   * "the target was not available", in units of `latent.supplyShock`.
+   *
+   * Below `floor` the regime is ordinary weather and nothing shifts; the ramp
+   * between them is linear, so there is no cliff a player could sit on.
+   */
+  floor: 0.8,
+  full: 3.0,
+  /**
+   * Share of the mandate under cost-push pressure at which the full shift
+   * applies.
+   *
+   * Not 1. A mandate cannot spend all of itself at the peak of a shock — the
+   * shock decays, and the meetings either side of it are calm — so the raw
+   * mean pressure over a mandate genuinely dominated by cost-push measures
+   * only 0.28 to 0.34. Reading that as "a third of a supply-shock mandate"
+   * and shifting a third of the way would be an arithmetic mistake dressed as
+   * caution: a mandate that spent a third of its meetings fighting a cost-push
+   * shock *was* a supply-shock mandate. This is the saturation point that says
+   * so.
+   */
+  shareAtFullShift: 0.3,
+  /**
+   * The largest share of price-stability weight the regime moves to anchoring
+   * and shock response.
+   *
+   * Half, and the size is measured rather than chosen. Decomposing what a
+   * cost-push mandate actually loses on ecb/medium: competent play held
+   * employment at 91 % against 93 % in calm weather, financial stability at
+   * 99 % against 99 %, the anchor at 95 % against 99 %, and *improved* its
+   * shock response to 71 % from 60 % — succeeding on every measure of the
+   * regime's own objective — while price stability was marked from 56 % to
+   * **zero**. Nearly the whole penalty sat on the one objective that was
+   * unavailable.
+   *
+   * A per-meeting discount on the miss itself was built first and measured
+   * nearly inert: it moved price stability from 0 % to 3 %, because the RMSE
+   * is dominated not by the shock meetings but by the ones after them, where
+   * inflation is still elevated and the shock has already decayed. That
+   * persistence is exactly what a central bank *does* stay responsible for —
+   * it is the difference between a price-level event and an inflation regime,
+   * and `anchoring` is the component that measures it. So the miss is measured
+   * honestly and in full, and what changes is how much of the verdict it
+   * carries.
+   *
+   * Never all of it: at half, a cost-push mandate that also lets the anchor go
+   * still fails, which is the only outcome that should.
+   */
+  maxShift: 0.5,
+  /** How that moved weight splits between anchoring and shock response. */
+  anchoringShare: 0.6,
+} as const
+
+/**
  * Shock-response scoring.
  *
  * The engine rewards the textbook distinction: a demand shock should be
