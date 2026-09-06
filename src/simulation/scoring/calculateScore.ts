@@ -23,8 +23,13 @@ import {
   SHOCK_RESPONSE,
   STRESS_PENALTY_FLOOR,
   SUPPLY_REGIME,
+  VALUATION_TOLERANCE,
 } from '../config/scoring.ts'
 import { supplyRegimePressure, unemploymentGap } from '../engine/indices.ts'
+// The equity index is read through its own series definition rather than
+// recomputed here, so the number the scorecard judges is the number the player
+// watched all mandate.
+import { EQUITY_BASE, getSeries } from '../observation/series.ts'
 
 /**
  * Scoring, from 0 to 10,000.
@@ -234,6 +239,43 @@ export function calculateScore(
   const stress = mean(history.map((s) => stressPenalty(s, state.config.institution)))
   const financialRaw = performance(stress, SCORE_SCALES.financialStress)
 
+  // ---- Market prosperity --------------------------------------------------
+  //
+  // Distinct from financial *stability*, which scores stress: banking strain,
+  // spreads, volatility, fragmentation. None of those is the value of the
+  // assets households actually own, so an index that halved over a mandate
+  // moved nothing in this scorecard at all — which is what a player watching
+  // it fall from 1000 to 500 correctly suspected.
+  //
+  // Two terms, deliberately asymmetric. Wealth destroyed is charged in full;
+  // froth is charged at a fraction, because a market above fair value is a
+  // risk that has not happened yet while a market below its base is a loss
+  // that has. Charging them alike would say a bubble and a crash are the same
+  // mistake. Charging froth at zero would make this a component that rewards
+  // inflating one, which is the failure mode a "market prosperity" line in a
+  // central bank's scorecard invites and the reason it is weighted below both
+  // halves of the mandate.
+  const dislocation = mean(
+    history.map((snapshot) =>
+      Math.max(
+        0,
+        Math.abs(snapshot.latent.assetPricePressure) - VALUATION_TOLERANCE,
+      ),
+    ),
+  )
+  const prosperityRaw = performance(dislocation, SCORE_SCALES.marketProsperity)
+  // What the player actually watched, for the explanation. The index is a
+  // financial-conditions proxy and the score is not read off it directly —
+  // rewarding a high one would reward loose policy, in this model and in the
+  // world — but "the index halved" is the observation that prompted the
+  // component and the report has to speak to it.
+  const equitySeries = getSeries('equity_index')
+  const equityLevel =
+    equitySeries === undefined
+      ? EQUITY_BASE
+      : mean(history.map((snapshot) => equitySeries.read(snapshot.latent)))
+  const equityShortfall = Math.max(0, 1 - equityLevel / EQUITY_BASE) * 100
+
   // ---- Expectations anchoring --------------------------------------------
   const anchorMisses = history.map((s) => s.latent.expectedInflationLong - target)
   const anchoringRmse = rootMeanSquare(anchorMisses)
@@ -299,6 +341,19 @@ export function calculateScore(
       label: 'Financial stability',
       raw: financialRaw,
       explanation: `Average financial stress penalty of ${stress.toFixed(1)} index points across banking stress, spreads, volatility and transmission.`,
+    },
+    {
+      id: 'market_prosperity',
+      label: 'Financial market prosperity',
+      raw: prosperityRaw,
+      explanation:
+        `The ${equitySeries?.label ?? 'equity index'} averaged ` +
+        `${equityShortfall < 1 ? 'at or above' : `${equityShortfall.toFixed(0)} % below`} ` +
+        `its neutral level. Scored on how far valuations sat from what the ` +
+        `economy underneath them could support: ` +
+        (dislocation < 0.5
+          ? 'they stayed within the band, so nothing was charged here.'
+          : `${dislocation.toFixed(1)} points outside that band on average.`),
     },
     {
       id: 'anchoring',

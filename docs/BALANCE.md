@@ -2177,6 +2177,69 @@ removes seed variance from the question entirely. And the hard-mode tests draw
 everything else it guards is an order-of-magnitude effect. The suite goes from
 5.8 s to 7.2 s.
 
+## Making the market count without paying for loose policy
+
+The player watched the equity index fall from 1000 to 500 and could not tell
+whether it had counted. It had not. `financial_stability` scores banking
+strain, credit spreads, volatility and fragmentation; none of those is the
+value of the assets households own, so the index moved nothing in the scorecard
+at all.
+
+Adding a component was easy. Adding one that did not break the game took four
+attempts, and the reason generalises: **in this model, as in the world, the
+equity index is a financial-conditions proxy.** Loose policy raises it. So a
+component that rewards a high index pays the player to stop disinflating.
+
+| formulation | fed/easy, competent − passive, paired over 150 seeds |
+| --- | --- |
+| mean shortfall below base + froth | **−51** (79/150 wins) |
+| symmetric distance from fair value, ±20 band | **−7** (79/150) |
+| *(no component at all, for reference)* | ~+28 |
+
+The first version's damage was concentrated exactly where the game teaches: on
+the tutorial's overheated opening, disinflating necessarily takes valuations
+from frothy to somewhat below fair, and the component charged 0.132 of raw
+score for it — the single largest idle-wins gap in the whole scorecard. The
+tutorial's entire lesson is disinflation, and the scorecard was quietly
+arguing with it.
+
+Drawdown from the running peak fails the same way (competent 21.7 % against
+passive 14.7 % on fed/easy) and so does any tightly-read distance from fair
+value. What survives is **symmetric and wide**: how far valuations sat from
+what the economy underneath could support, in either direction, beyond a
+20-point band.
+
+- Symmetric, because the alternative is a scorecard line that pays a central
+  bank to inflate a bubble.
+- Wide, because inside the band is the ordinary cost of doing the job.
+  Measured over 100 mandates a side, ordinary play sits 0.1 to 1.4 points
+  outside it and scores 0.97 or better; a genuinely dislocated market runs
+  several times that and gives up around 300 points.
+
+Its weight comes entirely out of `financial_stability`, halving that block
+rather than taking a slice from everywhere. The financial side of the scorecard
+is unchanged in total at 0.12 and now answers two questions instead of one: did
+the system break, and did the market come adrift.
+
+### Paired scores after the change
+
+| bucket | competent − passive | se | wins |
+| --- | --- | --- | --- |
+| fed/easy | −7 | 41 | 79/150 |
+| fed/medium | **+76** | 31 | 97/150 |
+| fed/hard | **+50** | 75 | 85/150 |
+| ecb/easy | **+441** | 57 | 116/150 |
+| ecb/medium | **+351** | 69 | 108/150 |
+| ecb/hard | **+69** | 90 | 94/150 |
+
+One methodological note worth keeping. The first pass at this used **medians**
+over 150 seeds and read fed/medium as having flipped to passive-dominant
+(7046 against 7081). Paired on the same seeds it was +63 with a standard error
+of 36 — the median had moved on sampling noise, and chasing it would have meant
+retuning a scorecard that was working. Median-of-independent-runs cannot
+resolve a 1 % effect at this sample size; the paired form can, and every score
+comparison in this section uses it.
+
 ## Still open
 
 - **`marketExpectedRate` reaches its rail in three *completed* ecb/hard

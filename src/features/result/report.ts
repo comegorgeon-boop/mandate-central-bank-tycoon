@@ -232,6 +232,25 @@ function describeWhyThisScore(
       biggestGap.explanation,
   )
 
+  // Said explicitly, always, whichever way it went. The player who asked for
+  // this watched the equity index halve and could not tell whether it had
+  // counted — and it had not, so a component that is *sometimes* mentioned
+  // when it happens to rank badly would leave the same question open on every
+  // mandate where it did not.
+  const prosperity = score.components.find(
+    (component) => component.id === 'market_prosperity',
+  )
+  if (prosperity !== undefined) {
+    const share = (prosperity.weight * 100).toFixed(0)
+    paragraphs.push(
+      `Financial markets counted, and here is exactly how much: ` +
+        `${(prosperity.raw * 100).toFixed(0)} % on market prosperity, carrying ` +
+        `${share} % of the scorecard — below both halves of the mandate, on ` +
+        `purpose, because a central bank that maximised asset prices would be ` +
+        `doing the wrong job. ${prosperity.explanation}`,
+    )
+  }
+
   paragraphs.push(inst.mandateSummary)
 
   if (score.priceStabilityGate < 1) {

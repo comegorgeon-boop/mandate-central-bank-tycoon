@@ -2,6 +2,7 @@ export type ScoreComponentId =
   | 'price_stability'
   | 'employment_output'
   | 'financial_stability'
+  | 'market_prosperity'
   | 'anchoring'
   | 'credibility'
   | 'shock_response'

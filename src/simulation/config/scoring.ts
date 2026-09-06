@@ -11,6 +11,23 @@ export const MAX_SCORE = 10000
  * weight, matching the dual mandate. For the ECB, price stability carries the
  * primary weight; employment and growth still matter but cannot be the main
  * route to a high score.
+ *
+ * `market_prosperity` was added after a played mandate watched the equity
+ * index fall from 1000 to 500 and could not tell whether it had counted. It
+ * had not: `financial_stability` scores banking stress, credit spreads,
+ * volatility and fragmentation, and none of those is the value of the assets
+ * households own.
+ *
+ * Its weight comes entirely out of `financial_stability`, splitting that block
+ * in half rather than taking a slice from everywhere. The financial side of
+ * the scorecard is unchanged in total and now answers two different questions
+ * instead of one: did the system break, and was wealth destroyed. Taking the
+ * weight from elsewhere would have been an arbitrary reweighting of the real
+ * economy dressed up as an addition.
+ *
+ * It sits below price stability and employment at both institutions on
+ * purpose. A central bank that maximised asset prices would be doing the wrong
+ * job, and a scorecard that paid well for it would teach exactly that.
  */
 export const SCORE_WEIGHTS: Readonly<
   Record<Institution, Readonly<Record<ScoreComponentId, number>>>
@@ -18,7 +35,8 @@ export const SCORE_WEIGHTS: Readonly<
   fed: {
     price_stability: 0.26,
     employment_output: 0.26,
-    financial_stability: 0.12,
+    financial_stability: 0.06,
+    market_prosperity: 0.06,
     anchoring: 0.12,
     credibility: 0.1,
     shock_response: 0.06,
@@ -28,7 +46,8 @@ export const SCORE_WEIGHTS: Readonly<
   ecb: {
     price_stability: 0.38,
     employment_output: 0.14,
-    financial_stability: 0.12,
+    financial_stability: 0.06,
+    market_prosperity: 0.06,
     anchoring: 0.14,
     credibility: 0.1,
     shock_response: 0.06,
@@ -56,7 +75,35 @@ export const SCORE_SCALES = {
   credibilityShortfall: 34,
   /** Cumulative absolute policy rate change beyond the free allowance, in pp. */
   policyVolatility: 4.5,
+  /**
+   * Average distance of asset valuations from fundamentals, in index points
+   * beyond `VALUATION_TOLERANCE`.
+   *
+   * Measured over 100 mandates a side, an ordinary mandate sits 0.1 to 1.4
+   * points outside the tolerance and scores 0.9 or better; a dislocated one
+   * runs several times that. Sized so a mandate that lets valuations come
+   * badly adrift gives up roughly 300 points of the final score — enough to
+   * be seen, nowhere near enough to be chased.
+   */
+  marketProsperity: 4.5,
 } as const
+
+/**
+ * How far valuations may sit from fundamentals before it is scored at all.
+ *
+ * Wide, and the width is the whole design. Three narrower formulations were
+ * measured first and every one of them charged competent play for doing its
+ * job: on the tutorial's overheated opening, disinflating necessarily takes
+ * valuations from frothy to somewhat below fair, so a measure of the index's
+ * *level* — or of its drawdown, or of any distance from fair value read
+ * tightly — scores the cure as the disease. Measured, that single term flipped
+ * fed/easy from competent play beating passivity to losing to it.
+ *
+ * At 20 points, the ordinary swing a disinflation causes is inside the band
+ * and free, and what remains outside it is dislocation: a market that has come
+ * genuinely adrift from what the economy underneath it can support.
+ */
+export const VALUATION_TOLERANCE = 20
 
 /**
  * Policy churn the player may use for free before the volatility component and
