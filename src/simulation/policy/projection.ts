@@ -89,11 +89,20 @@ function coast(state: SimulationState, meetings: number): SimulationState {
   return current
 }
 
-export function projectPackage(
+/**
+ * The projection primitive: any package, any set of series.
+ *
+ * Both arms are advanced from copies of `state` and then discarded, so the
+ * live run's random sequence is untouched however many times this is called.
+ * Series the institution does not publish are dropped rather than reported as
+ * zero — a fragmentation spread means nothing to a single-sovereign mandate.
+ */
+export function projectSeries(
   state: SimulationState,
   pkg: PolicyPackage,
+  seriesIds: readonly SeriesId[],
   horizonMeetings: number = PROJECTION_HORIZON,
-): PackageProjection | null {
+): readonly ProjectedSeries[] | null {
   const applied = applyPolicyPackage(state, pkg)
   if (!applied.ok) return null
 
@@ -104,7 +113,7 @@ export function projectPackage(
   const holding = coast(state, horizonMeetings)
 
   const series: ProjectedSeries[] = []
-  for (const seriesId of PROJECTED) {
+  for (const seriesId of seriesIds) {
     const definition = getSeries(seriesId)
     if (definition === undefined) continue
     if (!definition.institutions.includes(institution)) continue
@@ -118,6 +127,16 @@ export function projectPackage(
       holding: definition.read(holding.latent),
     })
   }
+  return series
+}
+
+export function projectPackage(
+  state: SimulationState,
+  pkg: PolicyPackage,
+  horizonMeetings: number = PROJECTION_HORIZON,
+): PackageProjection | null {
+  const series = projectSeries(state, pkg, PROJECTED, horizonMeetings)
+  if (series === null) return null
 
   const unchanged = series.every(
     (entry) =>

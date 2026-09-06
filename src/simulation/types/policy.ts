@@ -213,4 +213,35 @@ export interface InstrumentDefinition extends InstrumentRange {
   readonly label: Readonly<Record<Institution, string>>
   /** One-line description of the implementation channel, for the Policy Desk. */
   readonly description: string
+  /**
+   * What this instrument is *for*, in one sentence a reader who has never met
+   * it can act on. No jargon, no channel names, no acronyms.
+   *
+   * Separate from `description`, which says how it works. A player raised
+   * targeted refinancing by one point and had, in their words, no idea what it
+   * had done — and `description` was on screen at the time. Saying what a lever
+   * is for and saying what mechanism it uses are two different sentences, and
+   * this build was only ever writing the second one.
+   */
+  readonly purpose: string
+  /**
+   * What the numbers on the dial mean, and where the historically ordinary
+   * range sits inside the allowed one.
+   *
+   * The bounds alone answer "what may I type"; they never answered "how much
+   * is a lot", which is the question a player entering a figure in % of GDP is
+   * actually asking.
+   */
+  readonly rangeNote: string
+  /** What goes wrong when this instrument is overused. */
+  readonly abuseRisk: string
+  /**
+   * The top of the historically ordinary range, in the instrument's own unit.
+   *
+   * The allowed range is deliberately wider — a mandate should be able to do
+   * something unprecedented, because sometimes the situation is — but crossing
+   * this is worth saying out loud at the moment it happens. Omitted where the
+   * whole allowed range is ordinary.
+   */
+  readonly plausibleMax?: number
 }

@@ -1,8 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import App from '../App'
-import { MEETING_COUNT, type Difficulty } from '../simulation/index.ts'
+import {
+  MEETING_COUNT,
+  availableInstruments,
+  type Difficulty,
+} from '../simulation/index.ts'
 
 /**
  * A whole mandate at each difficulty, driven through the real screens.
@@ -192,7 +196,43 @@ describe('the toolkit each difficulty actually reaches', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Raise Securities purchases' }))
     fireEvent.click(screen.getByRole('button', { name: 'Raise Securities purchases' }))
     fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
-    expect(screen.getByText('0.0 % of GDP → 1.0 % of GDP')).toBeTruthy()
+    // Twice over: once in the package summary, and once in the projection of
+    // what that instrument on its own is expected to do.
+    expect(screen.getAllByText('0.0 % of GDP → 1.0 % of GDP')).toHaveLength(2)
+  })
+
+  it('quantifies what each moved instrument is expected to do on its own', () => {
+    openTheDesk('medium')
+    fireEvent.click(screen.getByRole('button', { name: 'Raise Securities purchases' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
+
+    const panel = screen
+      .getByRole('heading', { name: 'What each instrument is expected to do' })
+      .closest('section')
+    expect(panel).not.toBeNull()
+    // Both halves of the mandate are always reported, even where the effect
+    // rounds to nothing over the horizon: "this does not move unemployment
+    // within a year" is a fact about the instrument the player needs.
+    expect(within(panel!).getByText('Headline inflation')).toBeTruthy()
+    expect(within(panel!).getByText('Unemployment rate')).toBeTruthy()
+  })
+
+  it('gives every reachable instrument a plain-language purpose', () => {
+    // The complaint this answers, verbatim: a player raised a refinancing
+    // programme by a point and had no idea what it had done. Purposes live in
+    // `config/instruments.ts`, so this checks the screen actually renders one
+    // for every instrument the difficulty opens rather than for a chosen few.
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      openTheDesk(difficulty, 2)
+      for (const instrument of availableInstruments('fed', difficulty)) {
+        expect(instrument.purpose.length, instrument.id).toBeGreaterThan(0)
+        expect(
+          screen.getAllByText(instrument.purpose).length,
+          `${difficulty}: ${instrument.id}`,
+        ).toBeGreaterThan(0)
+      }
+      cleanup()
+    }
   })
 
   it('says nothing about a facility the player left alone', () => {

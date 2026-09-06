@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import type { ObservationSet } from '../../simulation/index.ts'
+import type { RealisedEntry } from './instrumentLedger.ts'
 import { buildReaction } from './reaction.ts'
+import { RealisedEffectPanel } from './RealisedEffectPanel.tsx'
 
 /**
  * The same-day reaction to a confirmed decision.
@@ -14,11 +16,14 @@ export function ReactionPanel({
   before,
   onTheDay,
   newswire,
+  realised,
   onContinue,
 }: {
   readonly before: ObservationSet
   readonly onTheDay: ObservationSet
   readonly newswire: readonly string[]
+  /** Instruments moved four meetings ago, now checkable. Usually empty. */
+  readonly realised: readonly RealisedEntry[]
   readonly onContinue: () => void
 }) {
   const reaction = useMemo(() => buildReaction(before, onTheDay), [before, onTheDay])
@@ -89,6 +94,8 @@ export function ReactionPanel({
           </p>
         </div>
       )}
+
+      <RealisedEffectPanel entries={realised} />
 
       {!reaction.standingMoved && (
         <p className="mt-4 text-xs text-ink-faint">

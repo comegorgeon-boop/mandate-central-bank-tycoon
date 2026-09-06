@@ -1998,6 +1998,91 @@ defect — a claim the build does not honour:
 | `observation/interval.test.ts` | the animated interval stops being the states the integrator actually passed through, its last frame stops being the next meeting's state, or a *statistic* is ever animated as though it were observable in real time |
 | `policy/projection.test.ts` | the confirmation screen's projection stops being the engine's own answer, stops showing the trade-off, or — the load-bearing one — ever writes back to the run it is projecting, which would mean looking at the confirmation screen changed the game |
 
+## What narrowing medium's toolkit cost
+
+A played mandate reported the medium toolkit as unreadable: a targeted
+refinancing programme raised by a point, with no idea what it had done. The
+instruments the player named as understood were the policy rate, purchases,
+runoff and the deposit facility rate, so medium now opens exactly those (plus
+guidance, which is the second axis rather than a facility) and the emergency
+liquidity facilities moved to hard.
+
+Measured by flipping only `availableFrom` on `discount_window` and
+`targeted_refinancing`, 150 seeds, everything else identical:
+
+| bucket | competent before | competent after | passive | completion |
+| --- | --- | --- | --- | --- |
+| fed/medium | 7300 | **7248** | 7211 | 99 % → 99 % |
+| ecb/medium | 5582 | **5582** | 5273 | 100 % → 99 % |
+
+Every other bucket is byte-identical, as it must be: hard's toolkit did not
+change and easy never had these instruments.
+
+So the reduction costs the Fed's benchmark 52 points and one ECB run in 150.
+The competent-versus-passive gap at fed/medium narrows from 89 to 37, which is
+thin but the right sign, and the loss is real rather than an artefact: the
+discount window was doing genuine work against banking stress, and medium now
+has to answer that stress with purchases and the rate. That is a fair trade for
+a mode a player can actually read, and it is the mode's *toolkit* that
+narrowed, not its difficulty — the shocks, the noise and the thresholds are
+untouched.
+
+## What an instrument now tells you, and what it costs to compute
+
+Every instrument gained four answers in `config/instruments.ts` — what it is
+for in plain language, where the historically ordinary range sits inside the
+allowed one, what goes wrong if it is abused, and (`plausibleMax`) the point
+past which the interface says out loud that this has no precedent. A test
+fails if any of them is missing or if a `purpose` reaches for the vocabulary
+that made the toolkit opaque in the first place.
+
+The quantified half is `projectInstrument`, which runs the engine twice per
+instrument — once with that single action, once holding — from a discarded
+copy, with procedural events off in both arms so the two share every draw. It
+is the same discipline as `projectPackage` and it is exposed at **every**
+difficulty, deliberately: the information ladder withdraws readings of the
+*economy*, and what a lever does is not one.
+
+Two findings from calibrating the panel:
+
+**A fixed horizon libels the slow instruments.** Read at four meetings, a
+50 bp rise reports −0.03 pp on inflation and nothing at all on unemployment.
+Each instrument is now read at the far end of its own declared `lagMeetings`,
+so the rate is asked at eight meetings and a liquidity facility at four.
+
+**Even then the numbers read as "nothing happened", and they are correct.**
+Mean effect on headline inflation, 40 seeds, fed/medium:
+
+| | 4m | 8m | 12m | 20m |
+| --- | --- | --- | --- | --- |
+| +50 bp | −0.031 | −0.041 | −0.056 | −0.143 |
+| +100 bp | −0.058 | −0.078 | −0.109 | −0.284 |
+
+That is the calibrated model and it should not change — monetary policy is
+slow, and `transmission.test.ts` pins that shape deliberately. What was missing
+was scale, so the panel now puts the contribution beside the miss it is aimed
+at: "inflation is 0.66 pp above target, this move closes about 5 % of that, a
+mandate is a run of these rather than one of them." The number stays honest and
+stops reading as a failure.
+
+## The audit's second blind spot, found the same way as the first
+
+The contrast audit that reported ALL CLEAR over an unreadable transition screen
+had a sibling defect: it only ever played **easy**, so the standing-settings
+panel, the per-instrument disclosures and the realised-effect readout — none of
+which easy mounts — had never been on screen while it measured. It now plays a
+medium mandate as well, opens every disclosure, pushes an instrument past its
+stated precedent, and walks far enough for a projection to come due.
+
+Two bugs in that walk are worth recording, because both produced a *pass*:
+
+- `locator.count()` does not wait. Read on the same tick as a React
+  re-render it returns 0, and the walk concluded the mandate had ended and
+  stopped on its first iteration — reporting clean over six unvisited screens.
+- The audit now prints the list of states it actually audited. A screen that
+  was never reached cannot have passed, and that list is the only thing that
+  distinguishes the two.
+
 ## Still open
 
 - **`marketExpectedRate` reaches its rail in three *completed* ecb/hard

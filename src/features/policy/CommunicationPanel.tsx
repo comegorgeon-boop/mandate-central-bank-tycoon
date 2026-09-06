@@ -1,10 +1,16 @@
 import type {
   CommunicationCommitment,
   CommunicationTone,
+  Difficulty,
   GuidanceState,
   ObservationSet,
 } from '../../simulation/index.ts'
-import { GUIDANCE_HORIZON_MEETINGS } from '../../simulation/index.ts'
+import {
+  GUIDANCE_HORIZON_MEETINGS,
+  getInstrument,
+  getInstrumentRange,
+} from '../../simulation/index.ts'
+import { InstrumentBrief } from './InstrumentBrief.tsx'
 import {
   COMMITMENT_OPTIONS,
   PATH_OPTIONS,
@@ -111,6 +117,7 @@ export function CommunicationPanel({
   signal,
   commitment,
   allowedCommitments,
+  difficulty,
   selectedRate,
   pricedRate,
   guidance,
@@ -127,6 +134,8 @@ export function CommunicationPanel({
   readonly signal: number
   readonly commitment: CommunicationCommitment
   readonly allowedCommitments: readonly CommunicationCommitment[]
+  /** Sets guidance's own allowed range, for its brief. */
+  readonly difficulty: Difficulty
   /** The rate the desk currently has selected, %, after the chosen move. */
   readonly selectedRate: number
   /** The one-year rate markets currently price, or null if unpublished. */
@@ -144,6 +153,11 @@ export function CommunicationPanel({
   readonly onTone: (tone: CommunicationTone | null) => void
 }) {
   const announcedRate = selectedRate + signal / 100
+  const guidanceInstrument = getInstrument('forward_guidance') ?? null
+  const guidanceRange =
+    guidanceInstrument === null
+      ? null
+      : getInstrumentRange(guidanceInstrument, difficulty)
   const options = COMMITMENT_OPTIONS.filter((option) =>
     allowedCommitments.includes(option.commitment),
   )
@@ -212,7 +226,18 @@ export function CommunicationPanel({
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-ink-faint">
+        {/* Guidance is an instrument like any other, so it gets the same four
+            answers as the dials on the desk — what it is for, how much is a
+            lot, what happens if it is abused. Its own definition supplies
+            them; nothing about it is written out here. */}
+        {guidanceInstrument !== null && guidanceRange !== null && (
+          <InstrumentBrief
+            instrument={guidanceInstrument}
+            range={guidanceRange}
+            value={signal}
+          />
+        )}
+        <p className="mt-1.5 text-xs text-ink-faint">
           Announced path: about {announcedRate.toFixed(2)} % a year from now
           {pricedRate !== null
             ? ` — markets currently price ${pricedRate.toFixed(2)} %. What moves them is the difference.`

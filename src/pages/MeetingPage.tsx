@@ -25,5 +25,12 @@ export default function MeetingPage() {
 
   // Keying on the meeting index resets the panel and the desk selection at
   // every meeting, so a decision can never be carried over unintentionally.
-  return <MeetingScreen key={expected} session={active.session} onConfirm={submit} />
+  return (
+    <MeetingScreen
+      key={expected}
+      session={active.session}
+      ledger={active.ledger}
+      onConfirm={submit}
+    />
+  )
 }

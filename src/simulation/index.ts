@@ -115,10 +115,16 @@ export {
 export {
   PROJECTION_HORIZON,
   projectPackage,
+  projectSeries,
   projectionTarget,
   type PackageProjection,
   type ProjectedSeries,
 } from './policy/projection.ts'
+export {
+  projectInstrument,
+  type InstrumentEffect,
+  type InstrumentEffectLine,
+} from './policy/instrumentEffect.ts'
 export {
   committeeAgrees,
   committeeViews,

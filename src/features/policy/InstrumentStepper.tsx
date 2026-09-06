@@ -1,4 +1,5 @@
 import type { InstrumentDefinition, InstrumentRange } from '../../simulation/index.ts'
+import { InstrumentBrief } from './InstrumentBrief.tsx'
 
 /**
  * One instrument's control, rendered from its definition alone.
@@ -29,6 +30,25 @@ export function formatMagnitude(
       return `${value.toFixed(1)} pts`
     case 'ordinal':
       return ORDINAL_LABEL[Math.round(value)] ?? String(value)
+  }
+}
+
+/**
+ * A step size rather than a value, so it never carries a sign.
+ *
+ * `formatMagnitude` signs basis points, which is right for a level and wrong
+ * for an increment: "in steps of +25 bp" reads as a direction.
+ */
+export function formatStep(value: number, unit: InstrumentDefinition['unit']): string {
+  switch (unit) {
+    case 'basis_points':
+      return `${Math.abs(value)} bp`
+    case 'percent_of_gdp':
+      return `${Math.abs(value).toFixed(1)} pp of GDP`
+    case 'index_points':
+      return `${Math.abs(value).toFixed(1)} pts`
+    case 'ordinal':
+      return 'one position'
   }
 }
 
@@ -97,17 +117,17 @@ export function InstrumentStepper({
         </span>
       </div>
 
-      <p className="mt-1 text-sm text-ink-soft">{instrument.description}</p>
+      <InstrumentBrief instrument={instrument} range={range} value={value} />
 
-      <p className="mt-1 text-xs text-ink-faint">
+      <p className="mt-1.5 text-xs text-ink-faint">
         {changed ? (
           <span className="text-accent-strong">
-            Changing from {formatMagnitude(standing, instrument.unit)}.
+            Changing from {formatMagnitude(standing, instrument.unit)}. The projected
+            effect of this move alone is on the confirmation screen.
           </span>
         ) : (
           <>In force at {formatMagnitude(standing, instrument.unit)}, unchanged.</>
-        )}{' '}
-        Peak effect in {instrument.lagMeetings[0]}–{instrument.lagMeetings[1]} meetings.
+        )}
       </p>
     </div>
   )

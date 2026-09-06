@@ -22,6 +22,8 @@ import {
   type RunSession,
 } from '../../simulation/index.ts'
 import { BalanceSheetPanel } from './BalanceSheetPanel.tsx'
+import { InstrumentBrief } from './InstrumentBrief.tsx'
+import { InstrumentEffectPanel } from './InstrumentEffectPanel.tsx'
 import { formatMagnitude } from './InstrumentStepper.tsx'
 import { guidancePreview } from './guidancePreview.ts'
 import { ProjectionPanel } from './ProjectionPanel.tsx'
@@ -50,16 +52,6 @@ import { buildStatement, deriveTone } from './statement.ts'
  * instruments configured `availableFrom: 'medium'` when the toolkit was
  * written had never once been reachable by a player.
  */
-
-const CHANNEL_LABEL: Readonly<Record<string, string>> = {
-  interest_rate: 'Interest rates',
-  credit: 'Credit',
-  asset_prices: 'Asset prices',
-  exchange_rate: 'Exchange rate',
-  expectations: 'Expectations',
-  bank_liquidity: 'Bank liquidity',
-  sovereign_spreads: 'Sovereign spreads',
-}
 
 function formatMove(basisPoints: number): string {
   if (basisPoints === 0) return 'Hold'
@@ -310,6 +302,14 @@ export function PolicyDeskPanel({
           )
         })()}
 
+        {/* Per instrument, at every difficulty. A dial's own effect is not a
+            reading of the economy, so the information ladder has no claim on
+            it — see `InstrumentEffectPanel`. */}
+        <InstrumentEffectPanel
+          state={session.state}
+          actions={buildPackage().actions}
+        />
+
         {/* The learning mandate gets the whole package projected, not just the
             words: it is the mode where a player is meant to form an
             expectation and then check it. Above easy the projection is
@@ -359,7 +359,6 @@ export function PolicyDeskPanel({
       <h2 id="desk-heading" className="text-lg font-semibold text-ink">
         Policy Desk
       </h2>
-      <p className="mt-1 text-sm text-ink-soft">{instrument.description}</p>
 
       {validation !== null && validation.rejections.length > 0 && (
         <div
@@ -401,9 +400,10 @@ export function PolicyDeskPanel({
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-ink-faint">
-          Moves in steps of {range.increment} bp, from {range.min} to {range.max} bp.
-          The rate cannot be set below the {floor.toFixed(2)} % effective lower bound.
+        <InstrumentBrief instrument={instrument} range={range} value={move} />
+        <p className="mt-1.5 text-xs text-ink-faint">
+          The rate cannot be set below the {floor.toFixed(2)} % effective lower
+          bound, so moves that would breach it are not offered.
         </p>
       </fieldset>
 
@@ -421,6 +421,7 @@ export function PolicyDeskPanel({
         institution={institution}
         difficulty={difficulty}
         stance={session.state.stance}
+        balanceSheet={session.observation.indicators.balance_sheet?.value ?? null}
         levels={levels}
         onChange={(id, next) => setLevels((current) => ({ ...current, [id]: next }))}
       />
@@ -430,6 +431,7 @@ export function PolicyDeskPanel({
         signal={signal}
         commitment={commitment}
         allowedCommitments={COMMUNICATION_AVAILABILITY[difficulty].commitments}
+        difficulty={difficulty}
         selectedRate={resultingRate}
         pricedRate={marketRate}
         guidance={session.state.guidance}
@@ -447,12 +449,6 @@ export function PolicyDeskPanel({
         <div className="flex justify-between gap-4 py-2">
           <dt className="text-ink-soft">Resulting policy rate</dt>
           <dd className="tabular-nums text-ink">{resultingRate.toFixed(2)} %</dd>
-        </div>
-        <div className="flex justify-between gap-4 py-2">
-          <dt className="text-ink-soft">Transmission channels</dt>
-          <dd className="text-right text-ink">
-            {instrument.channels.map((channel) => CHANNEL_LABEL[channel] ?? channel).join(', ')}
-          </dd>
         </div>
         <div className="flex justify-between gap-4 py-2">
           <dt className="text-ink-soft">Expected lag</dt>

@@ -15,6 +15,10 @@ import {
   type RunContextValue,
   type StartRunOptions,
 } from './runContext.ts'
+import {
+  pruneLedger,
+  recordInstruments,
+} from '../policy/instrumentLedger.ts'
 import { makeRunId } from './seed.ts'
 
 /** Verdict returned when a package arrives with no run open to apply it to. */
@@ -44,7 +48,11 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
       seed: options.seed,
       simulationVersion: SIMULATION_VERSION,
     })
-    setActive({ runId: makeRunId(options.seed), session: startRun(config) })
+    setActive({
+      runId: makeRunId(options.seed),
+      session: startRun(config),
+      ledger: [],
+    })
     setFinished(null)
   }, [])
 
@@ -52,11 +60,22 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
     (pkg: PolicyPackage): MeetingResult => {
       if (active === null) return NO_ACTIVE_RUN
 
+      // Recorded before the package is applied: the counterfactual is only
+      // the right one from the state the decision was actually taken in.
+      const recorded = recordInstruments(active.session, pkg)
+
       const result = submitMeeting(active.session, pkg)
       if (!result.ok) return result
 
       const session = result.session
-      setActive({ runId: active.runId, session })
+      setActive({
+        runId: active.runId,
+        session,
+        ledger: pruneLedger(
+          [...active.ledger, ...recorded],
+          session.state.meetingIndex,
+        ),
+      })
 
       // The engine decides when a mandate is over; the score is computed once,
       // here, so the result screen never recomputes it from a moving state.

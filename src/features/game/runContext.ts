@@ -7,6 +7,7 @@ import type {
   RunSession,
   ScoreBreakdown,
 } from '../../simulation/index.ts'
+import type { LedgerEntry } from '../policy/instrumentLedger.ts'
 
 /**
  * The run currently being played, held in memory only.
@@ -17,6 +18,14 @@ import type {
 export interface ActiveRun {
   readonly runId: string
   readonly session: RunSession
+  /**
+   * Projections still waiting to be checked against what actually happened.
+   *
+   * Interface state rather than run state: it is derived from decisions the
+   * engine already records, and it exists so a player can be told what the dial
+   * they moved four meetings ago produced. See `policy/instrumentLedger.ts`.
+   */
+  readonly ledger: readonly LedgerEntry[]
 }
 
 /** A run that has reached its end state, with its score already computed. */

@@ -33,12 +33,21 @@ export function BalanceSheetPanel({
   institution,
   difficulty,
   stance,
+  balanceSheet,
   levels,
   onChange,
 }: {
   readonly institution: Institution
   readonly difficulty: Difficulty
   readonly stance: PolicyStance
+  /**
+   * The institution's own holdings, % of GDP. Null if unpublished.
+   *
+   * A player entering a purchase pace in % of GDP asked, in as many words, how
+   * much they had. The engine has published this series with no lag and no
+   * measurement error since it existed, and no screen had ever rendered it.
+   */
+  readonly balanceSheet: number | null
   /** Levels currently selected at the desk, keyed by instrument. */
   readonly levels: Readonly<Partial<Record<InstrumentId, number>>>
   readonly onChange: (instrument: InstrumentId, next: number) => void
@@ -63,6 +72,17 @@ export function BalanceSheetPanel({
       <p className="mt-1 text-sm text-ink-soft">
         These stay in force between meetings. Leaving one alone is a decision to
         keep it where it is, not an absence of one.
+        {balanceSheet !== null && (
+          <>
+            {' '}
+            The balance sheet currently holds{' '}
+            <span className="font-medium tabular-nums text-ink">
+              {balanceSheet.toFixed(1)} % of GDP
+            </span>{' '}
+            in assets; purchases add to that at an annual pace and runoff subtracts
+            from it.
+          </>
+        )}
       </p>
 
       <div className="mt-3">

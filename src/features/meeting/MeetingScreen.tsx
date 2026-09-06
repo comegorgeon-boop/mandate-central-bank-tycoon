@@ -6,6 +6,7 @@ import {
   type PolicyPackage,
   type RunSession,
 } from '../../simulation/index.ts'
+import { realiseDue, type LedgerEntry } from '../policy/instrumentLedger.ts'
 import { PolicyDeskPanel } from '../policy/PolicyDeskPanel.tsx'
 import { ReactionPanel } from '../policy/ReactionPanel.tsx'
 import { StanceStrip } from '../policy/StanceStrip.tsx'
@@ -59,9 +60,12 @@ const TABS: readonly { readonly id: PanelId; readonly label: string }[] = [
 
 export function MeetingScreen({
   session,
+  ledger,
   onConfirm,
 }: {
   readonly session: RunSession
+  /** Projections due to be checked against what happened. See `runContext`. */
+  readonly ledger: readonly LedgerEntry[]
   readonly onConfirm: (pkg: PolicyPackage) => MeetingResult
 }) {
   const [panel, setPanel] = useState<PanelId>('brief')
@@ -90,6 +94,13 @@ export function MeetingScreen({
   // Easy ends on a goal rather than a clock, so the goal is on screen at every
   // meeting. Null at every other difficulty.
   const tutorial = tutorialProgress(session.state)
+  // What the instruments moved four meetings ago actually produced. Empty at
+  // most meetings; shown on the transition screen when it is not.
+  const realised = realiseDue(
+    ledger,
+    session.state.meetingIndex,
+    session.observation,
+  )
   const meetingNumber = session.state.meetingIndex + 1
   const severeWarnings = session.outcome.warnings.filter(
     (warning) => warning.severity === 'severe',
@@ -131,6 +142,7 @@ export function MeetingScreen({
             before={session.previousObservation}
             onTheDay={session.onTheDay}
             newswire={session.newswire}
+            realised={realised}
             onContinue={() => setShowReaction(false)}
           />
         </div>
