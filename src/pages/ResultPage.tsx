@@ -1,5 +1,5 @@
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { MAX_SCORE, getInstitution } from '../simulation/index.ts'
+import { MAX_SCORE, getInstitution, tutorialProgress } from '../simulation/index.ts'
 import { LineChart, type ChartSeries } from '../components/LineChart.tsx'
 import { useRun } from '../features/game/runContext.ts'
 import { buildMandateReport } from '../features/result/report.ts'
@@ -32,6 +32,8 @@ export default function ResultPage() {
   const { config } = session.state
   const institution = getInstitution(config.institution)
   const outcome = session.outcome
+  // Null at every difficulty but easy, which ends on a goal rather than a clock.
+  const tutorial = tutorialProgress(session.state)
   const history = session.state.history
   const meetingsServed = session.state.meetingIndex
   const report = buildMandateReport(session.state, outcome, score)
@@ -62,12 +64,49 @@ export default function ResultPage() {
       <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
         {institution.name} · {config.difficulty} · seed {config.seed}
       </p>
-      <h1 className="mt-1 font-display text-3xl font-semibold text-onwood">
-        {outcome.label ?? 'Mandate ended'}
+      <h1
+        className={`mt-1 font-display text-3xl font-semibold ${
+          outcome.triggered === 'objective_met' ? 'text-good-onwood' : 'text-onwood'
+        }`}
+      >
+        {outcome.triggered === 'objective_met'
+          ? 'Objective met — well done'
+          : (outcome.label ?? 'Mandate ended')}
       </h1>
       <p className="mt-1 text-sm text-onwood-soft">
-        {meetingsServed} of {config.meetingCount} scheduled meetings served.
+        {/* A tutorial has no schedule, so "N of M scheduled meetings" would be
+            reporting against a number it never promised. What it has is the
+            number of meetings it took, which is the interesting figure. */}
+        {tutorial === null
+          ? `${meetingsServed} of ${config.meetingCount} scheduled meetings served.`
+          : outcome.triggered === 'objective_met'
+            ? `The economy was repaired and held in ${meetingsServed} meetings.`
+            : `${meetingsServed} meetings served.`}
       </p>
+
+      {outcome.triggered === 'objective_met' && (
+        <section
+          aria-labelledby="passed-heading"
+          className="mt-4 rounded-lg border-l-4 border-good bg-good-surface p-4 shadow-panel"
+        >
+          <h2
+            id="passed-heading"
+            className="font-display text-xl font-semibold text-good-strong"
+          >
+            You brought it back.
+          </h2>
+          <p className="mt-1 text-sm text-ink">
+            {outcome.summary}
+          </p>
+          <p className="mt-2 text-sm text-ink">
+            That is the whole of monetary policy in one mandate: an economy
+            running hot, an instrument that acts with a lag, and an objective
+            you have to reach without breaking the other half of the mandate on
+            the way. Medium adds the shock that makes those two halves pull
+            against each other.
+          </p>
+        </section>
+      )}
 
       {/* The postmortem is a document, so it sits on paper like everything
           else the player reads. The charts inside it draw in ink, which is
@@ -278,6 +317,8 @@ export default function ResultPage() {
         <p className="text-sm leading-relaxed text-onwood-soft">
           {closingLine({
             completed: outcome.status === 'completed',
+            objectiveMet: outcome.triggered === 'objective_met',
+            objectiveMissed: outcome.triggered === 'objective_missed',
             score: score.score,
             maxScore: MAX_SCORE,
             conductGate: score.conductGate,

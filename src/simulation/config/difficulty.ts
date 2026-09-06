@@ -84,6 +84,56 @@ export interface DifficultyConfig {
    */
   readonly openingCrisisCharacters: readonly ShockCharacter[] | null
   /**
+   * The goal that ends this mode, for a mode that ends on a goal rather than a
+   * clock. Null everywhere but easy.
+   *
+   * A tutorial does not have a duration, it has a purpose. Easy ran twelve
+   * meetings because that was the number the transmission calibration needed
+   * to make a rate move legible — a good reason for a *mandate* and no reason
+   * at all for a lesson. Measured in play: the player fixed inflation by the
+   * third meeting and then had nothing to do until the twelfth. Eight meetings
+   * of a tutorial teaching that there is nothing to teach.
+   *
+   * So easy now opens on an economy that is visibly broken, states what
+   * winning looks like in two numbers, and stops the moment those two numbers
+   * have been held for `heldForMeetings` — which is what makes the ending an
+   * achievement rather than an expiry.
+   */
+  readonly tutorialGoal: {
+    /**
+     * Headline inflation must be strictly below the objective plus this.
+     *
+     * An *offset*, not a level, because the two institutions do not share a
+     * sustainable unemployment rate and one of them cannot reach an absolute
+     * bar. "Below 2 % and below 5 %" is the Fed's version of this goal and it
+     * is exactly what these offsets produce there; the euro area's sustainable
+     * rate is 6.6 %, so an absolute 5 % would have asked the player to hold
+     * unemployment 1.6 points *below* full employment for three consecutive
+     * meetings — not difficult, impossible, and impossible in a way the player
+     * could only discover by failing at it repeatedly.
+     */
+    readonly inflationAboveTargetBy: number
+    /** Unemployment must be strictly below its sustainable rate plus this. */
+    readonly unemploymentAboveNaturalBy: number
+    /**
+     * Consecutive meetings both must hold before the tutorial is passed.
+     *
+     * More than one, because hitting a target for a single print is luck: the
+     * published series carry measurement error, and a lesson that can be
+     * passed by a noisy quarter teaches the player to wait for a lucky number
+     * rather than to steer.
+     */
+    readonly heldForMeetings: number
+    /**
+     * The point at which the tutorial ends anyway, unfinished.
+     *
+     * A safety net rather than a deadline. An economy that neither recovers
+     * nor collapses would otherwise run forever, and "you did not get there"
+     * is a legitimate outcome that has to be reachable in finite time.
+     */
+    readonly maxMeetings: number
+  } | null
+  /**
    * Share of the total event probability mass an upcoming risk must carry
    * before its warning clue is published. Lower means more warnings.
    */
@@ -201,6 +251,18 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     // one cost-push shock may be outstanding, a second may not land on top.
     costPushCeiling: 1.0,
     openingCrisisCharacters: ['demand', 'financial'],
+    // Thresholds and hold length are measured, not chosen — see
+    // `simulation/scoring/tutorial.test.ts` and docs/BALANCE.md.
+    tutorialGoal: {
+      // On the Fed, whose objective is 2.0 % and whose sustainable rate is
+      // 4.2 %, these resolve to "inflation below 2.5 % and unemployment below
+      // 5.0 %" — the goal in the brief, stated so that the ECB gets its own
+      // honest equivalent rather than an unreachable one.
+      inflationAboveTargetBy: 0.5,
+      unemploymentAboveNaturalBy: 0.8,
+      heldForMeetings: 2,
+      maxMeetings: 28,
+    },
     clueThreshold: 0.1,
     credibilitySensitivity: 0.7,
     thresholdLeniency: 1.45,
@@ -234,6 +296,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     // already carrying two. Stagflation is medium's lesson, not its diet.
     costPushCeiling: 3.0,
     openingCrisisCharacters: null,
+    tutorialGoal: null,
     clueThreshold: 0.15,
     credibilitySensitivity: 1.0,
     thresholdLeniency: 1.0,
@@ -267,6 +330,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     shockMix: { demand: 1, supply: 1.5, financial: 1.2, institutional: 1.2 },
     costPushCeiling: Number.POSITIVE_INFINITY,
     openingCrisisCharacters: null,
+    tutorialGoal: null,
     clueThreshold: 0.22,
     credibilitySensitivity: 1.35,
     // The same bar as medium. Hard's difficulty is the shocks, the noise, the

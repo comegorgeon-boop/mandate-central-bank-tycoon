@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import App from '../App'
-import { MEETING_COUNT } from '../simulation/index.ts'
+import { getDifficulty } from '../simulation/index.ts'
 
 /**
  * The whole loop, driven through the interface.
@@ -12,7 +12,11 @@ import { MEETING_COUNT } from '../simulation/index.ts'
  * the engine.
  */
 
-const MEETINGS = MEETING_COUNT.easy
+// Easy is a tutorial: it ends when its objective is reached, so nothing can
+// know its length in advance. Its give-up cap is the only bound there is, and
+// it is read from the config rather than from `MEETING_COUNT`, which the
+// tutorial does not use.
+const MEETING_CAP = getDifficulty('easy').tutorialGoal?.maxMeetings ?? 0
 
 function renderAt(path: string) {
   return render(
@@ -73,16 +77,23 @@ describe('the playable loop', () => {
   it('runs setup, briefing, every meeting and the result screen', () => {
     startRunOnSeed('TEST')
 
-    for (let meeting = 1; meeting <= MEETINGS; meeting += 1) {
-      expect(
-        screen.getByRole('heading', { name: `Meeting ${meeting} of ${MEETINGS}` }),
-      ).toBeInTheDocument()
+    // Play until the tutorial ends of its own accord, which is the point of it:
+    // it stops when the objective is reached, not after a set number of
+    // meetings. The cap only bounds the loop.
+    let played = 0
+    for (let meeting = 1; meeting <= MEETING_CAP; meeting += 1) {
+      const heading = screen.queryByRole('heading', { name: `Meeting ${meeting}` })
+      if (heading === null) break
+      played += 1
       decideThisMeeting()
     }
+    expect(played).toBeGreaterThan(1)
 
-    expect(screen.getByRole('heading', { name: 'Mandate completed' })).toBeInTheDocument()
-    expect(screen.getByText(`${MEETINGS} of ${MEETINGS} scheduled meetings served.`)).toBeInTheDocument()
-
+    // Either ending is a legitimate run; both are endings the tutorial has.
+    expect(
+      screen.getByRole('heading', { name: /Objective (met|not reached)/ }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/meetings? served|repaired and held/)).toBeInTheDocument()
     // A score out of 10,000, with its components broken down.
     expect(screen.getByText('/ 10,000')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Price stability/ })).toBeInTheDocument()
@@ -123,7 +134,7 @@ describe('the playable loop', () => {
 
     decideThisMeeting('−25 bp')
 
-    expect(screen.getByRole('heading', { name: `Meeting 2 of ${MEETINGS}` })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meeting 2' })).toBeInTheDocument()
     expect(policyRateInForce()).toBeCloseTo(before - 0.25, 5)
   })
 
@@ -175,11 +186,11 @@ describe('route guards', () => {
 
   it('advances the URL to the meeting the engine says is current', () => {
     startRunOnSeed('GUARD')
-    expect(screen.getByRole('heading', { name: `Meeting 1 of ${MEETINGS}` })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meeting 1' })).toBeInTheDocument()
 
     // Nothing navigates on confirmation: the guard notices that the URL still
     // points at meeting one while the run has moved on, and redirects.
     decideThisMeeting()
-    expect(screen.getByRole('heading', { name: `Meeting 2 of ${MEETINGS}` })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meeting 2' })).toBeInTheDocument()
   })
 })

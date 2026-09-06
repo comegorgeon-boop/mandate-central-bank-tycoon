@@ -83,6 +83,19 @@ export const POLICY_VOLATILITY_ALLOWANCE_PER_YEAR: Readonly<
 > = { easy: 2.0, medium: 3.0, hard: 3.5 }
 
 /**
+ * What the completion component is worth to a tutorial that ran its length
+ * without reaching its objective.
+ *
+ * Not zero: the player served every meeting and nothing collapsed, which is
+ * materially better than being revoked at meeting nine. Not one either, which
+ * is what reading `status === 'completed'` alone used to award — a tutorial
+ * that ends because the clock ran out has finished, not succeeded, and paying
+ * both endings the same is the scoring equivalent of congratulating a player
+ * for turning up.
+ */
+export const MISSED_OBJECTIVE_CREDIT = 0.35
+
+/**
  * Banking stress above which the financial stability component starts to bite.
  *
  * Named here rather than left inline in `calculateScore` because the indicator

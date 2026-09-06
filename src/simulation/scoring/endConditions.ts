@@ -10,6 +10,7 @@ import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { EXCHANGE, VOLATILITY } from '../config/model.ts'
 import { THRESHOLDS } from '../config/thresholds.ts'
+import { tutorialExhausted, tutorialProgress } from './tutorialGoal.ts'
 import { realRateGap, unemploymentGap } from '../engine/indices.ts'
 
 /**
@@ -413,7 +414,11 @@ function contributors(state: SimulationState, id: EndConditionId): RawFactor[] {
               : 'Guidance was kept, but performance alone had already cost the institution its standing.',
         },
       ]
+    // Endings with no causal chain to build: nothing went wrong, so there is
+    // nothing to attribute.
     case 'mandate_completed':
+    case 'objective_met':
+    case 'objective_missed':
       return []
   }
 }
@@ -486,6 +491,55 @@ export function evaluateEndConditions(
       label: triggered.label,
       summary: triggered.summary,
       causalChain: buildCausalChain(state, triggered.id),
+      warnings,
+      breachCounters,
+    }
+  }
+
+  // The tutorial ends on its goal, not on a clock — and, like completion
+  // below, only after the catastrophes have had their say: reaching the
+  // objective on the meeting the banking system fails is still a failure.
+  const tutorial = tutorialProgress(state)
+  if (tutorial !== null) {
+    if (tutorial.passed) {
+      return {
+        status: 'completed',
+        triggered: 'objective_met',
+        label: 'Objective met',
+        summary:
+          `Inflation was brought below ${tutorial.inflationBelow.toFixed(1)} % and ` +
+          `unemployment below ${tutorial.unemploymentBelow.toFixed(1)} %, and held ` +
+          `there for ${tutorial.meetingsNeeded} consecutive meetings. That is the ` +
+          'whole job, done.',
+        causalChain: [],
+        warnings,
+        breachCounters,
+      }
+    }
+    if (tutorialExhausted(tutorial)) {
+      return {
+        status: 'completed',
+        triggered: 'objective_missed',
+        label: 'Objective not reached',
+        summary:
+          `After ${tutorial.meetingsPlayed} meetings the economy was still short of ` +
+          `the objective: inflation at ${tutorial.inflation.toFixed(2)} % against ` +
+          `${tutorial.inflationBelow.toFixed(1)} %, unemployment at ` +
+          `${tutorial.unemployment.toFixed(2)} % against ` +
+          `${tutorial.unemploymentBelow.toFixed(1)} %. Nothing collapsed; it simply ` +
+          'was not repaired.',
+        causalChain: [],
+        warnings,
+        breachCounters,
+      }
+    }
+    // A tutorial has no scheduled end, so nothing below applies to it.
+    return {
+      status: 'active',
+      triggered: null,
+      label: null,
+      summary: null,
+      causalChain: [],
       warnings,
       breachCounters,
     }

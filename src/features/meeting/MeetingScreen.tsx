@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   getInstitution,
+  tutorialProgress,
   type MeetingResult,
   type PolicyPackage,
   type RunSession,
@@ -16,6 +17,7 @@ import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
 import { StandingPanel } from './panels/StandingPanel.tsx'
+import { TutorialGoalPanel } from './panels/TutorialGoalPanel.tsx'
 import { readStanding } from './standing.ts'
 import { PricesPanel } from './panels/PricesPanel.tsx'
 import { regimeObjective } from './objective.ts'
@@ -85,6 +87,9 @@ export function MeetingScreen({
   // How the mandate is going, in both directions. The interface used to
   // signal only danger; a mandate going well now says so, and names why.
   const standing = readStanding(session.observation, session.outcome, config.institution)
+  // Easy ends on a goal rather than a clock, so the goal is on screen at every
+  // meeting. Null at every other difficulty.
+  const tutorial = tutorialProgress(session.state)
   const meetingNumber = session.state.meetingIndex + 1
   const severeWarnings = session.outcome.warnings.filter(
     (warning) => warning.severity === 'severe',
@@ -101,7 +106,12 @@ export function MeetingScreen({
               {institution.name} · {config.difficulty} · seed {config.seed}
             </p>
             <h1 className="mt-1 font-display text-2xl font-semibold text-onwood">
-              Meeting {meetingNumber} of {config.meetingCount}
+              {/* A tutorial has no scheduled length, so "of N" would be a
+                  promise it does not make: N is the point at which it gives
+                  up, not the point at which it ends. */}
+              {tutorial === null
+                ? `Meeting ${meetingNumber} of ${config.meetingCount}`
+                : `Meeting ${meetingNumber}`}
             </h1>
           </div>
           <SettingsPanel className="w-full sm:w-72" />
@@ -127,6 +137,8 @@ export function MeetingScreen({
       ) : (
         <>
           <StandingPanel standing={standing} severeWarnings={severeWarnings} />
+
+          {tutorial !== null && <TutorialGoalPanel progress={tutorial} />}
 
           <MajorEventPanel
             majorEvent={session.majorEvent}

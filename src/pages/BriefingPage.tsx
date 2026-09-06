@@ -1,5 +1,9 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { getInstitution, type SeriesId } from '../simulation/index.ts'
+import {
+  getInstitution,
+  tutorialProgress,
+  type SeriesId,
+} from '../simulation/index.ts'
 import { useRun } from '../features/game/runContext.ts'
 import { formatMeetings, transmissionLag } from '../features/policy/lag.ts'
 import { Mascot } from '../components/Mascot.tsx'
@@ -26,6 +30,8 @@ export default function BriefingPage() {
 
   const { session } = active
   const { config } = session.state
+  // Null at every difficulty but easy. See `scoring/tutorialGoal.ts`.
+  const tutorial = tutorialProgress(session.state)
   const institution = getInstitution(config.institution)
   const lag = transmissionLag(config.difficulty)
 
@@ -47,13 +53,51 @@ export default function BriefingPage() {
           Your mandate
         </h2>
         <p className="mt-2 text-sm text-onwood-soft">{institution.mandateSummary}</p>
-        <p className="mt-2 text-sm text-onwood-soft">
-          You will chair {config.meetingCount} scheduled meetings. At each one you set
-          the policy rate. The inflation objective is{' '}
-          {institution.inflationTarget.toFixed(1)} %, and the employment side of the
-          mandate is judged against how far unemployment sits from its sustainable
-          level.
-        </p>
+        {tutorial === null ? (
+          <p className="mt-2 text-sm text-onwood-soft">
+            You will chair {config.meetingCount} scheduled meetings. At each one you
+            set the policy rate. The inflation objective is{' '}
+            {institution.inflationTarget.toFixed(1)} %, and the employment side of the
+            mandate is judged against how far unemployment sits from its sustainable
+            level.
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-onwood-soft">
+              This mandate has no fixed number of meetings. You inherit an economy
+              running hot, and it ends when you have brought it back — not when a
+              clock runs out.
+            </p>
+            <div className="mt-3 rounded-lg border-l-4 border-edge-accent bg-inset p-3">
+              <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-accent-onwood">
+                What ends it
+              </p>
+              <ul className="mt-1 space-y-0.5 text-sm text-onwood">
+                <li>
+                  Inflation below{' '}
+                  <span className="font-semibold tabular-nums">
+                    {tutorial.inflationBelow.toFixed(1)} %
+                  </span>
+                </li>
+                <li>
+                  Unemployment below{' '}
+                  <span className="font-semibold tabular-nums">
+                    {tutorial.unemploymentBelow.toFixed(1)} %
+                  </span>
+                </li>
+                <li>
+                  Both at once, for {tutorial.meetingsNeeded} consecutive meetings
+                </li>
+              </ul>
+              <p className="mt-1.5 text-xs text-onwood-soft">
+                Unemployment already sits under its bar; the tightening that brings
+                inflation down is what will push it up. Holding both is the job. If
+                it is still not done by meeting {tutorial.maxMeetings}, the mandate
+                ends anyway.
+              </p>
+            </div>
+          </>
+        )}
       </section>
 
       <section className="mt-6" aria-labelledby="economy-heading">

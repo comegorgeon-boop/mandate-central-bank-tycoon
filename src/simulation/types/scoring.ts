@@ -57,6 +57,10 @@ export interface ScoreBreakdown {
 
 export type EndConditionId =
   | 'mandate_completed'
+  /** Easy only: the tutorial's two objectives, held long enough. */
+  | 'objective_met'
+  /** Easy only: the tutorial ran its length without the objectives being met. */
+  | 'objective_missed'
   | 'inflation_spiral'
   | 'deflation_spiral'
   | 'depression'

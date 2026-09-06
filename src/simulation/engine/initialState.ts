@@ -30,6 +30,75 @@ const OPENING_PERTURBATION_SCALE: Readonly<Record<Difficulty, number>> = {
   hard: 1,
 }
 
+/**
+ * The damage the tutorial opens on, in percentage points.
+ *
+ * Easy used to open on a *healthy* economy and be broken by a named crisis, on
+ * the reasoning that the player should see the baseline, then the cause, then
+ * know what to repair. Two mandates of play found the flaw: the crisis is
+ * repaired in about three meetings and the remaining nine have nothing in
+ * them. A tutorial whose problem is solved a quarter of the way through spends
+ * the rest of itself teaching that there is nothing to do.
+ *
+ * So it now opens on an economy that is *already* broken on both halves of the
+ * mandate at once — inflation well above the objective and unemployment well
+ * above its sustainable rate — which is the only opening that makes both of
+ * the tutorial's two objectives something to work toward rather than something
+ * already true. The named opening crisis still fires on top: it is what makes
+ * the damage a story with a cause rather than an arbitrary starting board.
+ *
+ * Sized against `DifficultyConfig.tutorialGoal`, and both are measured
+ * together — the opening has to be far enough from the goal to need real
+ * policy and near enough to be reachable before `maxMeetings`.
+ */
+export const TUTORIAL_DAMAGE = {
+  /** Added to headline and core inflation. */
+  inflation: 2.4,
+  /**
+   * Added to the output gap, and taken off unemployment.
+   *
+   * *Positive*, which is the whole design. Three arrangements of this damage
+   * were measured before this one, and the two rejected ones are worth
+   * recording because they were both wrong for reasons that are not obvious.
+   *
+   * Damaging both halves — inflation up *and* unemployment up — reads as the
+   * most broken economy and is the least instructive one, because it heals
+   * itself: a negative output gap is disinflationary and mean-reverts to zero,
+   * so unemployment walks back to its natural rate and inflation follows it
+   * down. Measured, a player could pass that tutorial 57-69 % of the time by
+   * holding the rate and doing nothing whatsoever.
+   *
+   * Damaging it harder did not fix that. Loosening the anchor to the point
+   * where passive play failed also put competent play at 45-56 %, and a
+   * *decisive* rule that closed the whole rate gap every meeting scored the
+   * same as the gradual one — so the ceiling was not the benchmark's caution,
+   * it was a mode where the rate could not reach the problem in time.
+   *
+   * An economy that is *overheating* is the arrangement that works. Inflation
+   * is high because demand is running ahead of capacity; unemployment starts
+   * below its sustainable rate, so the employment objective is met on the
+   * opening meeting and the player's job is to bring inflation down *without
+   * losing it*. That is a real trade-off rather than two chores, it is the
+   * standing objective this game already states in words, and it is squarely
+   * demand-side — which is what easy is for.
+   */
+  outputGap: 1.2,
+  unemployment: -0.5,
+  /**
+   * Expectations, and the anchor.
+   *
+   * The overheating gap mean-reverts on its own, so on its own it would heal
+   * like everything else. A loose anchor does not: `EXPECTATIONS.longTargetSlope`
+   * makes the pull back toward the objective proportional to credibility *and*
+   * anchoring, so inflation stays up until policy earns the anchor back. It is
+   * the one thing in this model that cannot be waited out, which makes it the
+   * only honest way to build a lesson that requires acting.
+   */
+  shortExpectations: 1.1,
+  longExpectations: 0.6,
+  anchoring: -0.35,
+} as const
+
 /** Options controlling how a fresh state is built. */
 export interface InitialStateOptions {
   /**
@@ -39,6 +108,19 @@ export interface InitialStateOptions {
    * guard in `events/balance.test.ts` — pass `false` explicitly.
    */
   readonly openingEvent?: boolean
+  /**
+   * Whether to apply the tutorial's opening damage. Defaults to true, so real
+   * play always gets it.
+   *
+   * Passed `false` for the same reason `openingEvent` is: a calibration
+   * harness measures a *mechanism* by differencing a treatment run against a
+   * control, and both are contaminated by a deliberate, scripted starting
+   * condition. The kernel tests in `engine/transmission.test.ts` measure how
+   * fast a rate move reaches banking stress, and an overheating opening moves
+   * where the stress path starts — which is a fact about the tutorial's
+   * scenario, not about the kernel.
+   */
+  readonly tutorialDamage?: boolean
 }
 
 /**
@@ -74,7 +156,13 @@ export function createRunConfig(options: {
     difficulty: options.difficulty,
     seed: options.seed,
     mode: options.mode ?? 'fictional',
-    meetingCount: MEETING_COUNT[options.difficulty],
+    // A tutorial has no scheduled length, so its "count" is the point at which
+    // it ends unfinished — the only sense in which it has one. Everything that
+    // divides by `meetingCount` (the share served, the churn allowance) then
+    // still means something rather than dividing by a number the mode ignores.
+    meetingCount:
+      getDifficulty(options.difficulty).tutorialGoal?.maxMeetings ??
+      MEETING_COUNT[options.difficulty],
   }
 }
 
@@ -272,6 +360,30 @@ export function createInitialState(
   // `DifficultyConfig.openingCrisisCharacters` — `applyOpeningCrisis` is a
   // no-op where that is null, so the difficulty rule lives in the config
   // rather than being spelled a second time here.
+  // The tutorial opens damaged, so that repairing it is the lesson. Applied
+  // before the opening crisis, which then lands on an economy already in
+  // trouble — which is also what a real committee inherits.
+  const damage = getDifficulty(config.difficulty).tutorialGoal
+  if (damage !== null && (options.tutorialDamage ?? true)) {
+    const hurt: LatentState = {
+      ...state.latent,
+      inflationHeadline: state.latent.inflationHeadline + TUTORIAL_DAMAGE.inflation,
+      inflationCore: state.latent.inflationCore + TUTORIAL_DAMAGE.inflation,
+      expectedInflationShort:
+        state.latent.expectedInflationShort + TUTORIAL_DAMAGE.shortExpectations,
+      expectedInflationLong:
+        state.latent.expectedInflationLong + TUTORIAL_DAMAGE.longExpectations,
+      anchoring: clamp(state.latent.anchoring + TUTORIAL_DAMAGE.anchoring, 0, 1),
+      unemployment: state.latent.unemployment + TUTORIAL_DAMAGE.unemployment,
+      outputGap: state.latent.outputGap + TUTORIAL_DAMAGE.outputGap,
+    }
+    state = {
+      ...state,
+      latent: hurt,
+      history: [{ meetingIndex: 0, timeYears: 0, latent: hurt }],
+    }
+  }
+
   if (options.openingEvent ?? true) {
     state = applyOpeningCrisis(state)
     // `history[0]` was captured above, before the crisis. The observation

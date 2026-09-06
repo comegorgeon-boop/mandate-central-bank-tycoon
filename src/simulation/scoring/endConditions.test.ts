@@ -153,8 +153,10 @@ describe('every end condition triggers, and only after it has held', () => {
 })
 
 describe('completing the mandate', () => {
+  // On medium, because easy no longer *has* scheduled meetings: it ends on its
+  // objective. The tutorial's own endings are covered in `tutorialGoal.test.ts`.
   it('reports completion once every scheduled meeting has been held', () => {
-    const base = createInitialState(testConfig('fed', 'easy', 'completion'))
+    const base = createInitialState(testConfig('fed', 'medium', 'completion'))
     const finished = { ...base, meetingIndex: base.config.meetingCount }
     const result = evaluateEndConditions(finished)
     expect(result.status).toBe('completed')
@@ -162,7 +164,7 @@ describe('completing the mandate', () => {
   })
 
   it('stays active until then', () => {
-    const base = createInitialState(testConfig('fed', 'easy', 'completion'))
+    const base = createInitialState(testConfig('fed', 'medium', 'completion'))
     const midway = { ...base, meetingIndex: base.config.meetingCount - 1 }
     expect(evaluateEndConditions(midway).status).toBe('active')
   })

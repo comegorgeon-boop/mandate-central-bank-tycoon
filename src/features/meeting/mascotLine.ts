@@ -15,7 +15,7 @@ import type { Difficulty } from '../../simulation/index.ts'
 
 /** Said before the first meeting, keyed to the mode the player picked. */
 const OPENING: Readonly<Record<Difficulty, string>> = {
-  easy: 'You will move the rate today and see almost nothing next meeting. That is not the instrument failing — it is the lag, and this mode is short enough that you will still see it land before the end.',
+  easy: 'You inherit an economy running hot. Move the rate today and you will see almost nothing next meeting — that is not the instrument failing, it is the lag. Keep moving, and keep an eye on unemployment: the tightening that fixes inflation is what breaks the other half of your objective.',
   medium:
     'From here the two halves of the mandate can pull against each other. When they do, you are not choosing the right answer; you are choosing which half to disappoint and by how much.',
   hard: 'Nobody will name the shock, nobody will read the evidence for you, and the committee will not agree. Decide anyway — a chair who waits for certainty simply decides later, and later is worse.',
@@ -36,17 +36,28 @@ export function openingLine(difficulty: Difficulty): string {
  */
 export function closingLine({
   completed,
+  objectiveMet = false,
+  objectiveMissed = false,
   score,
   maxScore,
   conductGate,
   supplyRegimeShare,
 }: {
   readonly completed: boolean
+  /** The tutorial's two endings, which are neither "served" nor "lost". */
+  readonly objectiveMet?: boolean
+  readonly objectiveMissed?: boolean
   readonly score: number
   readonly maxScore: number
   readonly conductGate: number
   readonly supplyRegimeShare: number
 }): string {
+  if (objectiveMet) {
+    return 'You got there — inflation back under control and people still in work, which is the pair this job exists to hold together. Medium adds the shock that makes them pull against each other.'
+  }
+  if (objectiveMissed) {
+    return 'The clock ran out with the economy still hot. Nothing collapsed, which is worth something; but the objective was reachable and it was not reached. The charts show where the tightening stopped short.'
+  }
   if (!completed) {
     return 'It ended early. Read the causes above before the seed tempts you — the same economy will do the same thing to the same policy, which is exactly what makes replaying it worth something.'
   }

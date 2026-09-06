@@ -15,6 +15,7 @@ import { YEARS_PER_MEETING } from '../config/time.ts'
 import {
   CONDUCT_GATE,
   MAX_SCORE,
+  MISSED_OBJECTIVE_CREDIT,
   POLICY_VOLATILITY_ALLOWANCE_PER_YEAR,
   PRICE_STABILITY_GATE,
   SCORE_SCALES,
@@ -257,8 +258,19 @@ export function calculateScore(
   const volatilityRaw = performance(excess, SCORE_SCALES.policyVolatility)
 
   // ---- Survival and completion -------------------------------------------
+  //
+  // A tutorial that ran its length without reaching its objective has
+  // *finished* but has not *succeeded*, and the two must not score alike. Both
+  // return `status: 'completed'` — nothing collapsed, the run simply ended —
+  // so reading the status alone gave a player who never repaired the economy
+  // the same full marks as one who repaired it in twelve meetings.
   const served = clamp(state.meetingIndex / state.config.meetingCount, 0, 1)
-  const completionRaw = outcome.status === 'completed' ? 1 : served * 0.6
+  const completionRaw =
+    outcome.triggered === 'objective_missed'
+      ? MISSED_OBJECTIVE_CREDIT
+      : outcome.status === 'completed'
+        ? 1
+        : served * 0.6
 
   const definitions: readonly {
     id: ScoreComponentId
@@ -320,9 +332,13 @@ export function calculateScore(
       label: 'Mandate completion',
       raw: completionRaw,
       explanation:
-        outcome.status === 'completed'
-          ? 'The full mandate was served.'
-          : `The mandate ended after ${state.meetingIndex} of ${state.config.meetingCount} meetings.`,
+        outcome.triggered === 'objective_met'
+          ? `The objective was reached and held, after ${state.meetingIndex} meetings.`
+          : outcome.triggered === 'objective_missed'
+            ? `${state.meetingIndex} meetings were served without the objective being reached.`
+            : outcome.status === 'completed'
+              ? 'The full mandate was served.'
+              : `The mandate ended after ${state.meetingIndex} of ${state.config.meetingCount} meetings.`,
     },
   ]
 

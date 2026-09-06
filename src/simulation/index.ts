@@ -129,6 +129,11 @@ export {
 
 // ---- Scoring --------------------------------------------------------------
 export { calculateScore, scoreBucketKey } from './scoring/calculateScore.ts'
+export {
+  tutorialExhausted,
+  tutorialProgress,
+  type TutorialProgress,
+} from './scoring/tutorialGoal.ts'
 export { evaluateEndConditions } from './scoring/endConditions.ts'
 
 // ---- Replay ---------------------------------------------------------------
