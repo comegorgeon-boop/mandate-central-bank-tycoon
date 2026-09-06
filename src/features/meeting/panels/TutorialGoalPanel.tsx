@@ -61,19 +61,19 @@ export function TutorialGoalPanel({
   return (
     <section
       aria-labelledby="tutorial-goal-heading"
-      className="mt-4 rounded-lg border border-edge bg-panel p-4 text-ink shadow-panel"
+      className="mt-4 rounded-lg border border-edge bg-panel p-3 text-ink shadow-panel sm:p-4"
     >
       <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
         What ends this mandate
       </p>
       <h2
         id="tutorial-goal-heading"
-        className="mt-1 font-display text-xl font-semibold text-ink"
+        className="mt-0.5 font-display text-lg font-semibold text-ink"
       >
         Repair the economy, then hold it there
       </h2>
 
-      <ul className="mt-3">
+      <ul className="mt-2">
         <Row
           label="Inflation"
           value={progress.inflation}
@@ -90,6 +90,10 @@ export function TutorialGoalPanel({
         />
       </ul>
 
+      {/* One line, not three. The rules of the tutorial are stated in full on
+          the briefing screen and do not change; repeating them under the two
+          bars at every meeting is the same paragraph re-read twenty times.
+          What does change is the count, so the count is what stays. */}
       <p className="mt-3 text-sm text-ink">
         {progress.onTarget ? (
           remaining === 0 ? (
@@ -107,17 +111,11 @@ export function TutorialGoalPanel({
           )
         ) : (
           <>
-            Both have to be true at once, and stay true for{' '}
-            {progress.meetingsNeeded} consecutive meetings. One good quarter is
-            luck; holding it is the job.
+            Both at once, held for {progress.meetingsNeeded} consecutive
+            meetings — or the mandate ends unfinished at meeting{' '}
+            {progress.maxMeetings}.
           </>
         )}
-      </p>
-
-      <p className="mt-2 text-2xs text-ink-faint">
-        This mandate has no fixed number of meetings — it ends when the objective
-        is reached. If it is still not reached by meeting {progress.maxMeetings},
-        it ends anyway.
       </p>
     </section>
   )

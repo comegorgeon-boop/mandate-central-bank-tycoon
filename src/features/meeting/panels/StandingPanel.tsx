@@ -12,6 +12,13 @@ import type { StandingReading, StandingTone } from '../standing.ts'
  * The severe warnings still take the whole panel when they exist. Nothing
  * about celebrating success should make a mandate four meetings from
  * revocation read as anything other than that.
+ *
+ * Everything else folds. The verdict is one line and the reasons behind it are
+ * one click away, because the reasons are almost entirely restatements of what
+ * the three charts underneath already show — "inflation is 1.85 pp above the
+ * objective" beside a chart of inflation against the objective is the same
+ * fact, told twice, using the vertical space the chart wanted. The tone
+ * colouring stays: a verdict you have to open to read is not a verdict.
  */
 
 const TONE_STYLE: Readonly<Record<StandingTone, string>> = {
@@ -51,6 +58,7 @@ export function StandingPanel({
   readonly severeWarnings: readonly EndConditionWarning[]
 }) {
   const critical = severeWarnings.length > 0
+  const reasons = standing.achievements.length + standing.concerns.length
 
   return (
     <section
@@ -75,10 +83,27 @@ export function StandingPanel({
             <li key={warning.id}>{warning.message}</li>
           ))}
         </ul>
+      ) : reasons === 0 ? (
+        <p className={`mt-1 text-sm ${TONE_BODY[standing.tone]}`}>
+          Nothing is far enough from where it should be to be worth calling out,
+          in either direction.
+        </p>
       ) : (
-        <>
+        <details className="group mt-0.5">
+          <summary
+            className={`cursor-pointer list-none text-xs underline decoration-dotted underline-offset-2 marker:content-none ${TONE_BODY[standing.tone]}`}
+          >
+            <span className="group-open:hidden">
+              {standing.achievements.length > 0 &&
+                `${standing.achievements.length} going right`}
+              {standing.achievements.length > 0 && standing.concerns.length > 0 && ', '}
+              {standing.concerns.length > 0 &&
+                `${standing.concerns.length} to watch`}
+            </span>
+            <span className="hidden group-open:inline">Close</span>
+          </summary>
           {standing.achievements.length > 0 && (
-            <ul className={`mt-1 space-y-0.5 text-sm ${TONE_BODY[standing.tone]}`}>
+            <ul className={`mt-1.5 space-y-0.5 text-sm ${TONE_BODY[standing.tone]}`}>
               {standing.achievements.map((line) => (
                 <li key={line} className="flex gap-2">
                   <span aria-hidden="true" className="text-good">
@@ -101,13 +126,7 @@ export function StandingPanel({
               ))}
             </ul>
           )}
-          {standing.achievements.length === 0 && standing.concerns.length === 0 && (
-            <p className={`mt-1 text-sm ${TONE_BODY[standing.tone]}`}>
-              Nothing is far enough from where it should be to be worth calling
-              out, in either direction.
-            </p>
-          )}
-        </>
+        </details>
       )}
     </section>
   )

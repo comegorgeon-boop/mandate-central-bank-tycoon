@@ -1,6 +1,7 @@
 import {
   readStance,
   readStanceChange,
+  type Difficulty,
   type ObservationSet,
   type StanceLabel,
   type StanceReading,
@@ -84,12 +85,25 @@ function StanceLabelBlock({ stance }: { readonly stance: StanceReading }) {
 export function StanceStrip({
   observation,
   previousObservation,
+  difficulty,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
+  /**
+   * Decides how many figures stand permanently on screen.
+   *
+   * The learning mandate carries the three that a decision is made from and
+   * drops public approval, which is the one figure here a player cannot act on
+   * — there is no lever that moves it and no choice it settles. It is not
+   * removed, it is in the fold with the arithmetic. Above easy it stays out,
+   * because from medium the political cost of being right is a real
+   * consideration and approval is where it first shows.
+   */
+  readonly difficulty: Difficulty
 }) {
   const stance = readStance(observation)
   const change = readStanceChange(observation, previousObservation)
+  const showsApproval = difficulty !== 'easy'
   const credibility = observation.indicators.credibility_index?.value ?? null
   const previousCredibility =
     previousObservation?.indicators.credibility_index?.value ?? null
@@ -116,7 +130,11 @@ export function StanceStrip({
       aria-label="Policy stance"
       className="mt-4 rounded border border-edge-room bg-room/60 p-4"
     >
-      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <dl
+        className={`grid gap-4 sm:grid-cols-2 ${
+          showsApproval ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+        }`}
+      >
         <div>
           <dt className="text-xs uppercase tracking-wide text-onwood-faint">
             Policy rate
@@ -168,6 +186,7 @@ export function StanceStrip({
           </dd>
         </div>
 
+        {showsApproval && (
         <div>
           <dt className="text-xs uppercase tracking-wide text-onwood-faint">
             Public approval
@@ -193,17 +212,37 @@ export function StanceStrip({
             </span>
           </dd>
         </div>
+        )}
       </dl>
 
       {stance.label !== null && (
         <p className="mt-3 text-sm text-onwood-soft">{LABEL_MEANING[stance.label]}</p>
       )}
 
+      {/* The decomposition and the ex-post footnote fold.
+       *
+       * Both are worth reading and neither is worth reading *every* meeting,
+       * which is the distinction this whole density pass turns on: the five
+       * figures above are what a chair checks before every decision, and the
+       * arithmetic behind them is what they open when one of the five is
+       * surprising. Left permanently open, they were four hundred pixels of
+       * prose standing between the numbers and the charts.
+       *
+       * The one thing that does not fold is a stance that moved the *other
+       * way* from the decision — a hold that tightened, a cut that tightened.
+       * That is the single most surprising thing this panel can report and the
+       * one a player is most likely to miss, so it stays on the surface. */}
+      {(change !== null || stance.realRateExPost !== null) && (
+        <details className="group mt-3 border-t border-edge-room pt-3">
+          <summary className="cursor-pointer list-none text-xs uppercase tracking-wide text-onwood-faint underline decoration-dotted underline-offset-2 marker:content-none">
+            <span className="group-open:hidden">
+              How the stance moved, and what households feel
+            </span>
+            <span className="hidden group-open:inline">Close</span>
+          </summary>
+
       {change !== null && (
-        <div className="mt-3 border-t border-edge-room pt-3">
-          <h3 className="text-xs uppercase tracking-wide text-onwood-faint">
-            How the stance moved since the last meeting
-          </h3>
+        <div className="mt-3">
           <dl className="mt-2 max-w-sm text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-onwood-soft">You moved the policy rate</dt>
@@ -223,28 +262,23 @@ export function StanceStrip({
             </div>
           </dl>
 
-          {change.contradictory && (
-            <p role="status" className="mt-2 text-sm text-accent-onwood">
-              Your decision moved the stance the other way. Expected inflation moved
-              further than the rate did, so{' '}
-              {change.nominal > 0
-                ? 'raising the rate left policy looser than before.'
-                : 'cutting the rate left policy tighter than before.'}
-            </p>
-          )}
-
-          {!change.contradictory && change.nominal === 0 && Math.abs(change.real) >= 0.05 && (
-            <p className="mt-2 text-sm text-onwood-soft">
-              You held, but the stance still moved{' '}
-              {change.real > 0 ? 'tighter' : 'looser'}: expected inflation shifted
-              underneath an unchanged rate. Holding is not a neutral act.
-            </p>
-          )}
         </div>
       )}
 
+      {!showsApproval && approval !== null && (
+        <p className="mt-3 text-sm text-onwood-soft">
+          Public approval reads{' '}
+          <span className="tabular-nums text-onwood">{Math.round(approval)}</span>
+          {approvalMove !== null && approvalMove !== 0
+            ? `, ${approvalMove > 0 ? 'up' : 'down'} ${Math.abs(approvalMove)} since the last meeting`
+            : ''}
+          . Nothing you can set moves it directly; it is what the public makes
+          of the prices and the jobs they are living with.
+        </p>
+      )}
+
       {stance.realRateExPost !== null && stance.headlineInflation !== null && (
-        <p className="mt-3 border-t border-edge-room pt-3 text-xs text-onwood-faint">
+        <p className="mt-3 text-xs text-onwood-faint">
           Households feel{' '}
           <span className="tabular-nums text-onwood-soft">
             {stance.realRateExPost.toFixed(2)} %
@@ -254,6 +288,29 @@ export function StanceStrip({
           above; the public reacts to this one. The two can point opposite ways.
         </p>
       )}
+        </details>
+      )}
+
+      {change !== null && change.contradictory && (
+        <p role="status" className="mt-3 text-sm text-accent-onwood">
+          Your decision moved the stance the other way. Expected inflation moved
+          further than the rate did, so{' '}
+          {change.nominal > 0
+            ? 'raising the rate left policy looser than before.'
+            : 'cutting the rate left policy tighter than before.'}
+        </p>
+      )}
+
+      {change !== null &&
+        !change.contradictory &&
+        change.nominal === 0 &&
+        Math.abs(change.real) >= 0.05 && (
+          <p className="mt-3 text-sm text-onwood-soft">
+            You held, but the stance still moved{' '}
+            {change.real > 0 ? 'tighter' : 'looser'}: expected inflation shifted
+            underneath an unchanged rate. Holding is not a neutral act.
+          </p>
+        )}
     </section>
   )
 }

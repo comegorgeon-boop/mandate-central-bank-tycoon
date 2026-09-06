@@ -453,16 +453,28 @@ function eventStories(
   return drafts
 }
 
-/** Warning signals, written as reporting rather than as a system message. */
+/**
+ * Warning signals, written as reporting rather than as a system message.
+ *
+ * One story, not one per clue. Each clue used to become its own item with the
+ * identical headline "Ahead of the meeting", so a meeting that surfaced two
+ * of them printed the same headline twice in a row over two sentences about
+ * the same subject — which reads as a bug in the paper rather than as two
+ * risks. A column with a standing title is what a paper actually does with
+ * this material.
+ */
 function clueStories(clues: readonly string[]): readonly Draft[] {
-  return clues.map((clue, index) => ({
-    id: `clue-${index}`,
-    desk: 'markets' as const,
-    headline: 'Ahead of the meeting',
-    standfirst: clue,
-    material: true,
-    weight: 2.8 - index * 0.1,
-  }))
+  if (clues.length === 0) return []
+  return [
+    {
+      id: 'clues',
+      desk: 'markets',
+      headline: 'Ahead of the meeting',
+      standfirst: clues.join(' '),
+      material: true,
+      weight: 2.8,
+    },
+  ]
 }
 
 /**

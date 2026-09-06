@@ -15,6 +15,7 @@ import { ChangesPanel } from './panels/ChangesPanel.tsx'
 import { DiagnosisPanel } from './panels/DiagnosisPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
+import { MandateChartPanel } from './panels/MandateChartPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { PressPanel } from './panels/PressPanel.tsx'
 import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
@@ -165,19 +166,35 @@ export function MeetingScreen({
 
           {tutorial !== null && <TutorialGoalPanel progress={tutorial} />}
 
-          <div className="mt-4">
-            <ObjectivePanel objective={objective} />
-          </div>
+          {/* On the tutorial these two said the same thing in different words,
+              one directly above the other: "repair the economy, then hold it
+              there" and "bring inflation back to 2 % without breaking
+              employment". The tutorial goal *is* the objective there, stated
+              in the two numbers that end the mandate, so the general statement
+              is the one that goes. Above easy there is no tutorial goal and
+              the objective panel is the only thing saying what winning is —
+              and it is the panel that changes under a supply shock, which is
+              the whole reason it is on screen. */}
+          {tutorial === null && (
+            <div className="mt-4">
+              <ObjectivePanel objective={objective} />
+            </div>
+          )}
+
+          {/* The charts, before any prose. A played mandate reported that from
+              about the fifth meeting the player had stopped reading and was
+              looking only at these — which is the correct instinct about what
+              a macroeconomic series is for, and an indictment of a layout that
+              had them nowhere. */}
+          <MandateChartPanel
+            observation={session.observation}
+            institution={config.institution}
+          />
 
           <StanceStrip
             observation={session.observation}
             previousObservation={session.previousObservation}
-          />
-
-          <ChangesPanel
-            observation={session.observation}
-            previousObservation={session.previousObservation}
-            institution={config.institution}
+            difficulty={config.difficulty}
           />
 
           <div
@@ -237,6 +254,16 @@ export function MeetingScreen({
                 {session.observation.diagnosis !== null && (
                   <DiagnosisPanel diagnosis={session.observation.diagnosis} />
                 )}
+                {/* "What changed since the last meeting" used to sit above the
+                    tabs, permanently, at five items of two lines each. It is
+                    the brief's own subject and it belongs in the brief: a
+                    panel a player must scroll past to reach the interface is
+                    a panel that has stopped being read. */}
+                <ChangesPanel
+                  observation={session.observation}
+                  previousObservation={session.previousObservation}
+                  institution={config.institution}
+                />
                 <MeetingBriefPanel
                   observation={session.observation}
                   outcome={session.outcome}
