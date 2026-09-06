@@ -133,6 +133,15 @@ export {
   type StaffRecommendation,
 } from './policy/staffRule.ts'
 
+// ---- The press ------------------------------------------------------------
+export {
+  buildPressPage,
+  type PressDesk,
+  type PressPage,
+  type PressStory,
+  type Prominence,
+} from './press/pressPage.ts'
+
 // ---- Scoring --------------------------------------------------------------
 export { calculateScore, scoreBucketKey } from './scoring/calculateScore.ts'
 export {

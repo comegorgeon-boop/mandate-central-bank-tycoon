@@ -15,14 +15,14 @@ import { RealisedEffectPanel } from './RealisedEffectPanel.tsx'
 export function ReactionPanel({
   before,
   onTheDay,
-  newswire,
+  headlines,
   realised,
   onContinue,
 }: {
   readonly before: ObservationSet
   readonly onTheDay: ObservationSet
-  readonly newswire: readonly string[]
-  /** Instruments moved four meetings ago, now checkable. Usually empty. */
+  readonly headlines: number
+  /** Instruments whose lag has run, now checkable. Usually empty. */
   readonly realised: readonly RealisedEntry[]
   readonly onContinue: () => void
 }) {
@@ -77,22 +77,17 @@ export function ReactionPanel({
         </p>
       )}
 
-      {newswire.length > 0 && (
-        <div className="mt-5 border-t border-edge pt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-            Between your decision and this meeting
-          </h3>
-          <ul className="mt-2 space-y-1">
-            {newswire.map((headline) => (
-              <li key={headline} className="text-sm text-ink-soft">
-                {headline}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-ink-faint">
-            These happened in the weeks after the decision, not because of it.
-          </p>
-        </div>
+      {/* The wire lines themselves used to be listed here *and* on the meeting
+          screen, unranked in both places. They now run in one paper, with a
+          lead and a hierarchy, and this is the handoff to it: enough to know
+          whether the quarter was eventful, and no second copy of the news. */}
+      {headlines > 0 && (
+        <p className="mt-5 border-t border-edge pt-4 text-sm text-ink-soft">
+          {headlines === 1
+            ? 'One story broke in the weeks after the decision'
+            : `${headlines} stories broke in the weeks after the decision`}
+          , not because of it. They lead the front page at the meeting.
+        </p>
       )}
 
       <RealisedEffectPanel entries={realised} />

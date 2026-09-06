@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   getInstitution,
+  isMajorEvent,
   tutorialProgress,
   type MeetingResult,
   type PolicyPackage,
@@ -13,9 +14,9 @@ import { StanceStrip } from '../policy/StanceStrip.tsx'
 import { ChangesPanel } from './panels/ChangesPanel.tsx'
 import { DiagnosisPanel } from './panels/DiagnosisPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
-import { MajorEventPanel } from './panels/MajorEventPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
+import { PressPanel } from './panels/PressPanel.tsx'
 import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
 import { StandingPanel } from './panels/StandingPanel.tsx'
 import { TutorialGoalPanel } from './panels/TutorialGoalPanel.tsx'
@@ -44,13 +45,18 @@ import { IntervalPlayer } from './IntervalPlayer.tsx'
  * it never reaches this component.
  */
 
-type PanelId = 'brief' | 'markets' | 'prices' | 'labor' | 'desk'
+type PanelId = 'press' | 'brief' | 'markets' | 'prices' | 'labor' | 'desk'
 
-// Markets sits second, right after the brief and ahead of the statistics, on
-// purpose: it is the only panel whose numbers describe *now* rather than a
-// reference period already past, so it is where a player should look first and
-// where a decision shows up first.
+// The press sits first because it is what a chair reads first, and because it
+// is now the only place the news is: the major-event banner and the flat wire
+// list that used to sit above the tabs were three unranked channels competing
+// for the same attention, which is how a player ends up reading none of them.
+//
+// Markets sits next, ahead of the statistics, on purpose: it is the only panel
+// whose numbers describe *now* rather than a reference period already past, so
+// it is where a decision shows up first.
 const TABS: readonly { readonly id: PanelId; readonly label: string }[] = [
+  { id: 'press', label: 'The Press' },
   { id: 'brief', label: 'Meeting Brief' },
   { id: 'markets', label: 'Markets' },
   { id: 'prices', label: 'Prices' },
@@ -68,7 +74,7 @@ export function MeetingScreen({
   readonly ledger: readonly LedgerEntry[]
   readonly onConfirm: (pkg: PolicyPackage) => MeetingResult
 }) {
-  const [panel, setPanel] = useState<PanelId>('brief')
+  const [panel, setPanel] = useState<PanelId>('press')
   const { settings } = useSettings()
   // This component is remounted at every meeting, so each of these is shown
   // exactly once, in order: first the interval that has just elapsed, then the
@@ -102,6 +108,13 @@ export function MeetingScreen({
     session.observation,
   )
   const meetingNumber = session.state.meetingIndex + 1
+  // A mandate-defining crisis now lives on the press page rather than in a
+  // banner above the tabs. That is the right home for it — it is the lead
+  // story, and three unranked news channels competing above the fold is what
+  // made the screen unreadable — but a crisis behind a tab has to announce
+  // itself, so the tab carries a mark on the meeting one breaks.
+  const breaking =
+    session.majorEvent !== null && isMajorEvent(session.majorEvent.eventId)
   const severeWarnings = session.outcome.warnings.filter(
     (warning) => warning.severity === 'severe',
   )
@@ -141,7 +154,7 @@ export function MeetingScreen({
           <ReactionPanel
             before={session.previousObservation}
             onTheDay={session.onTheDay}
-            newswire={session.newswire}
+            headlines={session.newswire.length + (breaking ? 1 : 0)}
             realised={realised}
             onContinue={() => setShowReaction(false)}
           />
@@ -151,12 +164,6 @@ export function MeetingScreen({
           <StandingPanel standing={standing} severeWarnings={severeWarnings} />
 
           {tutorial !== null && <TutorialGoalPanel progress={tutorial} />}
-
-          <MajorEventPanel
-            majorEvent={session.majorEvent}
-            eventLog={session.state.eventLog}
-            meetingIndex={session.state.meetingIndex}
-          />
 
           <div className="mt-4">
             <ObjectivePanel objective={objective} />
@@ -203,6 +210,15 @@ export function MeetingScreen({
                   }`}
                 >
                   {tab.label}
+                  {tab.id === 'press' && breaking && (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="ml-1.5 inline-block h-2 w-2 rounded-full bg-bad align-middle"
+                      />
+                      <span className="sr-only"> — breaking news</span>
+                    </>
+                  )}
                 </button>
               )
             })}
@@ -215,6 +231,7 @@ export function MeetingScreen({
             tabIndex={-1}
             className="rounded-lg rounded-tl-none border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
           >
+            {panel === 'press' && <PressPanel session={session} />}
             {panel === 'brief' && (
               <div className="space-y-5">
                 {session.observation.diagnosis !== null && (

@@ -106,11 +106,18 @@ describe('the playable loop', () => {
     expect(screen.getByRole('img', { name: /^Output gap\./ })).toBeInTheDocument()
   })
 
-  it('shows all four panels at a meeting', () => {
+  it('shows every panel at a meeting', () => {
     startRunOnSeed('PANELS')
 
     const panel = (): HTMLElement => screen.getByRole('tabpanel')
 
+    // The press opens first: it is what a chair reads before anything else,
+    // and it is now the only place the news is.
+    expect(
+      within(panel()).getByRole('heading', { name: 'The Meridian Ledger' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Meeting Brief' }))
     expect(within(panel()).getByRole('heading', { name: 'Meeting Brief' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Prices' }))
