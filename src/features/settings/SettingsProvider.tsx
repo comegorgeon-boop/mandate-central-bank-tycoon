@@ -31,7 +31,7 @@ export function SettingsProvider({ children }: { readonly children: ReactNode })
     if (root === undefined) return
     // The default direction is the absence of the attribute, so the stylesheet
     // has one code path for it rather than two.
-    if (settings.direction === 'papers-on-the-table') {
+    if (settings.direction === 'after-hours') {
       root.removeAttribute('data-direction')
     } else {
       root.setAttribute('data-direction', settings.direction)

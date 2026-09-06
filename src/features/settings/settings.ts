@@ -30,7 +30,11 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  direction: 'papers-on-the-table',
+  // The single-material room, which the player found markedly more legible
+  // over a whole mandate than the cream-panels-on-near-black alternative that
+  // shipped first — even though that one measured better on any single
+  // text-on-background pair. See `styles/tokens.css`.
+  direction: 'after-hours',
   playTheInterval: true,
 }
 
@@ -45,7 +49,9 @@ export function loadSettings(): Settings {
     const candidate = parsed as Partial<Settings>
     return {
       direction:
-        candidate.direction === 'after-hours' ? 'after-hours' : 'papers-on-the-table',
+        candidate.direction === 'papers-on-the-table'
+          ? 'papers-on-the-table'
+          : 'after-hours',
       playTheInterval: candidate.playTheInterval !== false,
     }
   } catch {

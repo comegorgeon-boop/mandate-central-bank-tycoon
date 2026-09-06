@@ -50,14 +50,21 @@
 @theme {
   /* ---- Palette: the materials --------------------------------------- */
 
-  /* Dark walnut. The room: panelling, frame, the ground everything sits on. */
-  --color-walnut-950: #16100c;
-  --color-walnut-900: #1f1712;
-  --color-walnut-850: #271d17;
-  --color-walnut-800: #33261e;
-  --color-walnut-700: #452f24;
-  --color-walnut-600: #5c4030;
-  --color-walnut-500: #78573f;
+  /* Dark walnut. The room: panelling, frame, the ground everything sits on.
+   *
+   * Lifted off black. The darkest value was #16100c — near enough to pure
+   * black that light text on it *flashed*, which is what "les contrastes
+   * flashent, c'est agressif" describes. Passing a contrast ratio and being
+   * comfortable to read for forty minutes are different tests, and only the
+   * first one is automatable. Everything here is now a real brown with light
+   * in it. */
+  --color-walnut-950: #241b15;
+  --color-walnut-900: #2c211a;
+  --color-walnut-850: #342820;
+  --color-walnut-800: #3f3026;
+  --color-walnut-700: #4f3a2d;
+  --color-walnut-600: #63483a;
+  --color-walnut-500: #7d5f4a;
 
   /* Brass. Fittings, rules, the mark of something worth looking at. Used
    * sparingly: brass everywhere is brass nowhere. */
@@ -68,17 +75,21 @@
   --color-brass-300: #ddbe5c;
   --color-brass-200: #ecd89b;
 
-  /* Cream paper. The reading surface, and the reason direction A wins. */
-  --color-paper-50: #fbf7ef;
-  --color-paper-100: #f4ede0;
-  --color-paper-200: #e8dcc8;
-  --color-paper-300: #d8c8ac;
-  --color-paper-400: #b9a483;
+  /* Cream paper. Warm and slightly off, never white: paper reflects a room,
+   * it does not emit light. The lightest value here is what a page looks like
+   * under a lamp, which is the point of the metaphor. */
+  --color-paper-50: #f2ebdd;
+  --color-paper-100: #eae1cf;
+  --color-paper-200: #ded2ba;
+  --color-paper-300: #cbbb9e;
+  --color-paper-400: #ad9878;
 
-  /* Ink. Text on paper, never on walnut. */
-  --color-ink-900: #1a1510;
-  --color-ink-700: #3d342a;
-  --color-ink-500: #6b5f50;
+  /* Ink. Text on paper, never on walnut. Warm dark brown rather than black,
+   * so the darkest thing on the page and the lightest thing on it are the same
+   * family and the eye is not asked to cross the whole range on every line. */
+  --color-ink-900: #2a231b;
+  --color-ink-700: #493e32;
+  --color-ink-500: #6d5f4f;
   --color-ink-400: #8a7c6a;
 
   /* Deep green. Good news, and only good news. */
@@ -94,7 +105,7 @@
   --color-claret-800: #451820;
   --color-claret-600: #8e2f3f;
   --color-claret-500: #a83d4e;
-  --color-claret-400: #c76d7b;
+  --color-claret-400: #d17d8a;
   --color-claret-200: #e8bcc3;
 
   /* ---- Type ---------------------------------------------------------- */
@@ -135,41 +146,60 @@
 
 /*
  * ---------------------------------------------------------------------------
- * DIRECTION A — papers on the table. The semantic layer.
+ * THE DEFAULT — the room after hours. The semantic layer.
  * ---------------------------------------------------------------------------
  *
- * Contrast ratios against their own ground, measured, all well past WCAG AA's
- * 4.5:1 for body text and 3:1 for large text:
+ * This was direction B and is now the one that ships, because the player
+ * reported it as "nettement plus lisible" after playing both. That is worth
+ * recording precisely, because on paper the *other* one measured better: its
+ * body text ran at 15.9:1 against 12.6:1 here, and it was chosen on exactly
+ * that number.
  *
- *   --ink-primary   on --surface-panel   15.9:1
- *   --ink-secondary on --surface-panel    7.9:1
- *   --ink-muted     on --surface-panel    4.8:1
- *   --onwood-primary   on --surface-page    12.1:1
+ * What the number missed is that legibility over forty minutes is not one
+ * text-on-background ratio. Papers-on-the-table put cream panels on a
+ * near-black room, so the eye crossed the entire luminance range every time it
+ * moved between a panel and the room around it — a dozen times a meeting. Each
+ * pair passed; the *page* was exhausting. A single-material room asks the eye
+ * to adjust once.
+ *
+ * The other lesson is that an automated audit is necessary and not sufficient.
+ * It can prove no pair fails; it cannot tell you the screen is tiring, and it
+ * cannot tell you a panel is unreadable if the harness never puts that panel on
+ * screen — which is exactly how the between-meetings reaction shipped at
+ * 1.04:1 under an ALL CLEAR.
+ *
+ * Contrast ratios against their own ground, measured after the palette was
+ * softened off pure black and pure white:
+ *
+ *   --ink-primary   on --surface-panel   12.0:1
+ *   --ink-secondary on --surface-panel    9.5:1
+ *   --ink-muted     on --surface-panel    5.1:1
+ *   --onwood-primary on --surface-page   13.0:1
  *
  * `--ink-muted` is the floor and it is deliberately *only* used for release
  * provenance and units — never for a number or a sentence a decision depends
- * on. The player spent a week reporting this interface as unreadable; the
- * fix is not a lighter grey, it is putting the reading on paper.
+ * on.
  */
 :root {
-  --direction: papers-on-the-table;
+  --direction: after-hours;
 
   color-scheme: dark;
 
-  /* Grounds */
+  /* Grounds. One material throughout: the panels are lit walnut rather than
+   * paper, so the room and the documents belong to each other. */
   --surface-page: var(--color-walnut-950);
   --surface-room: var(--color-walnut-900);
-  --surface-panel: var(--color-paper-50);
-  --surface-sunk: var(--color-paper-100);
-  --surface-raised: #ffffff;
-  /* A panel that belongs to the room rather than to the papers: the stance
-   * strip, the desk's own chrome. */
-  --surface-inset: var(--color-walnut-850);
+  --surface-panel: var(--color-walnut-850);
+  --surface-sunk: var(--color-walnut-900);
+  --surface-raised: var(--color-walnut-800);
+  --surface-inset: var(--color-walnut-900);
 
-  /* Text on paper */
-  --ink-primary: var(--color-ink-900);
-  --ink-secondary: var(--color-ink-700);
-  --ink-muted: var(--color-ink-500);
+  /* Text on a panel. Named `ink` throughout the interface because that is what
+   * it is *for* — the text you read a document in — not because of its colour,
+   * which is why the same component code works in both directions. */
+  --ink-primary: var(--color-paper-50);
+  --ink-secondary: var(--color-paper-200);
+  --ink-muted: var(--color-paper-400);
 
   /* Text on walnut */
   --onwood-primary: var(--color-paper-100);
@@ -177,20 +207,20 @@
   --onwood-muted: var(--color-paper-400);
 
   /* Edges */
-  --edge-panel: var(--color-paper-300);
-  --edge-strong: var(--color-paper-400);
-  --edge-room: var(--color-walnut-700);
+  --edge-panel: var(--color-walnut-700);
+  --edge-strong: var(--color-walnut-600);
+  --edge-room: var(--color-walnut-800);
   --edge-accent: var(--color-brass-500);
 
   /* Meaning. Two pairs, one for each ground. */
-  --good: var(--color-viridian-600);
-  --good-strong: var(--color-viridian-800);
-  --good-surface: #e6f2ec;
+  --good: var(--color-viridian-400);
+  --good-strong: var(--color-viridian-200);
+  --good-surface: var(--color-viridian-900);
   --good-on-dark: var(--color-viridian-400);
 
-  --bad: var(--color-claret-600);
-  --bad-strong: var(--color-claret-800);
-  --bad-surface: #f8e9ec;
+  --bad: var(--color-claret-400);
+  --bad-strong: var(--color-claret-200);
+  --bad-surface: var(--color-claret-900);
   --bad-on-dark: var(--color-claret-400);
 
   /*
@@ -200,13 +230,16 @@
    */
   /* Brass as a *fill* — a pressed button, a rule. */
   --accent: var(--color-brass-500);
-  /* Text on that fill. Always ink: brass is a mid tone in both directions. */
-  --on-accent: var(--color-ink-900);
-  /* Brass as *text*, on a pale surface. */
-  --accent-strong: var(--color-brass-700);
-  /* Brass as text on walnut. */
+  /* Text on that fill. Its own value rather than `ink-900`, because softening
+   * the palette off black moved ink to 4.43:1 against brass — under AA by a
+   * hair, on every primary button in the game. A token that has one job can be
+   * held to it. */
+  --on-accent: #1e1812;
+  /* Brass as *text*, on a panel. */
+  --accent-strong: var(--color-brass-200);
+  /* Brass as text on the room itself. */
   --accent-on-dark: var(--color-brass-300);
-  --accent-surface: #f6edd6;
+  --accent-surface: var(--color-walnut-800);
 
   /* The focus ring. One ring everywhere, bright enough to find on both
    * grounds, because a keyboard player who loses the caret has lost the
@@ -216,37 +249,42 @@
 
 /*
  * ---------------------------------------------------------------------------
- * DIRECTION B — the room after hours.
+ * THE ALTERNATIVE — papers on the table.
  * ---------------------------------------------------------------------------
- * Swap by putting `data-direction="after-hours"` on the document element (or
- * on any subtree, which is how the two are shown side by side for validation).
+ *
+ * The briefing documents laid out on the table in cream and ink. Kept, and
+ * offered in the settings, because it is genuinely the more *striking* of the
+ * two and some readers will prefer it — but no longer the default: see the
+ * note above the block above for why the measurement that chose it first was
+ * the wrong measurement.
+ *
+ * Applied by `data-direction="papers-on-the-table"` on the document element,
+ * or on any subtree, which is how the two can be shown side by side.
  */
-[data-direction='after-hours'] {
-  --surface-panel: var(--color-walnut-850);
-  --surface-sunk: var(--color-walnut-900);
-  --surface-raised: var(--color-walnut-800);
-  --surface-inset: var(--color-walnut-900);
+[data-direction='papers-on-the-table'] {
+  --surface-panel: var(--color-paper-50);
+  --surface-sunk: var(--color-paper-100);
+  --surface-raised: var(--color-paper-50);
+  --surface-inset: var(--color-walnut-850);
 
-  --ink-primary: var(--color-paper-50);
-  --ink-secondary: var(--color-paper-200);
-  --ink-muted: var(--color-paper-400);
+  --ink-primary: var(--color-ink-900);
+  --ink-secondary: var(--color-ink-700);
+  --ink-muted: var(--color-ink-500);
 
-  --edge-panel: var(--color-walnut-700);
-  --edge-strong: var(--color-walnut-600);
+  --edge-panel: var(--color-paper-300);
+  --edge-strong: var(--color-paper-400);
+  --edge-room: var(--color-walnut-700);
 
-  --good: var(--color-viridian-400);
-  --good-strong: var(--color-viridian-200);
-  --good-surface: var(--color-viridian-900);
+  --good: #28654a;
+  --good-strong: var(--color-viridian-800);
+  --good-surface: #e4efe8;
 
-  --bad: var(--color-claret-400);
-  --bad-strong: var(--color-claret-200);
-  --bad-surface: var(--color-claret-900);
+  --bad: var(--color-claret-600);
+  --bad-strong: var(--color-claret-800);
+  --bad-surface: #f4e5e8;
 
-  /* Brass as a fill stays the same in both directions, so `--on-accent` can
-   * stay ink and a primary button reads identically either way. What changes
-   * is brass as *text*, which now needs to be light. */
-  --accent-strong: var(--color-brass-200);
-  --accent-surface: var(--color-walnut-800);
+  --accent-strong: var(--color-brass-700);
+  --accent-surface: #efe4c9;
 }
 
 /*
@@ -254,7 +292,7 @@
  *
  * `@theme inline` rather than `@theme` is load-bearing: it makes the generated
  * utility resolve `var(--surface-panel)` at use time rather than baking the
- * value in, so a subtree carrying `data-direction="after-hours"` re-themes
+ * value in, so a subtree carrying `data-direction` re-themes
  * itself with no second set of classes. That is what lets both directions be
  * shown on one screen, and it is what will let a light mode exist later
  * without touching a component.

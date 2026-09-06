@@ -16,18 +16,18 @@ const DIRECTIONS: readonly {
   readonly detail: string
 }[] = [
   {
-    id: 'papers-on-the-table',
-    name: 'Papers on the table',
-    detail:
-      'A dark walnut room with the briefing documents laid out on it in cream ' +
-      'and ink. The strongest separation between the room and the reading.',
-  },
-  {
     id: 'after-hours',
     name: 'The room after hours',
     detail:
-      'The same room with no papers out: walnut throughout, warm off-white ' +
-      'text, brass carrying the emphasis. Quieter, and more of a piece.',
+      'Walnut throughout, warm off-white text, brass carrying the emphasis. ' +
+      'One material, so the eye adjusts once rather than on every panel.',
+  },
+  {
+    id: 'papers-on-the-table',
+    name: 'Papers on the table',
+    detail:
+      'The briefing documents laid out in cream and ink on the dark room. ' +
+      'More striking, and a harder read over a whole mandate.',
   },
 ]
 
@@ -92,8 +92,8 @@ export function SettingsPanel({ className = '' }: { readonly className?: string 
               Play the interval
               <span className="mt-0.5 block text-xs text-onwood-soft">
                 Watch the quarter pass — the curves extend, markets move, the
-                dispatches arrive when they happen. Skippable with a click or any
-                key while it runs.
+                dispatches arrive when they happen. It stops at the end and waits
+                for you; Enter, Space, Escape or a click gets past it sooner.
               </span>
             </span>
           </label>

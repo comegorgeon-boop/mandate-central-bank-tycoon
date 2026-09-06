@@ -24,14 +24,25 @@ import { Sparkline } from '../../components/Sparkline.tsx'
  * understands the lag this whole game is built on better than any panel of
  * text could explain it.
  *
- * It is skippable by Enter, Space, Escape or a click, and can be switched off
- * entirely; a
+ * It runs for a few seconds and then *stops*, holding its last frame until the
+ * player opens the meeting. It is skippable at any point by Enter, Space,
+ * Escape or a click, and can be switched off entirely; a
  * reader who has asked their system for reduced motion never sees it at all.
  * See `features/settings/settings.ts`.
  */
 
-/** How long the whole interval takes, in milliseconds. */
-const DURATION_MS = 3600
+/**
+ * How long the whole interval takes, in milliseconds.
+ *
+ * Four frames, so a little over a second each. The first setting ran the four
+ * in 3.6 s and then advanced on its own, which read as too fast twice over:
+ * the figures changed before they could be taken in, and the screen left
+ * before the player had decided they were done with it. The pace here is
+ * slower, and — more importantly — the interval now *stops* at the end and
+ * waits. Watching a quarter go by is only worth doing if you are allowed to
+ * finish looking at it.
+ */
+const DURATION_MS = 5200
 
 /** Series shown as a moving figure, in the order they matter. */
 const WATCHED: readonly SeriesId[] = [
@@ -114,6 +125,8 @@ export function IntervalPlayer({
   readonly onDone: () => void
 }) {
   const [index, setIndex] = useState(0)
+  // The interval holds on its last frame until the player says otherwise.
+  const [finished, setFinished] = useState(false)
   // Held in a ref so the effect below does not restart on every tick.
   const doneRef = useRef(onDone)
   doneRef.current = onDone
@@ -137,9 +150,9 @@ export function IntervalPlayer({
       setIndex((current) => {
         if (current + 1 >= frames.length) {
           globalThis.clearInterval(timer)
-          // A beat on the final frame before the meeting opens, so the last
-          // dispatch is readable rather than a flash.
-          globalThis.setTimeout(() => doneRef.current(), perFrame)
+          // Stop here. The quarter has finished passing; whether the meeting
+          // opens is the player's call, not a timer's.
+          setFinished(true)
           return current
         }
         return current + 1
@@ -179,10 +192,11 @@ export function IntervalPlayer({
     <section
       aria-labelledby="interval-heading"
       className="rounded-lg border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
-      // Clicking anywhere skips, which is what an impatient player will try
-      // first. The button above is what a keyboard or screen-reader user needs:
-      // "press any key" is a sentence, not a control.
-      onClick={() => doneRef.current()}
+      // Clicking anywhere skips *while it is still running*, which is what an
+      // impatient player tries first. Once it has stopped, the panel is
+      // something to read rather than something to get past, and a stray click
+      // must not take it away.
+      onClick={finished ? undefined : () => doneRef.current()}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
@@ -197,9 +211,13 @@ export function IntervalPlayer({
           ref={skipRef}
           type="button"
           onClick={() => doneRef.current()}
-          className="rounded-md border border-edge px-3 py-1.5 text-xs font-medium text-ink hover:bg-sunk"
+          className={
+            finished
+              ? 'rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood'
+              : 'rounded-md border border-edge px-3 py-1.5 text-xs font-medium text-ink hover:bg-sunk'
+          }
         >
-          Skip to the meeting
+          {finished ? 'Open the meeting' : 'Skip to the meeting'}
         </button>
       </div>
 
@@ -254,6 +272,12 @@ export function IntervalPlayer({
           ))
         )}
       </div>
+
+      {finished && (
+        <p className="mt-4 text-sm font-medium text-ink">
+          The quarter is over. The meeting opens when you are ready.
+        </p>
+      )}
 
       <p className="mt-4 text-2xs leading-relaxed text-ink-faint">
         Only prices move while you watch. Inflation, unemployment and the rest
