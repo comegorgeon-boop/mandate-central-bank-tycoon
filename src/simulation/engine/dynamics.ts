@@ -213,10 +213,16 @@ export function advanceSubstep(
   const missPressure =
     Math.abs(latent.expectedInflationLong - target) +
     0.5 * Math.abs(latent.inflationHeadline - target)
+  // A visible threat to the institution's independence weakens the anchor on
+  // its own, whatever the bank's record: the anchor is a belief about what the
+  // bank will be *allowed* to do as much as about what it wants to do.
+  const independencePressure =
+    Math.max(0, latent.politicalPressure - EXPECTATIONS.independenceTolerance) / 100
   const anchoringTarget = clamp(
     1 -
       EXPECTATIONS.anchoringMissSensitivity * missPressure +
-      EXPECTATIONS.anchoringCredibility * ((latent.credibility - 50) / 50),
+      EXPECTATIONS.anchoringCredibility * ((latent.credibility - 50) / 50) -
+      EXPECTATIONS.anchoringIndependence * independencePressure,
     0,
     1,
   )

@@ -520,6 +520,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? 6 : 3.5 },
       { variable: 'marketVolatility', delta: 5 },
     ],
+    // Pass-through is a *tail*, not a quarter. The old version delivered one
+    // inflation bump a meeting later and was finished; measured against a
+    // control with every other draw held fixed, it changed a competent
+    // committee's package in four meetings out of forty-eight, which is the
+    // floor `consequence.test.ts` sets and not a currency crisis. Contracts
+    // reprice on renewal, so a slide keeps arriving in shelf prices for a year
+    // and more — which is also what makes it a decision rather than a
+    // headline: the committee has to judge whether to look through it.
     delayed: (ctx) => [
       {
         delaySteps: ONE_MEETING,
@@ -527,7 +535,20 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
           { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? 0.35 : 0.15 },
         ],
       },
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? 3.4 : 2 },
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? 0.22 : 0.1 },
+        ],
+      },
       { delaySteps: THREE_MEETINGS, effects: [{ variable: 'outputGap', delta: 0.2 }] },
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? 0.16 : 0.07 },
+        ],
+      },
     ],
     followUps: [],
     requires: [],
@@ -562,6 +583,10 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? -6 : -3.5 },
       { variable: 'marketVolatility', delta: -3 },
     ],
+    // Paired with `currency_pressure` term for term, including its tail: the
+    // same repricing that carries a slide into shelf prices for a year carries
+    // a rally into them, and a pair that is only symmetric on impact is a
+    // one-sided inflation tilt hiding behind a matched name.
     delayed: (ctx) => [
       {
         delaySteps: ONE_MEETING,
@@ -569,7 +594,20 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
           { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? -0.35 : -0.15 },
         ],
       },
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? -3.4 : -2 },
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? -0.22 : -0.1 },
+        ],
+      },
       { delaySteps: THREE_MEETINGS, effects: [{ variable: 'outputGap', delta: -0.2 }] },
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? -0.16 : -0.07 },
+        ],
+      },
     ],
     followUps: [],
     requires: [],
@@ -659,15 +697,56 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     isEligible: () => true,
     // Leaks are more likely when the committee is under political pressure.
     weight: (ctx) => 0.5 + ctx.latent.politicalPressure / 60,
+    // Rebuilt. Measured against a control with every other draw held fixed,
+    // the old version changed a competent committee's package in **zero**
+    // meetings out of 120 — the only entry in the catalog that changed
+    // nothing at all, ever. It moved credibility by 4 and volatility by 6,
+    // which the dynamics absorb inside a quarter, and it moved nothing a
+    // decision reads.
+    //
+    // What a leak actually costs is the thing the old version did not touch:
+    // the committee's *word*. If the press has the argument before the
+    // statement does, the statement is no longer news — the announcement
+    // channel, which is the fastest instrument on the desk, is spent before it
+    // is used. That is `marketTrust`, which sets how much of a published path
+    // markets price, and it is the anchor, because a committee that cannot
+    // hold a discussion in private is one whose commitments are discounted.
     immediate: () => [
-      { variable: 'credibility', delta: -4 },
-      { variable: 'marketTrust', delta: -7 },
-      { variable: 'marketVolatility', delta: 6 },
-      { variable: 'politicalPressure', delta: 6 },
+      { variable: 'credibility', delta: -7 },
+      { variable: 'marketTrust', delta: -22 },
+      { variable: 'marketVolatility', delta: 11 },
+      { variable: 'politicalPressure', delta: 14 },
+      { variable: 'anchoring', delta: -0.09 },
     ],
-    delayed: () => [],
+    // The dissent, once public, is argued over for a quarter and then fades.
+    // Market trust returns; the anchor keeps most of the damage, because what
+    // was lost is not this quarter's news but the presumption that what the
+    // committee says is what the committee decided.
+    delayed: () => [
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          { variable: 'marketVolatility', delta: 4 },
+          { variable: 'politicalPressure', delta: 6 },
+        ],
+      },
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'marketTrust', delta: 14 },
+          { variable: 'politicalPressure', delta: -14 },
+          { variable: 'anchoring', delta: 0.04 },
+        ],
+      },
+    ],
     followUps: [],
     requires: [],
+    dispatchLines: [
+      'The dissenting member has declined to comment; the committee has opened ' +
+        'an internal review of how the account reached the press.',
+      'The review closed without naming a source. Markets have stopped pricing ' +
+        'the leak, though the committee is being read more sceptically than before.',
+    ],
   },
 
   // ---- Market cycle -------------------------------------------------------
@@ -942,6 +1021,19 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       // policy has actually changed — a demand-shaped shock, not a supply one.
       { variable: 'demandShock', delta: -1.4 },
       { variable: 'confidenceShock', delta: -1.4 },
+      // The anchor takes the hit on the day, not two quarters later.
+      //
+      // The standing `anchoringIndependence` channel is the *sustained* cost
+      // of elevated pressure, and it is slow by construction — the anchoring
+      // index moves at 0.6 a year, so over the two or three meetings this
+      // event keeps pressure elevated it barely moves at all. Measured, the
+      // event changed a competent committee's package in 31 meetings out of
+      // 120 with the channel and 20 without it, which is not the difference
+      // between a political crisis and an ordinary quarter. Openly questioning
+      // who will run the central bank is *news*: households and markets
+      // reprice the institution's commitment the same week, and the direct hit
+      // is what represents that.
+      { variable: 'anchoring', delta: -0.18 },
     ],
     delayed: () => [
       // A first attempt at forming a government fails.
@@ -950,15 +1042,20 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         effects: [
           { variable: 'politicalPressure', delta: 16 },
           { variable: 'marketVolatility', delta: 9 },
+          { variable: 'anchoring', delta: -0.08 },
         ],
       },
       // An interim arrangement holds. The institution is not out of the
-      // spotlight, but the immediate threat to it has receded.
+      // spotlight, but the immediate threat to it has receded. The anchor
+      // comes back by less than it lost: a bank that has been publicly
+      // threatened once is discounted afterwards, and re-earning that is the
+      // chair's job rather than the calendar's.
       {
         delaySteps: THREE_MEETINGS,
         effects: [
           { variable: 'politicalPressure', delta: -30 },
           { variable: 'marketTrust', delta: 8 },
+          { variable: 'anchoring', delta: 0.16 },
         ],
       },
     ],

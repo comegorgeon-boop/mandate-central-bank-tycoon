@@ -2083,6 +2083,100 @@ Two bugs in that walk are worth recording, because both produced a *pass*:
   was never reached cannot have passed, and that list is the only thing that
   distinguishes the two.
 
+## No decoration: what every event actually changes
+
+The player's test, in their words: *"any event that doesn't change a decision
+must be removed or rebuilt. I don't want scenery."* They named one — the
+government losing its majority, which "seems to have no economic consequence".
+
+Measuring that needed a method, and the obvious method is wrong. Firing an
+event in a live run and diffing against a control leaves procedural events on
+in both arms, and the event draw depends on the state — so the moment the
+forced event moves anything, the two runs draw *different* later events and
+what gets measured is downstream chaos. The first pass did exactly that and
+reported every event in the catalog as consequential, including one that
+changes nothing at all.
+
+The honest measurement fires the event by hand at meeting three with **no other
+draws in either arm**, and compares the whole package `toolkitRule` would put
+on the table at each of the next twelve meetings. The whole package, not the
+rate: a banking failure is answered with a facility and not with a basis point.
+Read on the rate alone, `bank_funding_scare` scores zero and `banking_failure`
+— which moves banking stress by nearly sixty points — scores 9 out of 120.
+
+Two genuine failures, out of twenty-seven:
+
+**`communication_leak` changed nothing, ever.** Zero meetings out of 120,
+across every seed. It moved credibility by 4 and volatility by 6, which the
+dynamics absorb inside a quarter. What a leak actually costs is the committee's
+*word* — if the press has the argument before the statement does, the fastest
+instrument on the desk is spent before it is used — so it now takes 22 points
+of market trust and 0.09 of the anchor, and gives most of the trust back over
+three meetings while the anchor keeps the damage.
+
+**`politicalPressure` was a variable the engine wrote and never read.** The
+dynamics computed it, events dumped 45 points into it, and the only consumer
+anywhere was a warning label and a causal-chain weight — no economic equation
+touched it. That is precisely why the political event felt inert, and the
+player was right about it.
+
+It now has a channel, and the real one: an anchor is a belief about what the
+institution will be *allowed* to do as much as what it wants to do, so a
+visible threat to independence erodes the anchoring index whatever the bank's
+own record. Above a tolerance of 55 — comfortably above the 22 base and the
+~40 that ordinary tightening into an overshoot reaches, so being right is never
+punished as if it were being captured.
+
+The standing channel is slow by design (anchoring moves at 0.6 a year), so it
+alone moved the event from 20 changed meetings to 31 — not the difference
+between a political crisis and an ordinary quarter. Openly questioning who will
+run the central bank is *news*, and repricing happens the same week, so the
+event also takes 0.18 of the anchor directly and returns 0.16 of it when an
+interim arrangement holds. A bank publicly threatened once is discounted
+afterwards; re-earning that is the chair's job rather than the calendar's.
+
+The exchange-rate pair sat exactly on the floor, at 4 changed meetings out of
+48. Its tail was one quarter, and pass-through is not a quarter: contracts
+reprice on renewal, so a slide keeps arriving in shelf prices for a year and
+more — which is also what makes it a decision rather than a headline, because
+the committee has to judge whether to look through it. Both directions gained
+the same tail, term for term: a pair symmetric only on impact is a one-sided
+inflation tilt hiding behind a matched name.
+
+`events/consequence.test.ts` now runs that measurement for every entry in the
+catalog and fails below one changed meeting in twelve, judged on the
+institution the event is written for.
+
+### What it cost the ladder
+
+| bucket | competent before | after | passive before | after |
+| --- | --- | --- | --- | --- |
+| fed/hard | 6481 (65 %) | 6404 (**61 %**) | 6063 (42 %) | 6120 (39 %) |
+| ecb/hard | 4206 (55 %) | 4131 (**53 %**) | 4027 (43 %) | 3958 (41 %) |
+| fed/medium | 7238 (99 %) | 7215 (99 %) | 7211 | 7168 |
+| ecb/medium | 5582 (99 %) | 5427 (99 %) | 5272 | 5153 |
+
+Four points of hard completion, from the longer exchange-rate tails adding
+persistence — and therefore variance — to inflation in both directions. The
+paired form is unchanged and strong: over 150 seeds, competent play survives
+where passivity does not **30 times against 14** on fed/hard and **32 against
+8** on ecb/hard.
+
+### And a test that was a coin flip
+
+That four-point drift broke `winnability.test.ts`, and the break was worth more
+than the drift. Two of its assertions compared hard-mode *completion totals*
+over twelve seeds against a bar of six. Competent play completes 61 % and
+passive 39 % — a twenty-two point gap that twelve draws tie about as often as
+they separate. The test had been passing on sample noise.
+
+Both are fixed rather than relaxed. The skill comparison is now **paired**:
+same seed, does competent play survive where doing nothing does not — which
+removes seed variance from the question entirely. And the hard-mode tests draw
+40 seeds instead of 12, the only place in the file that needs them, because
+everything else it guards is an order-of-magnitude effect. The suite goes from
+5.8 s to 7.2 s.
+
 ## Still open
 
 - **`marketExpectedRate` reaches its rail in three *completed* ecb/hard

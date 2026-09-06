@@ -35,6 +35,19 @@ import { calculateScore } from './calculateScore.ts'
 
 const RUNS = 12
 
+/**
+ * Seeds for the hard-mode survival tests, which need more of them.
+ *
+ * Everything else this file guards is an order-of-magnitude effect that twelve
+ * seeds resolve easily — sabotage scores a twentieth of competent play. Hard's
+ * survival is not that: measured over 150 seeds, competent play completes 61 %
+ * of fed/hard mandates against passive's 39 %, and on the *same* seed it
+ * survives where passivity does not 30 times against 14. Real, and far too
+ * small for twelve draws — a twelve-seed sample ties it about as often as it
+ * separates it, which makes the test a coin flip dressed as a guarantee.
+ */
+const HARD_RUNS = 40
+
 /** The bar the sabotage criterion was written against. */
 const SABOTAGE_CEILING = 1500
 
@@ -75,12 +88,14 @@ function play(
   institution: Institution,
   difficulty: Difficulty,
   choose: (session: RunSession) => PolicyPackage,
+  runs: number = RUNS,
 ) {
   const scores: number[] = []
+  const survived: boolean[] = []
   let completed = 0
   let dismissed = 0
 
-  for (let index = 0; index < RUNS; index += 1) {
+  for (let index = 0; index < runs; index += 1) {
     const config = createRunConfig({
       institution,
       difficulty,
@@ -89,6 +104,7 @@ function play(
     })
     const session = playRun(config, choose)
     scores.push(calculateScore(session.state, session.outcome).score)
+    survived.push(session.outcome.status === 'completed')
     if (session.outcome.status === 'completed') completed += 1
     if (session.outcome.triggered === 'dismissed') dismissed += 1
   }
@@ -99,7 +115,36 @@ function play(
     worst: scores[scores.length - 1],
     completed,
     dismissed,
+    survived,
   }
+}
+
+/**
+ * Whether skill survives more mandates than passivity, seed by seed.
+ *
+ * Paired, not totalled. Comparing two completion *counts* over twelve seeds
+ * cannot resolve the difference this is looking for: measured over 150 seeds
+ * competent play completes 61 % of fed/hard mandates against passive's 39 %,
+ * a gap of twenty-two points that a twelve-run total ties outright roughly as
+ * often as it separates. The paired form asks the only question that matters —
+ * on the *same* economy, does playing well survive where doing nothing does
+ * not — and removes seed variance from the answer entirely.
+ */
+function pairedSurvival(
+  institution: Institution,
+  difficulty: Difficulty,
+  skilled: (session: RunSession) => PolicyPackage,
+  idle: (session: RunSession) => PolicyPackage,
+): { readonly skillWins: number; readonly idleWins: number } {
+  const skilledRuns = play(institution, difficulty, skilled, HARD_RUNS).survived
+  const idleRuns = play(institution, difficulty, idle, HARD_RUNS).survived
+  let skillWins = 0
+  let idleWins = 0
+  for (let index = 0; index < HARD_RUNS; index += 1) {
+    if (skilledRuns[index] && !idleRuns[index]) skillWins += 1
+    if (idleRuns[index] && !skilledRuns[index]) idleWins += 1
+  }
+  return { skillWins, idleWins }
 }
 
 describe('sabotage costs, at every difficulty', () => {
@@ -166,24 +211,35 @@ describe('competent play can finish', () => {
     })
 
     it(`wins more hard mandates than it loses on ${institution}`, () => {
-      const result = play(institution, 'hard', (session) =>
-        toolkitPackage(session, institution, 'hard'),
+      const result = play(
+        institution,
+        'hard',
+        (session) => toolkitPackage(session, institution, 'hard'),
+        HARD_RUNS,
       )
-      expect(result.completed).toBeGreaterThan(RUNS / 2)
+      expect(result.completed).toBeGreaterThan(HARD_RUNS / 2)
     })
 
     it(`makes skill worth something at hard on ${institution}`, () => {
       // The mode must be losable too, and losable *less* when it is played
       // well — otherwise it is a lottery rather than the hardest difficulty.
-      const competent = play(institution, 'hard', (session) =>
-        toolkitPackage(session, institution, 'hard'),
+      const { skillWins, idleWins } = pairedSurvival(
+        institution,
+        'hard',
+        (session) => toolkitPackage(session, institution, 'hard'),
+        () => ({ actions: [], communication: null }),
       )
-      const passive = play(institution, 'hard', () => ({
-        actions: [],
-        communication: null,
-      }))
-      expect(competent.completed).toBeGreaterThan(passive.completed)
-      expect(passive.completed).toBeLessThan(RUNS)
+      expect(skillWins, `${skillWins} skill / ${idleWins} idle`).toBeGreaterThan(
+        idleWins,
+      )
+      expect(
+        play(
+          institution,
+          'hard',
+          () => ({ actions: [], communication: null }),
+          HARD_RUNS,
+        ).completed,
+      ).toBeLessThan(HARD_RUNS)
     })
   }
 })

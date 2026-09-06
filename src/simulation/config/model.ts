@@ -113,6 +113,34 @@ export const EXPECTATIONS = {
   anchoringMissSensitivity: 0.16,
   /** How much credibility supports anchoring. */
   anchoringCredibility: 0.25,
+  /**
+   * How much a visible threat to the institution's independence erodes the
+   * anchor, at full political pressure above the tolerance below.
+   *
+   * The channel that makes political pressure a variable rather than a
+   * readout. Until this existed, `politicalPressure` was written by the
+   * dynamics, written by events, and read by nothing except a warning label —
+   * so an event that raised it by 45 points changed the economy not at all,
+   * which is exactly what a player reported about the one event in the catalog
+   * whose whole subject is political.
+   *
+   * The mechanism is the real one: an anchor is a belief that the institution
+   * will keep doing what it says, and a bank whose leadership is publicly in
+   * question is one markets and households discount — independently of
+   * anything that bank has actually done. Sized against the credibility term,
+   * which spans ±0.25: a political crisis should cost roughly what a large
+   * swing in the institution's own record costs.
+   */
+  anchoringIndependence: 0.9,
+  /**
+   * Political pressure below which nothing is read into it.
+   *
+   * Every central bank is criticised, and criticism is not a threat to
+   * independence. The base target is 22 and ordinary tightening into an
+   * inflation overshoot reaches about 40, so this sits above the noise of
+   * doing the job and below where a genuine institutional crisis lands.
+   */
+  independenceTolerance: 55,
   /** Strength of the pull from published guidance, before credibility. */
   guidancePull: 1.6,
 } as const
