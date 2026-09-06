@@ -30,6 +30,7 @@ export default function MeetingPage() {
       key={expected}
       session={active.session}
       ledger={active.ledger}
+      settled={active.settled}
       onConfirm={submit}
     />
   )

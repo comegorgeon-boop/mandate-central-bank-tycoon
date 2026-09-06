@@ -8,6 +8,7 @@ import type {
   ScoreBreakdown,
 } from '../../simulation/index.ts'
 import type { LedgerEntry } from '../policy/instrumentLedger.ts'
+import type { SettledPromise } from '../policy/settledPromise.ts'
 
 /**
  * The run currently being played, held in memory only.
@@ -26,6 +27,14 @@ export interface ActiveRun {
    * they moved four meetings ago produced. See `policy/instrumentLedger.ts`.
    */
   readonly ledger: readonly LedgerEntry[]
+  /**
+   * A promise the last decision settled, if it settled one.
+   *
+   * Derived here rather than in the engine for the same reason as the ledger:
+   * `submitMeeting` is on the path of every sweep and every replay, and none of
+   * them needs to know that a screen would like to say well done.
+   */
+  readonly settled: SettledPromise | null
 }
 
 /** A run that has reached its end state, with its score already computed. */

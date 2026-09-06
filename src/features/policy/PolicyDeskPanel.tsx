@@ -26,6 +26,7 @@ import { InstrumentBrief } from './InstrumentBrief.tsx'
 import { InstrumentEffectPanel } from './InstrumentEffectPanel.tsx'
 import { formatMagnitude } from './InstrumentStepper.tsx'
 import { guidancePreview } from './guidancePreview.ts'
+import { promiseLedger } from './promiseLedger.ts'
 import { ProjectionPanel } from './ProjectionPanel.tsx'
 import { CommitteeSplitPanel } from './CommitteeSplitPanel.tsx'
 import { CommunicationPanel } from './CommunicationPanel.tsx'
@@ -91,6 +92,7 @@ export function PolicyDeskPanel({
     [instrument, difficulty],
   )
 
+  const ledger = promiseLedger(session.state.guidance, difficulty)
   const currentRate = session.state.stance.targetRate
   const floor = POLICY_RATE_FLOOR[institution]
   const lag = useMemo(() => transmissionLag(difficulty), [difficulty])
@@ -288,8 +290,20 @@ export function PolicyDeskPanel({
                   <li className="text-accent-strong">
                     This is a promise, judged around meeting {preview.judgedAtMeeting}.
                     Binding is what makes the two effects above roughly twice the
-                    size — and a promise the data moves out from under costs far
-                    more than it bought.
+                    size. Delivering it earns{' '}
+                    <span className="tabular-nums">
+                      +{ledger.nextKeptGain.toFixed(1)}
+                    </span>{' '}
+                    credibility; moving against it without a shock to justify it
+                    costs{' '}
+                    <span className="tabular-nums">
+                      −{ledger.nextBrokenCredibility.toFixed(0)}
+                    </span>{' '}
+                    credibility and{' '}
+                    <span className="tabular-nums">
+                      −{ledger.nextBrokenMarket.toFixed(0)}
+                    </span>{' '}
+                    market trust, permanently.
                   </li>
                 )}
               </ul>

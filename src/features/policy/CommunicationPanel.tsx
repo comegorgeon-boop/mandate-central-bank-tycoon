@@ -11,6 +11,8 @@ import {
   getInstrumentRange,
 } from '../../simulation/index.ts'
 import { InstrumentBrief } from './InstrumentBrief.tsx'
+import { PromisePanel } from './PromisePanel.tsx'
+import { promiseLedger } from './promiseLedger.ts'
 import {
   COMMITMENT_OPTIONS,
   PATH_OPTIONS,
@@ -153,6 +155,7 @@ export function CommunicationPanel({
   readonly onTone: (tone: CommunicationTone | null) => void
 }) {
   const announcedRate = selectedRate + signal / 100
+  const ledger = promiseLedger(guidance, difficulty)
   const guidanceInstrument = getInstrument('forward_guidance') ?? null
   const guidanceRange =
     guidanceInstrument === null
@@ -266,6 +269,12 @@ export function CommunicationPanel({
         {selectedCommitment !== undefined && (
           <p className="mt-2 text-xs text-ink-faint">{selectedCommitment.detail}</p>
         )}
+        {/* The other two thirds of the trade. See `promiseLedger.ts`. */}
+        <PromisePanel
+          commitment={commitment}
+          ledger={ledger}
+          meetingIndex={meetingIndex}
+        />
       </fieldset>
 
       {allowsFreeTone && (

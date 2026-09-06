@@ -19,6 +19,7 @@ import {
   pruneLedger,
   recordInstruments,
 } from '../policy/instrumentLedger.ts'
+import { settledPromise } from '../policy/settledPromise.ts'
 import { makeRunId } from './seed.ts'
 
 /** Verdict returned when a package arrives with no run open to apply it to. */
@@ -52,6 +53,7 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
       runId: makeRunId(options.seed),
       session: startRun(config),
       ledger: [],
+      settled: null,
     })
     setFinished(null)
   }, [])
@@ -74,6 +76,11 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
         ledger: pruneLedger(
           [...active.ledger, ...recorded],
           session.state.meetingIndex,
+        ),
+        settled: settledPromise(
+          active.session.state.guidance,
+          session.state.guidance,
+          session.state.config.difficulty,
         ),
       })
 

@@ -59,7 +59,9 @@ export {
 } from './config/thresholds.ts'
 // The two blocks the Policy Desk's guidance preview is derived from, so the
 // estimate the player is shown cannot drift from the mechanism behind it.
-export { COMMUNICATION, EXPECTATIONS } from './config/model.ts'
+// `INSTITUTIONAL` joins them for the promise ledger: what a broken promise
+// costs on screen has to be the number the dynamics actually charge.
+export { COMMUNICATION, EXPECTATIONS, INSTITUTIONAL } from './config/model.ts'
 
 // ---- Engine ---------------------------------------------------------------
 export {

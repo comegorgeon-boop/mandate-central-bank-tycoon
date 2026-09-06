@@ -8,6 +8,7 @@ import {
   type RunSession,
 } from '../../simulation/index.ts'
 import { realiseDue, type LedgerEntry } from '../policy/instrumentLedger.ts'
+import type { SettledPromise } from '../policy/settledPromise.ts'
 import { PolicyDeskPanel } from '../policy/PolicyDeskPanel.tsx'
 import { ReactionPanel } from '../policy/ReactionPanel.tsx'
 import { StanceStrip } from '../policy/StanceStrip.tsx'
@@ -68,11 +69,14 @@ const TABS: readonly { readonly id: PanelId; readonly label: string }[] = [
 export function MeetingScreen({
   session,
   ledger,
+  settled,
   onConfirm,
 }: {
   readonly session: RunSession
   /** Projections due to be checked against what happened. See `runContext`. */
   readonly ledger: readonly LedgerEntry[]
+  /** A promise the last decision settled, if it settled one. */
+  readonly settled: SettledPromise | null
   readonly onConfirm: (pkg: PolicyPackage) => MeetingResult
 }) {
   const [panel, setPanel] = useState<PanelId>('press')
@@ -156,6 +160,7 @@ export function MeetingScreen({
             before={session.previousObservation}
             onTheDay={session.onTheDay}
             headlines={session.newswire.length + (breaking ? 1 : 0)}
+            promise={settled}
             realised={realised}
             onContinue={() => setShowReaction(false)}
           />

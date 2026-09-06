@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { ObservationSet } from '../../simulation/index.ts'
 import type { RealisedEntry } from './instrumentLedger.ts'
+import type { SettledPromise } from './settledPromise.ts'
 import { buildReaction } from './reaction.ts'
 import { RealisedEffectPanel } from './RealisedEffectPanel.tsx'
 
@@ -16,12 +17,15 @@ export function ReactionPanel({
   before,
   onTheDay,
   headlines,
+  promise,
   realised,
   onContinue,
 }: {
   readonly before: ObservationSet
   readonly onTheDay: ObservationSet
   readonly headlines: number
+  /** A promise settled by this decision, if one was. Usually null. */
+  readonly promise: SettledPromise | null
   /** Instruments whose lag has run, now checkable. Usually empty. */
   readonly realised: readonly RealisedEntry[]
   readonly onContinue: () => void
@@ -88,6 +92,67 @@ export function ReactionPanel({
             : `${headlines} stories broke in the weeks after the decision`}
           , not because of it. They lead the front page at the meeting.
         </p>
+      )}
+
+      {/* A promise kept is the one thing in this game that pays for conduct
+          rather than outcome, and until now nothing said when it happened.
+          The player's report was that they could not see the point of
+          committing; being told, on the day, that a promise was delivered and
+          what it earned is half of the answer. */}
+      {promise !== null && (
+        <div
+          className={`mt-5 rounded border-l-4 p-3 ${
+            promise.kept
+              ? 'border-good bg-good-surface'
+              : 'border-bad bg-bad-surface'
+          }`}
+        >
+          <p
+            className={`text-sm font-semibold ${
+              promise.kept ? 'text-good-strong' : 'text-bad-strong'
+            }`}
+          >
+            {promise.kept
+              ? 'You delivered the path you published.'
+              : 'You moved against the path you published.'}
+          </p>
+          <p className="mt-1 text-sm text-ink">
+            {promise.kept ? (
+              promise.change > 0 ? (
+                <>
+                  Credibility credit for delivery rises to{' '}
+                  <span className="font-semibold tabular-nums">
+                    +{promise.credit.toFixed(1)}
+                  </span>{' '}
+                  of a possible {promise.creditMax.toFixed(0)}. This is the only
+                  part of your standing that rewards how you behaved rather than
+                  what happened to you.
+                </>
+              ) : (
+                <>
+                  The delivery credit is already at its ceiling of{' '}
+                  {promise.creditMax.toFixed(0)}. What keeping this one protects
+                  is the record — a broken promise from here would cost far more
+                  than another kept one can add.
+                </>
+              )
+            ) : (
+              <>
+                Charged as a broken promise: no shock large enough to justify it
+                had happened since it was published. Credibility and market
+                trust are down{' '}
+                <span className="font-semibold tabular-nums">
+                  {promise.credibilityCost.toFixed(0)}
+                </span>{' '}
+                and{' '}
+                <span className="font-semibold tabular-nums">
+                  {promise.marketCost.toFixed(0)}
+                </span>{' '}
+                for the rest of the mandate. That count only ever goes up.
+              </>
+            )}
+          </p>
+        </div>
       )}
 
       <RealisedEffectPanel entries={realised} />
