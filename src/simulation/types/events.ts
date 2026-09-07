@@ -1,5 +1,6 @@
 import type { Difficulty, Institution } from './core.ts'
-import type { LatentState } from './state.ts'
+import type { LatentState, MemberLatent } from './state.ts'
+import type { MemberId } from '../config/members.ts'
 
 /** Every field of LatentState is a number, so any of them can be nudged. */
 export type EffectTarget = keyof LatentState
@@ -19,6 +20,9 @@ export type EventFamily =
   | 'market_cycle'
   | 'natural_disaster'
   | 'innovation'
+  // ---- Currency-area families: shocks that fall on part of the area --------
+  | 'sovereign'
+  | 'labour'
   // ---- Major event families ------------------------------------------------
   | 'geopolitical_crisis'
   | 'domestic_political'
@@ -81,6 +85,8 @@ export interface DelayedEffectSpec {
  */
 export interface EventContext {
   readonly latent: LatentState
+  /** The currency area's members. Empty at a single-sovereign institution. */
+  readonly members: readonly MemberLatent[]
   readonly institution: Institution
   readonly difficulty: Difficulty
   readonly meetingIndex: number
@@ -157,6 +163,52 @@ export interface GameEvent {
    * at read time from how long ago the event's own record fired.
    */
   readonly dispatchLines?: readonly string[]
+  /**
+   * Effects that fall on one or two members of a currency area rather than on
+   * the area as a whole.
+   *
+   * The thing that makes a single policy rate hard, and the reason it belongs
+   * in the event catalog rather than in the dynamics: a common shock produces
+   * a common problem with a common answer, and it is the *asymmetric* one —
+   * a gas interruption that reaches the exposed economies and not the others,
+   * a sovereign sell-off that finds the indebted one — that puts the chair in
+   * the position of setting one rate for members who need different ones.
+   *
+   * Ignored where the institution has no members, so an event may carry both
+   * and stay valid at both institutions.
+   */
+  readonly memberEffects?: (ctx: EventContext) => readonly MemberShock[]
+}
+
+/**
+ * Which member a shock lands on.
+ *
+ * A structural selector wherever the event is *about* a structural property,
+ * and an id only where it is genuinely about that member. "The most indebted
+ * member" is a description of the economics and stays correct if the profiles
+ * are ever retuned; naming a country to carry a story it has no structural
+ * reason to carry would be characterising it rather than modelling it.
+ */
+export type MemberSelector =
+  | MemberId
+  | 'most_indebted'
+  | 'most_industrial'
+  | 'most_energy_exposed'
+  | 'most_cyclical'
+  | 'largest'
+
+export interface MemberShock {
+  readonly member: MemberSelector
+  /**
+   * Offsets are renormalised so the area aggregate moves by exactly this
+   * member's weight times the shock; `spread` is a level and moves alone.
+   */
+  readonly field:
+    | 'inflationOffset'
+    | 'outputGapOffset'
+    | 'unemploymentOffset'
+    | 'spread'
+  readonly magnitude: number
 }
 
 /** An effect queued to fire at a future internal sub-step. */
@@ -175,6 +227,15 @@ export interface ResolvedEventRecord {
   readonly newswire: string
   readonly immediate: readonly EventEffect[]
   readonly delayedStepDelays: readonly number[]
+  /**
+   * Members this event fell on, if it was asymmetric.
+   *
+   * Recorded so the press can report *which* member was hit. An asymmetric
+   * event reported as an area-wide one is worse than no report: half the area
+   * did not experience it, and the whole point of the mechanic is that the
+   * chair has to notice who did.
+   */
+  readonly members?: readonly MemberId[]
 }
 
 /** Outcome of one call to resolveEvent. */

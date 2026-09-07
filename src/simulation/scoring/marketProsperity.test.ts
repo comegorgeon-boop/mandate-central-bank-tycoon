@@ -46,6 +46,7 @@ function mandateAt(institution: Institution, pressure: number): SimulationState 
       meetingIndex: index,
       timeYears: index / 8,
       latent: { ...base.latent, assetPricePressure: pressure },
+      members: [],
     }),
   )
   return {

@@ -59,6 +59,7 @@ function mandateUnderPressure(supplyShock: number): SimulationState {
         inflationHeadline: 5.2,
         inflationCore: 4.4,
       },
+      members: [],
     })
   }
 

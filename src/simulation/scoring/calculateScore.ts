@@ -22,10 +22,12 @@ import {
   SCORE_WEIGHTS,
   SHOCK_RESPONSE,
   STRESS_PENALTY_FLOOR,
+  COHESION_BLEND,
   SUPPLY_REGIME,
   VALUATION_TOLERANCE,
 } from '../config/scoring.ts'
 import { supplyRegimePressure, unemploymentGap } from '../engine/indices.ts'
+import { dispersion } from '../engine/members.ts'
 // The equity index is read through its own series definition rather than
 // recomputed here, so the number the scorecard judges is the number the player
 // watched all mandate.
@@ -276,6 +278,33 @@ export function calculateScore(
       : mean(history.map((snapshot) => equitySeries.read(snapshot.latent)))
   const equityShortfall = Math.max(0, 1 - equityLevel / EQUITY_BASE) * 100
 
+  // ---- Cohesion -----------------------------------------------------------
+  //
+  // The ECB's problem and nobody else's: one rate for members whose inflation,
+  // unemployment and borrowing costs differ. An area held together is one
+  // where the objective means something; an area two points apart on inflation
+  // has no single rate of inflation for a target to be about.
+  //
+  // Read off the latent members rather than the published national statistics,
+  // for the same reason the tutorial's goal is: this is a fact about the
+  // economy the mandate produced, not about how well it was measured. A
+  // scorecard that graded dispersion on noisy releases would reward a mandate
+  // for a quiet quarter of measurement error.
+  const cohesionPenalty = mean(
+    history.map((snapshot) => {
+      const members = snapshot.members
+      if (members.length === 0) return 0
+      const spreads = members.map((member) => member.spread)
+      const range = Math.max(...spreads) - Math.min(...spreads)
+      return (
+        COHESION_BLEND.inflation * dispersion(members, 'inflationOffset') +
+        COHESION_BLEND.unemployment * dispersion(members, 'unemploymentOffset') +
+        range / COHESION_BLEND.spreadRange
+      )
+    }),
+  )
+  const cohesionRaw = performance(cohesionPenalty, SCORE_SCALES.cohesion)
+
   // ---- Expectations anchoring --------------------------------------------
   const anchorMisses = history.map((s) => s.latent.expectedInflationLong - target)
   const anchoringRmse = rootMeanSquare(anchorMisses)
@@ -356,6 +385,12 @@ export function calculateScore(
           : `${dislocation.toFixed(1)} points outside that band on average.`),
     },
     {
+      id: 'cohesion',
+      label: 'Cohesion of the currency area',
+      raw: cohesionRaw,
+      explanation: `Members sat ${cohesionPenalty.toFixed(2)} points apart on average across inflation, unemployment and sovereign spreads. One rate has to serve all of them.`,
+    },
+    {
       id: 'anchoring',
       label: 'Expectations anchoring',
       raw: anchoringRaw,
@@ -397,18 +432,24 @@ export function calculateScore(
     },
   ]
 
-  const components: ScoreComponent[] = definitions.map((definition) => {
-    const weight = weights[definition.id]
-    const raw = clamp(definition.raw, 0, 1)
-    return {
-      id: definition.id,
-      label: definition.label,
-      raw,
-      weight,
-      contribution: raw * weight,
-      explanation: definition.explanation,
-    }
-  })
+  const components: ScoreComponent[] = definitions
+    // A component this institution does not have is dropped, not shown at
+    // nought. The Fed has regions, not members with their own sovereign
+    // borrowing costs, and a scorecard line reading "cohesion 0 %" would be
+    // reporting a failure at something that does not exist.
+    .filter((definition) => weights[definition.id] > 0)
+    .map((definition) => {
+      const weight = weights[definition.id]
+      const raw = clamp(definition.raw, 0, 1)
+      return {
+        id: definition.id,
+        label: definition.label,
+        raw,
+        weight,
+        contribution: raw * weight,
+        explanation: definition.explanation,
+      }
+    })
 
   const weightedTotal = components.reduce(
     (total, component) => total + component.contribution,

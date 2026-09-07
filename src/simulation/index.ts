@@ -105,6 +105,23 @@ export {
 } from './observation/interval.ts'
 export { diagnoseShock } from './observation/diagnose.ts'
 export {
+  observeMembers,
+  type AreaObservation,
+  type MemberObservation,
+} from './observation/memberObservation.ts'
+export {
+  MEMBERS,
+  MEMBER_DYNAMICS,
+  getMember,
+  type MemberId,
+  type MemberProfile,
+} from './config/members.ts'
+export {
+  dispersion,
+  memberLevel,
+  memberTransmission,
+} from './engine/members.ts'
+export {
   readStance,
   readStanceChange,
   stanceAfterMove,

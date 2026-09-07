@@ -45,6 +45,7 @@ function observation(
     clues: [],
     taylorBenchmark: 3,
     diagnosis: null,
+  area: null,
   }
 }
 

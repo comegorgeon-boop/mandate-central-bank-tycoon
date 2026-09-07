@@ -244,6 +244,11 @@ describe('forecasts are published as ranges, not point certainty', () => {
 describe('the observation set exposes no latent state', () => {
   it('carries only the documented published fields', () => {
     expect(Object.keys(observeAt(hardRun, HORIZON)).sort()).toEqual([
+      // The members of a currency area, as published. Null at the Fed, which
+      // this run is — the field is present and empty rather than absent, so
+      // that a component reading it never has to guess whether the shape it
+      // was handed is the old one.
+      'area',
       'clues',
       'diagnosis',
       'forecasts',

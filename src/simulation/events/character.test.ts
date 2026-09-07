@@ -116,12 +116,30 @@ const SIGNATURE: Readonly<Record<ShockCharacter, readonly (keyof LatentState)[]>
   ],
 }
 
-/** Every variable an event touches, immediate and delayed. */
+/**
+ * Every variable an event touches, immediate, delayed and asymmetric.
+ *
+ * A shock delivered to one member of a currency area is a shock to that
+ * variable — `regional_labour_shock` moves nothing area-wide at all, by
+ * design, and reading only the aggregate effects would report an event whose
+ * entire content is an output-gap and unemployment shock as touching neither.
+ */
+const MEMBER_FIELD: Readonly<Record<string, keyof LatentState>> = {
+  inflationOffset: 'inflationHeadline',
+  outputGapOffset: 'outputGap',
+  unemploymentOffset: 'unemployment',
+  spread: 'fragmentation',
+}
+
 function touchedVariables(event: GameEvent, ctx: EventContext): Set<keyof LatentState> {
   const touched = new Set<keyof LatentState>()
   for (const effect of event.immediate(ctx)) touched.add(effect.variable)
   for (const spec of event.delayed(ctx)) {
     for (const effect of spec.effects) touched.add(effect.variable)
+  }
+  for (const shock of event.memberEffects?.(ctx) ?? []) {
+    const variable = MEMBER_FIELD[shock.field]
+    if (variable !== undefined) touched.add(variable)
   }
   return touched
 }

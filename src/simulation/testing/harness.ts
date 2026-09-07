@@ -81,6 +81,7 @@ export function playWithoutEvents(
             meetingIndex: 0,
             timeYears: 0,
             latent: seedState(initial.latent),
+            members: initial.members,
           },
         ],
       }

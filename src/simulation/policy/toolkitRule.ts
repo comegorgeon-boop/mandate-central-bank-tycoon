@@ -1,7 +1,12 @@
 import type { Difficulty, Institution } from '../types/core.ts'
+import type { ObservationSet } from '../types/observation.ts'
 import type { PolicyAction, PolicyPackage } from '../types/policy.ts'
 import type { RunSession } from '../replay/replayRun.ts'
-import { availableInstruments } from '../config/instruments.ts'
+import {
+  availableInstruments,
+  getInstrument,
+  getInstrumentRange,
+} from '../config/instruments.ts'
 import { staffRecommendation } from './staffRule.ts'
 
 /**
@@ -61,6 +66,69 @@ const STRESS_SEVERE = 65
 /** Credit spreads, in percentage points, that count as a funding squeeze. */
 const SPREAD_SQUEEZE = 2.6
 
+/**
+ * The *widest member* spread, basis points, at which the area is coming apart.
+ *
+ * Read off the widest member rather than the area-wide average, and that is
+ * the substantive choice here: fragmentation is one member coming adrift, not
+ * everyone drifting together, and an average is exactly the statistic that
+ * hides it. Measured over a quiet ECB mandate the area-wide figure drifts from
+ * 71 to 87 basis points while the widest member goes from 65 to 160 — the
+ * average reports a calm decade the area did not have.
+ *
+ * It is also the only clean signal available. National price and labour
+ * statistics carry measurement error, and the mean absolute deviation of noisy
+ * readings is biased upward by the noise itself, so statistical dispersion
+ * bounces between 0.4 and 1.3 on an unshocked hard mandate. A spread is a
+ * price: exact, immediate, and not a survey.
+ *
+ * The bars sit against `MEMBER_DYNAMICS.transmissionBreakSpread` (250, where
+ * the common rate stops reaching a member): escalate *before* transmission
+ * breaks, because the instrument works on the way up and repairs nothing on
+ * the way down.
+ */
+const FRAGMENTATION_ESCALATE = 200
+const FRAGMENTATION_SEVERE = 300
+
+/**
+ * Dispersion, in percentage points, past which the aggregate stops being a
+ * fair description of the area.
+ *
+ * Weighted mean absolute deviation. Set above the level an unshocked mandate
+ * runs at — measured, unemployment dispersion sits between 0.4 and 1.6 and
+ * inflation dispersion between 0.4 and 1.3 with nothing happening at all,
+ * because national releases are noisier than the area's and the deviation of
+ * noisy readings is biased upward by its own noise. A bar inside that range
+ * would be a rule reacting to measurement error.
+ */
+const UNEMPLOYMENT_DISPERSION_BAR = 1.7
+const INFLATION_DISPERSION_BAR = 1.25
+
+/** The tilted recommendation, inside the difficulty's own bounds. */
+function tiltedMove(base: number, tilt: number, difficulty: Difficulty): number {
+  const instrument = getInstrument('policy_rate')
+  if (instrument === undefined) return base
+  const range = getInstrumentRange(instrument, difficulty)
+  const wanted = base + tilt
+  const clamped = Math.min(range.max, Math.max(range.min, wanted))
+  // Snap back onto the increment grid: a bound that is not a multiple of the
+  // step would otherwise produce a magnitude the validator rejects for a
+  // second, entirely different reason.
+  return Math.round(clamped / range.increment) * range.increment
+}
+
+/** One step of caution, in basis points. Never more. */
+function dispersionTilt(observation: ObservationSet): number {
+  const area = observation.area
+  if (area === null) return 0
+
+  // Unemployment first: a wide labour-market dispersion means tightening the
+  // area tightens hardest where it already hurts most.
+  if (area.unemploymentDispersion >= UNEMPLOYMENT_DISPERSION_BAR) return -25
+  if (area.inflationDispersion >= INFLATION_DISPERSION_BAR) return 25
+  return 0
+}
+
 function has(
   institution: Institution,
   difficulty: Difficulty,
@@ -77,7 +145,26 @@ export function toolkitPackage(
   difficulty: Difficulty,
 ): PolicyPackage {
   const advice = staffRecommendation(session.observation, institution, difficulty)
-  const move = advice?.basisPoints ?? 0
+  // ---- The dispersion tilt -------------------------------------------------
+  //
+  // A currency area's aggregate can be a poor description of the area. When
+  // unemployment is spread widely across members, area-wide slack understates
+  // how much of the area is in real difficulty, and a committee that reads
+  // only the aggregate tightens into it; when inflation is spread widely, the
+  // aggregate understates how far the worst member has run.
+  //
+  // One step, capped, and only past a bar. This is not a second reaction
+  // function competing with the first — it is the caution a committee setting
+  // one rate for members who need different ones actually shows, and without
+  // it the rule is *structurally* blind to every asymmetric event in the
+  // catalog: measured, three of them changed nothing at all.
+  // Clamped to what the instrument actually allows. The staff rule can already
+  // be at the difficulty's maximum move, and a tilt on top of it produced a
+  // package the engine rejected outright — which ends a run on a technicality
+  // rather than on policy, and which the 150-seed sweep found on the thirteenth
+  // meeting of an ECB hard mandate.
+  const tilt = dispersionTilt(session.observation)
+  const move = tiltedMove(advice?.basisPoints ?? 0, tilt, difficulty)
   const actions: PolicyAction[] = []
   if (move !== 0) actions.push({ instrument: 'policy_rate', magnitude: move })
 
@@ -134,11 +221,40 @@ export function toolkitPackage(
     }
   }
 
+  // ---- Fragmentation: the decision the Fed never has to take --------------
+  //
+  // A currency area can be coming apart while the aggregate the committee
+  // targets says almost nothing is happening — that is what "asymmetric"
+  // means, and it is the whole difficulty of setting one rate for members who
+  // need different ones. A rule that reads only area-wide inflation and
+  // unemployment is *structurally* blind to it, which is why every asymmetric
+  // event in the catalog changed nothing at all until this block existed:
+  // measured, four of them scored zero out of 48 on `consequence.test.ts`.
+  const fragmentation =
+    session.observation.area?.widestSpread ??
+    indicators.fragmentation_spread?.value ??
+    0
+  const fragmenting = fragmentation >= FRAGMENTATION_ESCALATE
+  const fragmentingBadly = fragmentation >= FRAGMENTATION_SEVERE
+
+  if (has(institution, difficulty, 'transmission_protection')) {
+    const wanted = fragmentingBadly ? 3 : fragmenting ? 2 : 0
+    if (Math.abs(wanted - stance.transmissionProtection) > 1e-9) {
+      actions.push({ instrument: 'transmission_protection', magnitude: wanted })
+    }
+  }
+
   // Buy into a genuine dislocation, and stop when it clears — but never while
   // raising the rate, which is a mixed signal the engine charges for and which
   // measurably cost more than the purchases were worth.
+  //
+  // Purchases compress sovereign spreads as well as term premia, so where the
+  // dedicated instrument is not open they are the area's only answer to
+  // fragmentation. That is why the ECB reaches for them at a lower bar than
+  // the Fed: the same programme is doing a second job.
   if (has(institution, difficulty, 'asset_purchases')) {
-    const wanted = severe && move <= 0 ? 2 : 0
+    const dislocated = severe || (institution === 'ecb' && fragmentingBadly)
+    const wanted = dislocated && move <= 0 ? 2 : 0
     if (Math.abs(wanted - stance.assetPurchasePace) > 1e-9) {
       actions.push({ instrument: 'asset_purchases', magnitude: wanted })
     }

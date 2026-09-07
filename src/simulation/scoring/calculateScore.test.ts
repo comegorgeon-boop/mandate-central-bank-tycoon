@@ -46,7 +46,8 @@ function syntheticRun(
     meetingIndex: index,
     timeYears: index * YEARS_PER_MEETING,
     latent,
-  }))
+  members: [],
+    }))
 
   return {
     ...base,

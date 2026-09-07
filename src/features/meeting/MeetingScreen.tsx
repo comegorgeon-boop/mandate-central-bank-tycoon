@@ -14,6 +14,7 @@ import { ReactionPanel } from '../policy/ReactionPanel.tsx'
 import { StanceStrip } from '../policy/StanceStrip.tsx'
 import { ChangesPanel } from './panels/ChangesPanel.tsx'
 import { DiagnosisPanel } from './panels/DiagnosisPanel.tsx'
+import { DispersionPanel } from './panels/DispersionPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MandateChartPanel } from './panels/MandateChartPanel.tsx'
@@ -47,7 +48,7 @@ import { IntervalPlayer } from './IntervalPlayer.tsx'
  * it never reaches this component.
  */
 
-type PanelId = 'press' | 'brief' | 'markets' | 'prices' | 'labor' | 'desk'
+type PanelId = 'press' | 'brief' | 'markets' | 'prices' | 'labor' | 'area' | 'desk'
 
 // The press sits first because it is what a chair reads first, and because it
 // is now the only place the news is: the major-event banner and the flat wire
@@ -63,6 +64,8 @@ const TABS: readonly { readonly id: PanelId; readonly label: string }[] = [
   { id: 'markets', label: 'Markets' },
   { id: 'prices', label: 'Prices' },
   { id: 'labor', label: 'Labor' },
+  // Only where there is an area to disperse. See `DispersionPanel`.
+  { id: 'area', label: 'The Area' },
   { id: 'desk', label: 'Policy Desk' },
 ]
 
@@ -207,7 +210,9 @@ export function MeetingScreen({
             aria-label="Meeting panels"
             className="mt-6 flex flex-wrap gap-1"
           >
-            {TABS.map((tab) => {
+            {TABS.filter(
+              (tab) => tab.id !== 'area' || session.observation.area !== null,
+            ).map((tab) => {
               const selected = tab.id === panel
               return (
                 <button
@@ -291,6 +296,9 @@ export function MeetingScreen({
             )}
             {panel === 'labor' && (
               <LaborPanel observation={session.observation} register={register} />
+            )}
+            {panel === 'area' && session.observation.area !== null && (
+              <DispersionPanel area={session.observation.area} />
             )}
             {panel === 'desk' && (
               <PolicyDeskPanel session={session} onConfirm={onConfirm} />

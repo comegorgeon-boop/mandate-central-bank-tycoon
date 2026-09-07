@@ -7,7 +7,9 @@ import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { DT, SUBSTEPS_PER_MEETING, YEARS_PER_MEETING } from '../config/time.ts'
 import { advanceSubstep } from './dynamics.ts'
+import { realRateGap } from './indices.ts'
 import { buildLagKernel } from './lags.ts'
+import { advanceMembers } from './members.ts'
 
 /**
  * Advances the latent economy from one policy meeting to the next.
@@ -108,6 +110,7 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
 
   const diagnostics: DiagnosticEvent[] = []
   let latent = state.latent
+  let members = state.members
   let lags = state.lags
   let pending = state.pendingEffects
   let stepIndex = state.stepIndex
@@ -140,6 +143,10 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
 
     stepIndex += 1
     latent = clampLatentState(advanced.latent, stepIndex, diagnostics)
+    // The area's members move on the same sub-step and off the same
+    // restriction the aggregate just responded to, so dispersion and the
+    // aggregate can never describe different quarters.
+    members = advanceMembers(members, latent, realRateGap(latent), DT)
     lags = advanced.lags
     steps.push({ stepIndex, latent, landedEventIds })
   }
@@ -154,6 +161,7 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
       stepIndex,
       timeYears,
       latent,
+      members,
       lags,
       rng: prng.getState(),
       pendingEffects: pending,
@@ -161,7 +169,7 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
         diagnostics.length > 0
           ? [...state.diagnostics, ...diagnostics]
           : state.diagnostics,
-      history: [...state.history, { meetingIndex, timeYears, latent }],
+      history: [...state.history, { meetingIndex, timeYears, latent, members }],
     },
     steps,
   }

@@ -13,6 +13,7 @@ import { clampLatentState } from '../config/bounds.ts'
 import { DIFFICULTY_ORDER, getDifficulty, meetsDifficulty } from '../config/difficulty.ts'
 import { applyEffects } from '../engine/advanceTrueState.ts'
 import { EVENT_CATALOG } from './catalog.ts'
+import { applyMemberShocks } from './memberShocks.ts'
 import { NEUTRAL_BAND, immediateInflationImpulse } from './inflationImpulse.ts'
 
 /**
@@ -42,6 +43,7 @@ export function buildEventContext(state: SimulationState): EventContext {
 
   return {
     latent: state.latent,
+    members: state.members,
     institution: state.config.institution,
     difficulty: state.config.difficulty,
     meetingIndex: state.meetingIndex,
@@ -194,8 +196,17 @@ export function resolveEvent(
   const delayed = event.delayed(ctx)
 
   const diagnostics: DiagnosticEvent[] = []
+  // Asymmetric effects first, because each one moves the aggregate too — by
+  // exactly that member's weight — and the area-wide effects have to land on
+  // top of an aggregate that already reflects them. See `engine/members.ts`
+  // for the identity this preserves.
+  const asymmetric = applyMemberShocks(
+    state.members,
+    event.memberEffects?.(ctx) ?? [],
+    difficulty.eventSeverityScale,
+  )
   const latent = clampLatentState(
-    applyEffects(state.latent, immediate),
+    applyEffects(applyEffects(state.latent, asymmetric.aggregate), immediate),
     state.stepIndex,
     diagnostics,
   )
@@ -212,13 +223,17 @@ export function resolveEvent(
     meetingIndex: state.meetingIndex,
     title: event.title,
     newswire: event.newswire,
-    immediate,
+    immediate: [...asymmetric.aggregate, ...immediate],
     delayedStepDelays: delayed.map((spec) => spec.delaySteps),
+    // Named so the press can report *which* member was hit rather than
+    // reporting an area-wide event that half the area did not experience.
+    members: asymmetric.hit,
   }
 
   const nextState: SimulationState = {
     ...state,
     latent,
+    members: asymmetric.members,
     rng: prng.getState(),
     pendingEffects: [...state.pendingEffects, ...pending],
     eventLog: [...state.eventLog, record],

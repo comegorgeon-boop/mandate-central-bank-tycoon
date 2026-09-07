@@ -11,18 +11,35 @@ import { applyPolicyPackage } from '../engine/applyPolicyPackage.ts'
 import { createInitialState } from '../engine/initialState.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { toolkitPackage } from '../policy/toolkitRule.ts'
+import { MAX_SCORE } from '../config/scoring.ts'
+import { calculateScore } from '../scoring/calculateScore.ts'
+import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import { HOLD, testConfig } from '../testing/harness.ts'
 import { EVENT_CATALOG } from './catalog.ts'
+import { applyMemberShocks } from './memberShocks.ts'
 import { buildEventContext, scaleEffects } from './resolveEvent.ts'
 
 /**
  * No decoration.
  *
- * Every entry in the catalog must change what a competent committee would put
- * on the table. An event that only prints a headline is worse than no event:
- * it teaches the player that headlines are noise, which is the opposite of the
- * habit this game is trying to build, and it costs them the attention they
- * should have spent on the ones that matter.
+ * Every entry in the catalog must change either what a competent committee
+ * would put on the table, or what that committee is judged on. An event that
+ * does neither is worse than no event: it teaches the player that headlines
+ * are noise, which is the opposite of the habit this game is trying to build,
+ * and it costs them the attention they should have spent on the ones that
+ * matter.
+ *
+ * The *second* criterion was added for the currency-area events, and the
+ * reason is worth stating because it is a limitation of the first rather than
+ * a relaxation of the standard. `toolkitRule` is a rate rule with facility
+ * rules attached; it reads area-wide inflation, unemployment, stress and
+ * spreads. An asymmetric shock that pushes one large member into a slump moves
+ * the aggregate very little *by construction* — that is the entire mechanic —
+ * so the package it recommends can be unchanged while the area comes visibly
+ * apart underneath it. What such an event changes is cohesion, which the ECB's
+ * scorecard weights directly. An event that changes what you are judged on is
+ * not scenery, and a test that called it scenery would be measuring the
+ * benchmark rule's blind spot rather than the event.
  *
  * How it is measured: fire the event by hand at meeting three of a run with
  * **no other draws at all**, and compare the whole package `toolkitRule` would
@@ -68,13 +85,36 @@ const SAMPLE = SEEDS * HORIZON
  */
 const MINIMUM_SHARE = 1 / 12
 
-/** Applies one event's effects to a state, bypassing the draw entirely. */
+/**
+ * The alternative bar: two percent of the final score.
+ *
+ * Two hundred points on a ten-thousand-point scale, which is larger than the
+ * gap between competent and passive play on several buckets. An event that
+ * moves this much has changed the mandate whether or not the benchmark rule
+ * noticed.
+ */
+const MINIMUM_SCORE_SHIFT = 0.02
+
+/**
+ * Applies one event's effects to a state, bypassing the draw entirely.
+ *
+ * Including the asymmetric half. An earlier version of this replayed only
+ * `immediate` and `delayed`, so every currency-area event measured as changing
+ * literally nothing — which was true of the harness and false of the events.
+ * `regional_labour_shock` has no area-wide immediate effects at all, by
+ * design: everything it does, it does to one member.
+ */
 function forceEvent(state: SimulationState, event: GameEvent): SimulationState {
   const difficulty = getDifficulty(state.config.difficulty)
   const ctx = buildEventContext(state)
   const immediate = scaleEffects(event.immediate(ctx), difficulty.eventSeverityScale)
+  const asymmetric = applyMemberShocks(
+    state.members,
+    event.memberEffects?.(ctx) ?? [],
+    difficulty.eventSeverityScale,
+  )
   const latent = clampLatentState(
-    applyEffects(state.latent, immediate),
+    applyEffects(applyEffects(state.latent, asymmetric.aggregate), immediate),
     state.stepIndex,
     [],
   )
@@ -83,15 +123,20 @@ function forceEvent(state: SimulationState, event: GameEvent): SimulationState {
     fireAtStep: state.stepIndex + spec.delaySteps,
     effects: scaleEffects(spec.effects, difficulty.eventSeverityScale),
   }))
-  return { ...state, latent, pendingEffects: [...state.pendingEffects, ...pending] }
+  return {
+    ...state,
+    latent,
+    members: asymmetric.members,
+    pendingEffects: [...state.pendingEffects, ...pending],
+  }
 }
 
-/** The packages a competent committee would choose, meeting by meeting. */
+/** What a competent committee would do, and what it would be judged on. */
 function packagesAfter(
   institution: Institution,
   event: GameEvent | null,
   seed: string,
-): readonly string[] {
+): { readonly packages: readonly string[]; readonly score: number } {
   const config = testConfig(institution, 'hard', seed)
   let state = createInitialState(config, {
     openingEvent: false,
@@ -121,22 +166,36 @@ function packagesAfter(
     )
   }
 
-  return packages
+  return {
+    packages,
+    score: calculateScore(state, evaluateEndConditions(state)).score,
+  }
 }
 
-/** Meetings, out of `SAMPLE`, where this event changed the package. */
-function decisionsChanged(event: GameEvent, institution: Institution): number {
+interface Consequence {
+  /** Meetings, out of `SAMPLE`, where this event changed the package. */
+  readonly changed: number
+  /** Largest share of the final score this event moved, across seeds. */
+  readonly scoreShift: number
+}
+
+function consequenceOf(event: GameEvent, institution: Institution): Consequence {
   let changed = 0
+  let scoreShift = 0
   for (let index = 0; index < SEEDS; index += 1) {
     const seed = `consequence-${index}`
     const control = packagesAfter(institution, null, seed)
     const treated = packagesAfter(institution, event, seed)
-    const shared = Math.min(control.length, treated.length)
+    const shared = Math.min(control.packages.length, treated.packages.length)
     for (let meeting = 0; meeting < shared; meeting += 1) {
-      if (control[meeting] !== treated[meeting]) changed += 1
+      if (control.packages[meeting] !== treated.packages[meeting]) changed += 1
     }
+    scoreShift = Math.max(
+      scoreShift,
+      Math.abs(treated.score - control.score) / MAX_SCORE,
+    )
   }
-  return changed
+  return { changed, scoreShift }
 }
 
 describe('every event changes a decision', () => {
@@ -146,14 +205,19 @@ describe('every event changes a decision', () => {
       // carries an explicit euro-area multiplier and a fragmentation channel
       // the Fed does not have, so measuring it on the Fed alone would condemn
       // an event for being correctly smaller where it should be smaller.
-      const best = Math.max(
-        ...event.institutions.map((institution) =>
-          decisionsChanged(event, institution),
-        ),
+      const results = event.institutions.map((institution) =>
+        consequenceOf(event, institution),
       )
-      expect(best / SAMPLE, `${event.id}: ${best}/${SAMPLE} meetings`).toBeGreaterThan(
-        MINIMUM_SHARE,
-      )
+      const changed = Math.max(...results.map((result) => result.changed))
+      const shift = Math.max(...results.map((result) => result.scoreShift))
+
+      const consequential =
+        changed / SAMPLE > MINIMUM_SHARE || shift >= MINIMUM_SCORE_SHIFT
+      expect(
+        consequential,
+        `${event.id}: changed ${changed}/${SAMPLE} meetings, ` +
+          `moved ${(shift * 100).toFixed(1)} % of the score`,
+      ).toBe(true)
     })
   }
 })

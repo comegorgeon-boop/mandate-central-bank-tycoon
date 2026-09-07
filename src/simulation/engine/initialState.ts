@@ -11,6 +11,7 @@ import { INSTRUMENT_EFFECTS } from '../config/instruments.ts'
 import { applyOpeningCrisis } from '../events/openingCrisis.ts'
 import { fillLag } from './lags.ts'
 import { financialConditionsIndex, realRateGap, taylorBenchmark } from './indices.ts'
+import { createMembers } from './members.ts'
 
 /**
  * How tightly the opening perturbation clusters around the institution's
@@ -262,6 +263,11 @@ export function createInitialState(
   const bankingStress = clamp(BANKING.base + noise(6), 0, 45)
   const assetPricePressure = clamp(noise(12), -35, 45)
 
+  // The currency area's members, if this institution has any. Deterministic
+  // from the configuration rather than drawn: the dispersion is a property of
+  // the area's structure, not of the seed.
+  const members = createMembers(config.institution)
+
   const latent: LatentState = {
     inflationHeadline: headline,
     inflationCore: core,
@@ -340,6 +346,7 @@ export function createInitialState(
       balanceSheetImpulse: fillLag(0),
       financialConditions: fillLag(openingConditions),
     },
+    members,
     rng: createPrng(`${seed}|run`).getState(),
     stance,
     guidance: INITIAL_GUIDANCE,
@@ -348,7 +355,7 @@ export function createInitialState(
     contradictionCost: 0,
     reversalCount: 0,
     diagnostics: [],
-    history: [{ meetingIndex: 0, timeYears: 0, latent }],
+    history: [{ meetingIndex: 0, timeYears: 0, latent, members }],
   }
 
   // The scripted opener (docs/DIRECTION.md): a healthy economy, then a major,
@@ -380,7 +387,7 @@ export function createInitialState(
     state = {
       ...state,
       latent: hurt,
-      history: [{ meetingIndex: 0, timeYears: 0, latent: hurt }],
+      history: [{ meetingIndex: 0, timeYears: 0, latent: hurt, members }],
     }
   }
 
@@ -392,7 +399,9 @@ export function createInitialState(
     // would publish the pre-crisis numbers even though `latent` has moved on.
     state = {
       ...state,
-      history: [{ meetingIndex: 0, timeYears: 0, latent: state.latent }],
+      history: [
+        { meetingIndex: 0, timeYears: 0, latent: state.latent, members: state.members },
+      ],
     }
   }
 

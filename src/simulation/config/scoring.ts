@@ -42,17 +42,33 @@ export const SCORE_WEIGHTS: Readonly<
     shock_response: 0.06,
     policy_volatility: 0.04,
     completion: 0.04,
+    // Zero, and filtered out of the report rather than shown at nought: the
+    // Fed has regions, not members with their own sovereign borrowing costs,
+    // and a scorecard line reading "cohesion 0 %" would be describing
+    // something that does not exist.
+    cohesion: 0,
   },
   ecb: {
-    price_stability: 0.38,
+    price_stability: 0.32,
     employment_output: 0.14,
     financial_stability: 0.06,
     market_prosperity: 0.06,
-    anchoring: 0.14,
+    anchoring: 0.12,
     credibility: 0.1,
     shock_response: 0.06,
     policy_volatility: 0.03,
     completion: 0.03,
+    /**
+     * Cohesion: how far apart the area was held.
+     *
+     * Taken from price stability and anchoring, and that is the argument for
+     * it rather than an accounting convenience. The ECB's objective is price
+     * stability *for the euro area as a whole*, and an area whose members are
+     * two points apart on inflation has no single rate of inflation for a
+     * target to be about. Cohesion is not a competing objective, it is the
+     * condition under which the primary one means anything.
+     */
+    cohesion: 0.08,
   },
 }
 
@@ -86,6 +102,32 @@ export const SCORE_SCALES = {
    * be seen, nowhere near enough to be chased.
    */
   marketProsperity: 4.5,
+  /**
+   * Average dispersion across the area, in the blended units of
+   * `cohesionPenalty`.
+   *
+   * Calibrated against what the area actually does: a mandate that lets the
+   * members drift no further apart than they opened scores about 0.6, and one
+   * that lets an asymmetric shock run gives up several hundred points.
+   */
+  cohesion: 3.0,
+} as const
+
+/**
+ * How the three dispersions blend into one cohesion penalty.
+ *
+ * Inflation carries the most weight because it is the objective: an area whose
+ * members are two points apart on inflation has no single rate of inflation
+ * for a target to be about. Unemployment counts for less because labour
+ * markets differ structurally and always will — the score is for dispersion
+ * the policy *caused or failed to prevent*, not for the fact that economies
+ * are different. Spreads are divided down into comparable units.
+ */
+export const COHESION_BLEND = {
+  inflation: 1.0,
+  unemployment: 0.6,
+  /** Basis points of spread range worth one point of the penalty. */
+  spreadRange: 100,
 } as const
 
 /**

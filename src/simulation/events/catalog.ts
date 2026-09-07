@@ -1289,6 +1289,234 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         'though positioning across the market remains far lighter than before.',
     ],
   },
+  // ---- Asymmetric: shocks that fall on part of a currency area ------------
+  //
+  // The mechanic that makes one policy rate a genuine problem rather than an
+  // arithmetic one. A common shock has a common answer; these do not. Each
+  // finds its member by *structure* — the most indebted, the most
+  // energy-exposed — so the economics chooses the country rather than a story
+  // choosing it. See `events/memberShocks.ts`.
+  {
+    id: 'sovereign_repricing',
+    shockCharacter: 'financial',
+    family: 'sovereign',
+    title: 'Sovereign spreads reprice across the area',
+    newswire:
+      'Investors have repriced the debt of the most heavily indebted member ' +
+      'sharply wider against the area benchmark, citing a financing programme ' +
+      'larger than the market had assumed. Other members are little changed.',
+    clue: 'Auction cover ratios have thinned at the long end for the area\'s largest debt issuers.',
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.9,
+    cooldownMeetings: 4,
+    maxOccurrences: 3,
+    isEligible: () => true,
+    // More likely when the common rate is already high and risk appetite thin,
+    // which is when a debt burden stops being a background fact.
+    weight: (ctx) =>
+      0.5 +
+      Math.max(0, ctx.latent.policyRate) / 4 +
+      Math.max(0, ctx.latent.marketVolatility - VOLATILITY.base) / 30,
+    immediate: () => [
+      { variable: 'fragmentation', delta: 60 },
+      { variable: 'marketVolatility', delta: 8 },
+    ],
+    // The area's *own* numbers barely move. That is the lesson: a member can
+    // be in serious trouble while the aggregate the committee targets says
+    // almost nothing is happening.
+    memberEffects: () => [
+      { member: 'most_indebted', field: 'spread', magnitude: 190 },
+      { member: 'most_indebted', field: 'outputGapOffset', magnitude: -1.2 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [{ variable: 'fragmentation', delta: 25 }],
+      },
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [{ variable: 'fragmentation', delta: -55 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'gas_supply_interruption',
+    shockCharacter: 'supply',
+    family: 'energy_commodity',
+    title: 'Pipeline outage hits the gas-dependent economies',
+    newswire:
+      'An unplanned interruption on a major import route has cut deliveries to ' +
+      'the members that rely on it most. Economies with other supply routes are ' +
+      'largely unaffected, and area-wide wholesale prices have moved much less ' +
+      'than national ones.',
+    clue: 'Storage levels have diverged sharply between members on the same wholesale market.',
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.85,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + ctx.latent.geopoliticalRisk / 60,
+    immediate: () => [{ variable: 'supplyShock', delta: 0.5 }],
+    // Two members, which is what the story is about: gas-intensive industry
+    // and the economies that import through the interrupted route. The most
+    // energy-exposed member is small, so on its own the area would barely
+    // register an event whose whole point is that it is felt unevenly.
+    memberEffects: () => [
+      { member: 'most_energy_exposed', field: 'inflationOffset', magnitude: 2.4 },
+      { member: 'most_energy_exposed', field: 'outputGapOffset', magnitude: -0.8 },
+      { member: 'most_industrial', field: 'inflationOffset', magnitude: 1.6 },
+      { member: 'most_industrial', field: 'outputGapOffset', magnitude: -0.6 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [{ variable: 'supplyShock', delta: -0.5 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'gas_supply_restored',
+    shockCharacter: 'supply',
+    family: 'energy_commodity',
+    title: 'Import route reopens and national gas prices retrace',
+    newswire:
+      'Deliveries have resumed through the interrupted route, and alternative ' +
+      'terminal capacity commissioned in the meantime has left the most exposed ' +
+      'members better supplied than before. National price differentials across ' +
+      'the area have narrowed sharply.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.85,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    // The counterpart, and paired with the interruption term for term. The
+    // catalog's standing rule is that no event writes the inflation outcome by
+    // itself: an asymmetric impulse with no mirror is a one-sided inflation
+    // tax that `events/balance.test.ts` catches in the aggregate — which is
+    // exactly how this one was found, at 0.086 of net impulse per meeting
+    // against a band of 0.08.
+    //
+    // Free to fire rather than gated on an interruption having happened. Good
+    // news that needs permission is good news the player will rarely meet, and
+    // the same mistake once left `energy_price_relief` landing six times
+    // against the spike's sixty-two.
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, 50 - ctx.latent.geopoliticalRisk) / 60,
+    immediate: () => [{ variable: 'supplyShock', delta: -0.5 }],
+    memberEffects: () => [
+      { member: 'most_energy_exposed', field: 'inflationOffset', magnitude: -2.4 },
+      { member: 'most_energy_exposed', field: 'outputGapOffset', magnitude: 0.8 },
+      { member: 'most_industrial', field: 'inflationOffset', magnitude: -1.6 },
+      { member: 'most_industrial', field: 'outputGapOffset', magnitude: 0.6 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [{ variable: 'supplyShock', delta: 0.5 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'regional_labour_shock',
+    shockCharacter: 'demand',
+    family: 'labour',
+    title: 'Construction and tourism employment falls in one member',
+    newswire:
+      'A sharp contraction in construction and seasonal services has pushed ' +
+      'unemployment up in the member whose labour market moves most over the ' +
+      'cycle. Area-wide employment is close to unchanged.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.75,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, ctx.latent.policyRate - 2) / 4,
+    immediate: () => [],
+    memberEffects: () => [
+      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: 3.0 },
+      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: -1.8 },
+      { member: 'most_cyclical', field: 'inflationOffset', magnitude: -0.8 },
+    ],
+    delayed: () => [],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'industrial_export_slump',
+    shockCharacter: 'demand',
+    family: 'innovation',
+    title: 'External demand for capital goods falls away',
+    newswire:
+      'Order books at machinery and vehicle manufacturers have thinned as ' +
+      'export markets slow. The effect is concentrated in the area\'s ' +
+      'industrial core; service-led members report little change.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.8,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, -ctx.latent.outputGap) / 3,
+    immediate: () => [{ variable: 'confidenceShock', delta: -0.4 }],
+    memberEffects: () => [
+      { member: 'most_industrial', field: 'outputGapOffset', magnitude: -2.4 },
+      { member: 'most_industrial', field: 'unemploymentOffset', magnitude: 1.1 },
+      { member: 'most_industrial', field: 'inflationOffset', magnitude: -0.9 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [{ variable: 'confidenceShock', delta: 0.4 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'convergence_upswing',
+    shockCharacter: 'demand',
+    family: 'innovation',
+    title: 'Investment flows narrow the gap between members',
+    newswire:
+      'Cross-border investment into the area\'s smaller and higher-yielding ' +
+      'economies has picked up sharply, lifting activity where it had been ' +
+      'weakest and narrowing the dispersion across the area.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.8,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    // The counterpart the asymmetric family needs. Without it the area could
+    // only ever come apart: every asymmetric event would widen dispersion,
+    // convergence would be a slow decay and nothing else, and cohesion would
+    // be a score that only falls. Convergence happens, and it happens for the
+    // ordinary reason — capital goes where returns are higher.
+    weight: (ctx) => 0.6 + Math.max(0, 60 - ctx.latent.fragmentation) / 60,
+    immediate: () => [{ variable: 'confidenceShock', delta: 0.3 }],
+    memberEffects: () => [
+      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: -2.2 },
+      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: 1.2 },
+      { member: 'most_indebted', field: 'spread', magnitude: -110 },
+      { member: 'most_indebted', field: 'outputGapOffset', magnitude: 0.8 },
+    ],
+    delayed: () => [],
+    followUps: [],
+    requires: [],
+  },
 ]
 
 export const EVENTS_BY_ID = new Map<string, GameEvent>(

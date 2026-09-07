@@ -55,6 +55,7 @@ function at(
       meetingIndex: index,
       timeYears: index / 8,
       latent,
+      members: [],
     })),
   }
 }

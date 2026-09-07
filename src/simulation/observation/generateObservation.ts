@@ -18,6 +18,7 @@ import { taylorBenchmark } from '../engine/indices.ts'
 import { runSeedString } from '../engine/initialState.ts'
 import { FORECAST_SERIES, getSeries, seriesFor } from './series.ts'
 import { diagnoseShock } from './diagnose.ts'
+import { observeMembers } from './memberObservation.ts'
 
 /**
  * The observation layer: everything the player is allowed to see.
@@ -306,6 +307,7 @@ export function generateObservation(
       2,
     ),
     diagnosis: null,
+    area: observeMembers(state, difficulty, seed),
   }
 
   // The diagnosis reads the latent state to identify the shock, so it is built

@@ -201,7 +201,18 @@ export interface ObservationSet {
    * skill the easy mandate exists to teach.
    */
   readonly diagnosis: ShockDiagnosis | null
+  /**
+   * The members of the currency area, as published.
+   *
+   * Null at a single-sovereign institution, which is the honest answer rather
+   * than an empty structure: the Fed has regions, not members with their own
+   * sovereign borrowing costs, and a panel reporting "dispersion 0.00" for it
+   * would be describing something that does not exist.
+   */
+  readonly area: AreaObservation | null
 }
+
+import type { AreaObservation } from '../observation/memberObservation.ts'
 
 /** Context handed to the observation layer. */
 export interface ObservationContext {

@@ -2,6 +2,7 @@ import type { DiagnosticEvent, RunConfig } from './core.ts'
 import type { GuidanceState, PolicyStance } from './policy.ts'
 import type { PendingEventEffect, ResolvedEventRecord } from './events.ts'
 import type { PrngState } from '../rng/prng.ts'
+import type { MemberId } from '../config/members.ts'
 
 /**
  * The latent true economic state.
@@ -133,10 +134,41 @@ export interface LagBuffers {
 }
 
 /** A per-meeting snapshot of the latent state, kept for scoring and charts. */
+/**
+ * One member of a currency area, as dispersion around the aggregate.
+ *
+ * Offsets rather than levels, and the weighted mean of each offset is held at
+ * zero, so the area's own inflation rate stays exactly the number the rest of
+ * the engine integrates. See `engine/members.ts` for why, and for the
+ * arithmetic that keeps the identity exact under an asymmetric shock.
+ *
+ * Empty for a single-sovereign mandate. The Fed has regions; it does not have
+ * members with their own sovereign borrowing costs, which is the whole
+ * difference this models.
+ */
+export interface MemberLatent {
+  readonly id: MemberId
+  /** Percentage points of headline inflation, relative to the area. */
+  readonly inflationOffset: number
+  /** Percentage points of output gap, relative to the area. */
+  readonly outputGapOffset: number
+  /** Percentage points of unemployment, relative to the area. */
+  readonly unemploymentOffset: number
+  /**
+   * Sovereign spread over the area benchmark, basis points.
+   *
+   * A level, not an offset: it is a price, and prices have no reason to
+   * average to zero.
+   */
+  readonly spread: number
+}
+
 export interface LatentSnapshot {
   readonly meetingIndex: number
   readonly timeYears: number
   readonly latent: LatentState
+  /** Member dispersion at this meeting. Empty outside a currency area. */
+  readonly members: readonly MemberLatent[]
 }
 
 /** Complete, serialisable simulation state. */
@@ -146,6 +178,15 @@ export interface SimulationState {
   readonly stepIndex: number
   readonly timeYears: number
   readonly latent: LatentState
+  /**
+   * The members of the currency area, if this institution has any.
+   *
+   * Kept beside `latent` rather than inside it because `LATENT_BOUNDS` is
+   * typed over every key of `LatentState` and every one of them is a number:
+   * an array field there would break the clamping contract that keeps the
+   * integrator honest.
+   */
+  readonly members: readonly MemberLatent[]
   readonly lags: LagBuffers
   /** PRNG state, stored as plain data so the whole state stays serialisable. */
   readonly rng: PrngState

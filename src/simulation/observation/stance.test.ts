@@ -47,6 +47,7 @@ function observation(values: Partial<Record<SeriesId, number | null>>): Observat
     clues: [],
     taylorBenchmark: 3,
     diagnosis: null,
+  area: null,
   }
 }
 

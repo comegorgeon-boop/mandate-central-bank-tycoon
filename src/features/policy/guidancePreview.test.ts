@@ -51,6 +51,7 @@ function observation(credibility: number, priced: number): ObservationSet {
     clues: [],
     taylorBenchmark: 3,
     diagnosis: null,
+  area: null,
   }
 }
 
