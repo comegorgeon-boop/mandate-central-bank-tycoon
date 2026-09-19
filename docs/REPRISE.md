@@ -96,6 +96,39 @@ profiles in `config/members.ts` are ever retuned, that floor moves and the
 constant should be re-measured — `cohesion.ts` in the scratchpad did it in
 about a minute.
 
+## The session after that: the slider, the doctrines, Volcker
+
+Three chantiers, in order, from a played ECB/medium mandate on seed
+`8RAW-LUHT`. **In progress** — this section is kept current as each lands, so
+nothing is lost if the session stops.
+
+| | chantier | state |
+| --- | --- | --- |
+| 1 | the rate as a slider, with the two references on the track | **done** |
+| 2 | ten doctrines, the scoreboard, and the end-of-mandate comparison | not started |
+| 3 | historical scenarios: design for five, build Volcker 1979-83 | not started |
+
+### 1. The slider
+
+A native `<input type="range">` with a 25 bp step. Native because keyboard
+arrows, Home/End, page up and down, the ARIA role and every assistive
+technology's idea of a slider come free and none of it is reimplemented
+slightly wrong. The step is the detent: central banks move in quarter points
+and a continuous dial would offer values the validator rejects.
+
+Two ghosts on the track — the Taylor rule of thumb and the rate markets have
+priced — so **the surprise is a distance** rather than a subtraction the player
+performs between two numbers in different places.
+
+The track stops where the engine would start rejecting moves, rounded *up* to
+the increment, so the handle can never reach a value the validator refuses. A
+ghost outside the range is pinned to the end and marked, because "the rule
+wants more than this desk can do in one meeting" is information and a marker
+that silently vanished would read as agreement.
+
+Three interface tests were rewritten for it and got stronger: probing four
+buttons for offer-or-not became one assertion on the track's own minimum.
+
 ## The rule the session was worked to
 
 Every claim in a commit message and in BALANCE.md is measured, and the

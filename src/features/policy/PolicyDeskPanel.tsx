@@ -24,6 +24,7 @@ import {
 } from '../../simulation/index.ts'
 import { BalanceSheetPanel } from './BalanceSheetPanel.tsx'
 import { InstrumentBrief } from './InstrumentBrief.tsx'
+import { RateSlider, type GhostMarker } from './RateSlider.tsx'
 import { InstrumentEffectPanel } from './InstrumentEffectPanel.tsx'
 import { formatMagnitude } from './InstrumentStepper.tsx'
 import { guidancePreview } from './guidancePreview.ts'
@@ -132,15 +133,19 @@ export function PolicyDeskPanel({
     [difficultyConfig, session.observation, institution, difficulty],
   )
 
-  const options = useMemo(() => {
-    if (range === null) return []
-    const result: number[] = []
-    for (let bp = range.min; bp <= range.max + 1e-9; bp += range.increment) {
-      const rounded = Math.round(bp)
-      // Never offer a move the engine would reject at the lower bound.
-      if (currentRate + rounded / 100 >= floor - 1e-9) result.push(rounded)
-    }
-    return result
+  /**
+   * The lowest move the track offers.
+   *
+   * Never one the engine would reject at the effective lower bound: a slider
+   * that let the handle reach a value the validator refuses is a control
+   * lying about what it does. Rounded *up* to the increment, so the floor is
+   * respected rather than approached.
+   */
+  const sliderMin = useMemo(() => {
+    if (range === null) return 0
+    const lowest = (floor - currentRate) * 100
+    const onGrid = Math.ceil(lowest / range.increment) * range.increment
+    return Math.min(range.max, Math.max(range.min, onGrid))
   }, [range, currentRate, floor])
 
   if (instrument === undefined || range === null) {
@@ -161,6 +166,31 @@ export function PolicyDeskPanel({
   const marketRate = session.observation.indicators.market_expected_rate?.value ?? null
   const pricedGap =
     marketRate === null ? 0 : Math.round((marketRate - currentRate) * 100)
+
+  // The two references, in basis points of move so they sit on the same
+  // track as the handle. See `RateSlider`.
+  const markers: GhostMarker[] = []
+  if (marketRate !== null) {
+    markers.push({
+      id: 'market',
+      label: 'priced',
+      basisPoints:
+        Math.round(((marketRate - currentRate) * 100) / range.increment) *
+        range.increment,
+      rate: marketRate,
+    })
+  }
+  markers.push({
+    id: 'taylor',
+    label: 'rule of thumb',
+    basisPoints:
+      Math.round(
+        ((session.observation.taylorBenchmark - currentRate) * 100) /
+          range.increment,
+      ) * range.increment,
+    rate: session.observation.taylorBenchmark,
+  })
+
 
   // Only instruments the player actually moved reach the package. An
   // untouched facility must produce no action at all: `deriveStance` writes
@@ -413,36 +443,25 @@ export function PolicyDeskPanel({
         </div>
       )}
 
-      <fieldset className="mt-4">
-        <legend className="text-sm font-medium text-ink">
-          {instrument.label[institution]} — currently {currentRate.toFixed(2)} %
-        </legend>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {options.map((option) => {
-            const selected = option === move
-            return (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => setMove(option)}
-                className={`rounded border px-3 py-2 text-sm tabular-nums ${
-                  selected
-                    ? 'border-edge-accent bg-accent font-semibold text-on-accent'
-                    : 'border-edge text-ink hover:bg-sunk'
-                }`}
-              >
-                {formatMove(option)}
-              </button>
-            )
-          })}
-        </div>
+      <div className="mt-4">
+        <RateSlider
+          label={instrument.label[institution]}
+          currentRate={currentRate}
+          value={move}
+          min={sliderMin}
+          max={range.max}
+          step={range.increment}
+          markers={markers}
+          onChange={setMove}
+        />
         <InstrumentBrief instrument={instrument} range={range} value={move} />
-        <p className="mt-1.5 text-xs text-ink-faint">
-          The rate cannot be set below the {floor.toFixed(2)} % effective lower
-          bound, so moves that would breach it are not offered.
-        </p>
-      </fieldset>
+        {sliderMin > range.min && (
+          <p className="mt-1.5 text-xs text-ink-faint">
+            The track stops at {formatMove(sliderMin)} because the rate cannot
+            be set below the {floor.toFixed(2)} % effective lower bound.
+          </p>
+        )}
+      </div>
 
       {/* The number that counts, and one sentence about it.
        *

@@ -2,7 +2,12 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import App from '../App'
-import { getDifficulty } from '../simulation/index.ts'
+import {
+  POLICY_RATE_FLOOR,
+  getDifficulty,
+  getInstrument,
+  getInstrumentRange,
+} from '../simulation/index.ts'
 
 /**
  * The whole loop, driven through the interface.
@@ -57,10 +62,17 @@ function passTheReaction(): void {
   if (onward !== null) fireEvent.click(onward)
 }
 
-/** Confirms a move at the current meeting and lands on the next one. */
-function decideThisMeeting(move: string = 'Hold'): void {
+/** The rate slider on the desk. A native range input, so arrows work. */
+function rateSlider(): HTMLInputElement {
+  return screen.getByRole('slider', { name: /rate|range/i }) as HTMLInputElement
+}
+
+/** Confirms a move, in basis points, and lands on the next meeting. */
+function decideThisMeeting(basisPoints = 0): void {
   fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-  if (move !== 'Hold') fireEvent.click(screen.getByRole('button', { name: move }))
+  if (basisPoints !== 0) {
+    fireEvent.change(rateSlider(), { target: { value: String(basisPoints) } })
+  }
   fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
   fireEvent.click(screen.getByRole('button', { name: 'Confirm and advance' }))
   passTheReaction()
@@ -142,7 +154,7 @@ describe('the playable loop', () => {
     const before = policyRateInForce()
     expect(Number.isFinite(before)).toBe(true)
 
-    decideThisMeeting('−25 bp')
+    decideThisMeeting(-25)
 
     expect(screen.getByRole('heading', { name: 'Meeting 2' })).toBeInTheDocument()
     expect(policyRateInForce()).toBeCloseTo(before - 0.25, 5)
@@ -151,31 +163,44 @@ describe('the playable loop', () => {
   it('resets the selected move between meetings', () => {
     startRunOnSeed('RESET')
 
-    decideThisMeeting('+50 bp')
+    decideThisMeeting(50)
 
     passTheReaction()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-    expect(screen.getByRole('button', { name: 'Hold' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    expect(screen.getByRole('button', { name: '+50 bp' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
+    expect(rateSlider().value).toBe('0')
   })
 
-  it('offers exactly the moves the engine would accept at the lower bound', () => {
+  it('moves in the increments the engine accepts, and no others', () => {
+    // Central banks move in quarter points, and a continuous dial would offer
+    // values the validator rejects. The detent is the contract.
+    startRunOnSeed('STEP')
+    passTheReaction()
+    fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
+    expect(rateSlider().step).toBe('25')
+  })
+
+  it('stops the track where the engine would start rejecting moves', () => {
+    // A slider whose handle can reach a value the validator refuses is a
+    // control lying about what it does. Asserted on the track's own minimum,
+    // which is one value rather than four probes.
     startRunOnSeed('FLOOR')
 
     const current = policyRateInForce()
     passTheReaction()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
 
-    for (const cut of [25, 50, 75, 100]) {
-      const offered = screen.queryByRole('button', { name: `−${cut} bp` }) !== null
-      expect(offered).toBe(current - cut / 100 >= -1e-9)
-    }
+    const min = Number(rateSlider().min)
+    const instrument = getInstrument('policy_rate')!
+    const range = getInstrumentRange(instrument, 'easy')
+    const floor = POLICY_RATE_FLOOR.fed
+
+    // Every step on the track is a rate the engine would accept...
+    expect(current + min / 100).toBeGreaterThanOrEqual(floor - 1e-9)
+    // ...and the track is not trimmed further than the floor requires: either
+    // it runs to the instrument's own minimum, or one step lower would breach.
+    expect(
+      min === range.min || current + (min - range.increment) / 100 < floor - 1e-9,
+    ).toBe(true)
   })
 })
 

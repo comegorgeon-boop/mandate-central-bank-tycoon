@@ -197,7 +197,9 @@ function playThroughTheInterface(): {
     published.push({ meeting, policyRate: rate, headline, core, unemployment })
 
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-    fireEvent.click(screen.getByRole('button', { name: `+${MOVE_BP} bp` }))
+    fireEvent.change(screen.getByRole('slider', { name: /rate|range/i }), {
+      target: { value: String(MOVE_BP) },
+    })
     // The words are a bench on the desk now: the dial and the rate it lands on
     // are what stands in front of the chair, and everything else is one click
     // away. See `PolicyDeskPanel`.
