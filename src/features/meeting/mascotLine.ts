@@ -65,7 +65,12 @@ export function closingLine({
     return 'The economy came through this better than your conduct did. Markets forgave the numbers; they did not forgive a committee that argued with itself.'
   }
   if (supplyRegimeShare > 0.4) {
-    return 'Costs were pushed up from outside for much of that, and no rate you could have set would have removed them. You were judged on the anchor and the damage, which is the standard that regime actually sets.'
+    // Not "no rate would have removed them": no rate removes the *cause*, and
+    // the rate you set still moved the number. Measured on a played seed the
+    // tightening held inflation 0.29 pp below the frozen-policy path. Telling
+    // a player their instrument is inert, while it works, teaches them not to
+    // use it — see `meeting/objective.ts`.
+    return 'Costs were pushed up from outside for much of that, and no rate removes the cause of that. What your rate did was hold the number below where it would otherwise have gone — which is the whole of what the instrument can do in that regime, and it is what the anchor and the damage were judged on.'
   }
 
   const share = score / maxScore

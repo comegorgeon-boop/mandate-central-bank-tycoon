@@ -1,7 +1,9 @@
+import { readPublicTrust, trustSentence } from '../meeting/publicTrust.ts'
 import {
   readStance,
   readStanceChange,
   type Difficulty,
+  type Institution,
   type ObservationSet,
   type StanceLabel,
   type StanceReading,
@@ -86,9 +88,12 @@ export function StanceStrip({
   observation,
   previousObservation,
   difficulty,
+  institution,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
+  /** Sets the objective and the sustainable rate the trust terms read against. */
+  readonly institution: Institution
   /**
    * Decides how many figures stand permanently on screen.
    *
@@ -104,6 +109,7 @@ export function StanceStrip({
   const stance = readStance(observation)
   const change = readStanceChange(observation, previousObservation)
   const showsApproval = difficulty !== 'easy'
+  const trust = readPublicTrust(observation, institution)
   const credibility = observation.indicators.credibility_index?.value ?? null
   const previousCredibility =
     previousObservation?.indicators.credibility_index?.value ?? null
@@ -210,6 +216,14 @@ export function StanceStrip({
                 : ''}
               What the public makes of the prices and the jobs they live with.
             </span>
+            {/* Decomposed, because the number alone was read as a verdict on
+                conduct and it has no conduct term at all. See
+                `meeting/publicTrust.ts`. */}
+            {trust !== null && (
+              <span className="mt-1 block text-xs text-onwood-faint">
+                {trustSentence(trust)}
+              </span>
+            )}
           </dd>
         </div>
         )}
@@ -272,8 +286,9 @@ export function StanceStrip({
           {approvalMove !== null && approvalMove !== 0
             ? `, ${approvalMove > 0 ? 'up' : 'down'} ${Math.abs(approvalMove)} since the last meeting`
             : ''}
-          . Nothing you can set moves it directly; it is what the public makes
-          of the prices and the jobs they are living with.
+          . {trust === null
+            ? 'It is what the public makes of the prices and the jobs they are living with.'
+            : trustSentence(trust)}
         </p>
       )}
 

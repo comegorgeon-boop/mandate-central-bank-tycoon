@@ -214,6 +214,7 @@ export function MeetingScreen({
             observation={session.observation}
             previousObservation={session.previousObservation}
             difficulty={config.difficulty}
+            institution={config.institution}
           />
 
           <div

@@ -22,6 +22,31 @@ import type { ObservationSet, SeriesId } from '../../simulation/index.ts'
  * prints, which is the same honest gap every other reading in the game carries.
  *
  * All copy is assembled from fixed templates. No model, no remote call.
+ *
+ * ## The distinction this panel got wrong, and it matters
+ *
+ * It used to say a cost-push shock meant "no instrument on this desk reaches
+ * them". A player raised the rate, watched inflation fall, and correctly
+ * reported that the game was telling them their action was useless while the
+ * engine was doing the opposite.
+ *
+ * They were right, and measured on their own seed the copy was wrong by 0.29
+ * percentage points: at the peak, inflation under their tightening ran 0.29 pp
+ * below where the same economy went with the rate frozen, and the gap widened
+ * monotonically for sixteen meetings. Four separate claims were being collapsed
+ * into one, and only two of them are true:
+ *
+ *   1. **No rate removes the cause.** True. The desk cannot make energy
+ *      cheaper.
+ *   2. **The target is out of reach inside the mandate.** True, and the reason
+ *      is the fourth claim, not the second.
+ *   3. **Your action has no effect.** *False.* It has a measurable one.
+ *   4. **Reaching the target would take enough tightening to get there by
+ *      destroying output.** True, and it is the honest form of (2).
+ *
+ * A game that tells a player their instrument is inert, while the instrument
+ * works, is teaching them not to use it. `counterfactual.test.ts` now confronts
+ * any claim of a null effect with what the engine actually delivers.
  */
 
 export interface RegimeObjective {
@@ -87,9 +112,10 @@ export function regimeObjective(
         ? `, with import prices at ${imports.toFixed(1)} %`
         : '') +
       (biting ? `, and the output gap has opened to ${gap.toFixed(2)} %` : '') +
-      '. Costs are being pushed up from outside domestic demand, and no ' +
-      'instrument on this desk reaches them. Tightening enough to hit the ' +
-      'target would have to work by destroying output instead — so the ' +
-      'mandate is judged on the anchor and the damage, not on the target.',
+      '. Costs are being pushed up from outside domestic demand, so no rate ' +
+      'removes the cause of it. Your tightening still works — it lowers inflation ' +
+      'against where it would otherwise be — but reaching the target inside ' +
+      'this mandate would take enough of it to get there by destroying output. ' +
+      'So the mandate is judged on the anchor and the damage, not on the level.',
   }
 }
