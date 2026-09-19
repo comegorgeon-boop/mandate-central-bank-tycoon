@@ -387,7 +387,7 @@ function institutionStories(
       drafts.push({
         id: 'institution-approval',
         desk: 'institution',
-        headline: `Public approval of the bank ${change > 0 ? 'rises' : 'falls'} to ${approval.value.toFixed(0)}`,
+        headline: `Public trust in the bank ${change > 0 ? 'rises' : 'falls'} to ${approval.value.toFixed(0)}`,
         standfirst: 'Polling of households on the prices and the jobs they live with.',
         material: true,
         weight: 0.9 + Math.abs(change) / 10,

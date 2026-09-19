@@ -189,7 +189,7 @@ export function StanceStrip({
         {showsApproval && (
         <div>
           <dt className="text-xs uppercase tracking-wide text-onwood-faint">
-            Public approval
+            Public trust
           </dt>
           <dd>
             <span
@@ -267,7 +267,7 @@ export function StanceStrip({
 
       {!showsApproval && approval !== null && (
         <p className="mt-3 text-sm text-onwood-soft">
-          Public approval reads{' '}
+          Public trust reads{' '}
           <span className="tabular-nums text-onwood">{Math.round(approval)}</span>
           {approvalMove !== null && approvalMove !== 0
             ? `, ${approvalMove > 0 ? 'up' : 'down'} ${Math.abs(approvalMove)} since the last meeting`

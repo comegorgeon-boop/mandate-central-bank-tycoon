@@ -138,7 +138,7 @@ export function MarketsPanel({
       </ul>
 
       <p className="mt-4 text-2xs text-ink-faint">
-        All instruments and indices here are fictional. The Meridian 400 is not a
+        All instruments and indices here are fictional. The equity index is not a
         real index and does not track one.
       </p>
     </section>

@@ -244,11 +244,12 @@ export const SERIES: readonly SeriesDefinition[] = [
   },
   {
     id: 'employment_growth',
-    label: 'Employment momentum',
-    unit: 'index',
+    label: 'Employment growth',
+    unit: '% y/y',
     definition:
-      'Pace of hiring, positive when employment is expanding. Published fast ' +
-      'and revised heavily: the first print is the least reliable number here.',
+      'Change in the number of people employed against a year earlier. ' +
+      'Published fast and revised heavily: the first print is the least ' +
+      'reliable number here.',
     meaning:
       'A rise means hiring is accelerating; a fall means it is stalling. It ' +
       'arrives fast and is revised heavily, so treat the first print with ' +
@@ -330,7 +331,11 @@ export const SERIES: readonly SeriesDefinition[] = [
   },
   {
     id: 'credibility_index',
-    label: 'Institutional credibility',
+    // Named for the instrument that produces it. Both institutions run a
+    // Survey of Professional Forecasters that asks very nearly this question,
+    // so "institutional credibility" named the quantity and left the reader
+    // with no idea who was being asked or how often.
+    label: "Credibility, forecasters' survey",
     unit: 'index',
     definition:
       'Survey of forecasters and market participants on whether this ' +
@@ -358,7 +363,10 @@ export const SERIES: readonly SeriesDefinition[] = [
   // ---- Policy and markets. Observed exactly: these are prices. ------------
   {
     id: 'public_approval',
-    label: 'Public approval',
+    // Likewise: both institutions are polled on public trust — and the
+    // distinction from the line above is that one asks people who forecast
+    // the economy and the other asks people who live in it.
+    label: 'Public trust, household survey',
     unit: 'index',
     definition:
       'How the public rates the institution. Distinct from credibility, which ' +
@@ -450,12 +458,19 @@ export const SERIES: readonly SeriesDefinition[] = [
   },
   {
     id: 'equity_index',
-    label: 'Meridian 400',
+    // A broad equity index, named for what it is.
+    //
+    // It used to carry an invented brand — "Meridian 400" — which is a name
+    // this game has no business teaching anyone. Every other series here is a
+    // real macroeconomic concept a reader can look up afterwards, and an
+    // index of listed shares is one too; giving it a made-up ticker was the
+    // one place the interface asked the player to learn a fiction.
+    label: 'Broad equity index',
     unit: 'index',
     definition:
-      `A fictional broad equity index, rebased to ${EQUITY_BASE} at fair value ` +
-      'in a neutral economy. It is a price, so it is observed exactly and ' +
-      'moves the instant anything changes.',
+      `A capitalisation-weighted index of listed shares, rebased to ` +
+      `${EQUITY_BASE} at fair value in a neutral economy. It is a price, so ` +
+      'it is observed exactly and moves the instant anything changes.',
     meaning:
       'It rises when valuations are rich, activity is strong and financing is ' +
       'cheap; it falls hardest when credit spreads widen, because that is ' +
@@ -481,10 +496,14 @@ export const SERIES: readonly SeriesDefinition[] = [
   },
   {
     id: 'market_volatility',
-    label: 'Market volatility',
+    // Named for the instrument it is. Both institutions have one — the
+    // volatility index of their own equity market — and "market volatility"
+    // named a quantity rather than a measure of it.
+    label: 'Implied volatility index',
     unit: 'index',
     definition:
-      `Implied volatility priced into options. It sits near ${VOLATILITY.base} ` +
+      `Implied volatility priced into equity index options. It sits near ` +
+      `${VOLATILITY.base} ` +
       'in a calm market with no geopolitical risk priced in, and rises from ' +
       'there. The one series that reacts to a decision on the day it is taken, ' +
       'before any statistic can.',

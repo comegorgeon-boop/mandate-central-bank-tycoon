@@ -114,7 +114,7 @@ describe('the standing reading', () => {
 
   it('notices approval climbing', () => {
     expect(readStanding(GOING_WELL, CALM, 'fed').achievements.join(' ')).toMatch(
-      /approval rose/,
+      /trust rose/,
     )
   })
 

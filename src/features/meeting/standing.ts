@@ -135,10 +135,10 @@ export function readStanding(
     const change = approval - previousApproval
     if (change >= 2) {
       achievements.push(
-        `Public approval rose to ${approval.toFixed(0)}. People are noticing.`,
+        `Public trust rose to ${approval.toFixed(0)}. People are noticing.`,
       )
     } else if (change <= -3) {
-      concerns.push(`Public approval fell to ${approval.toFixed(0)}.`)
+      concerns.push(`Public trust fell to ${approval.toFixed(0)}.`)
     }
   }
 

@@ -23,7 +23,7 @@ export function LaborPanel({
       seriesIds={LABOR_SERIES}
       observation={observation}
       register={register}
-      footnote="Unemployment turns late in the cycle. Employment momentum turns early but is the most heavily revised series on the table."
+      footnote="Unemployment turns late in the cycle. Employment growth turns early but is the most heavily revised series on the table."
     />
   )
 }
