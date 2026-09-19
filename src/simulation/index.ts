@@ -164,6 +164,12 @@ export {
 
 // ---- The press ------------------------------------------------------------
 export {
+  decisionFrontPages,
+  type DecisionSummary,
+  type FrontPage,
+  type Stance,
+} from './press/frontPage.ts'
+export {
   buildPressPage,
   type PressDesk,
   type PressPage,

@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
 import type { ObservationSet } from '../../simulation/index.ts'
+import type { FrontPage } from '../../simulation/index.ts'
+import { FrontPagesPanel } from './FrontPagesPanel.tsx'
 import type { RealisedEntry } from './instrumentLedger.ts'
 import type { SettledPromise } from './settledPromise.ts'
 import { buildReaction } from './reaction.ts'
@@ -17,6 +19,7 @@ export function ReactionPanel({
   before,
   onTheDay,
   headlines,
+  frontPages,
   promise,
   realised,
   onContinue,
@@ -24,6 +27,8 @@ export function ReactionPanel({
   readonly before: ObservationSet
   readonly onTheDay: ObservationSet
   readonly headlines: number
+  /** The morning's front pages, reacting to the decision just taken. */
+  readonly frontPages: readonly FrontPage[]
   /** A promise settled by this decision, if one was. Usually null. */
   readonly promise: SettledPromise | null
   /** Instruments whose lag has run, now checkable. Usually empty. */
@@ -54,6 +59,8 @@ export function ReactionPanel({
         What moved the moment the decision was announced, before any time passed.
         Inflation and unemployment cannot answer yet — they take quarters. These can.
       </p>
+
+      <FrontPagesPanel pages={frontPages} />
 
       <ul className="mt-4 divide-y divide-edge border-y border-edge">
         {reaction.items.map((item) => (

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  decisionFrontPages,
   getInstitution,
   isMajorEvent,
   tutorialProgress,
@@ -126,6 +127,28 @@ export function MeetingScreen({
     session.state.meetingIndex,
     session.observation,
   )
+  // The morning after the decision that opened this meeting. Derived from the
+  // decision the player actually confirmed, so the papers are reacting to them
+  // rather than to the state of the world.
+  const lastDecision = session.decisions.at(-1)
+  const frontPages =
+    lastDecision === undefined || session.previousObservation === null
+      ? []
+      : decisionFrontPages({
+          observation: session.previousObservation,
+          institution: config.institution,
+          decision: {
+            basisPoints:
+              lastDecision.package.actions.find(
+                (action) => action.instrument === 'policy_rate',
+              )?.magnitude ?? 0,
+            rate: session.state.stance.targetRate,
+            committed:
+              lastDecision.package.communication?.commitment === 'conditional_path' ||
+              lastDecision.package.communication?.commitment === 'strong_commitment',
+          },
+        })
+
   const meetingNumber = session.state.meetingIndex + 1
   // A mandate-defining crisis now lives on the press page rather than in a
   // banner above the tabs. That is the right home for it — it is the lead
@@ -174,6 +197,7 @@ export function MeetingScreen({
             before={session.previousObservation}
             onTheDay={session.onTheDay}
             headlines={session.newswire.length + (breaking ? 1 : 0)}
+            frontPages={frontPages}
             promise={settled}
             realised={realised}
             onContinue={() => setShowReaction(false)}
