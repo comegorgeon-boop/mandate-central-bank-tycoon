@@ -228,6 +228,23 @@ export interface ResolvedEventRecord {
   readonly immediate: readonly EventEffect[]
   readonly delayedStepDelays: readonly number[]
   /**
+   * The scaled consequences this event queued, with the step each lands on.
+   *
+   * Recorded so the *same world* can be replayed without the player's policy
+   * in it. A counterfactual whose events were redrawn would not be a
+   * counterfactual: the event draw depends on the state, so the moment the two
+   * arms diverge they meet different weather, and the difference between them
+   * stops being the policy. Replaying these verbatim holds the world fixed and
+   * leaves the decision as the only thing that differs.
+   *
+   * `delayedStepDelays` is kept beside it for the postmortem, which reports
+   * how far ahead an event's consequences reached rather than what they were.
+   */
+  readonly delayed: readonly {
+    readonly fireAtStep: number
+    readonly effects: readonly EventEffect[]
+  }[]
+  /**
    * Members this event fell on, if it was asymmetric.
    *
    * Recorded so the press can report *which* member was hit. An asymmetric

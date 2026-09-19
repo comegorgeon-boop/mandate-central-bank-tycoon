@@ -152,6 +152,16 @@ export {
   type StaffRecommendation,
 } from './policy/staffRule.ts'
 
+// ---- The counterfactual ----------------------------------------------------
+export {
+  FROZEN_LABEL,
+  advanceArm,
+  attribute,
+  withoutGroup,
+  type FrozenSet,
+  type SeriesAttribution,
+} from './counterfactual/counterfactual.ts'
+
 // ---- The press ------------------------------------------------------------
 export {
   buildPressPage,

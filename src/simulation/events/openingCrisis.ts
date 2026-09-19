@@ -102,6 +102,10 @@ export function applyOpeningCrisis(
     newswire: event.newswire,
     immediate,
     delayedStepDelays: delayed.map((spec) => spec.delaySteps),
+    delayed: pending.map((entry) => ({
+      fireAtStep: entry.fireAtStep,
+      effects: entry.effects,
+    })),
   }
 
   return {

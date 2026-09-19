@@ -55,6 +55,7 @@ function recordFor(eventId: string): ResolvedEventRecord {
     newswire: event.newswire,
     immediate: [],
     delayedStepDelays: [],
+    delayed: [],
   }
 }
 

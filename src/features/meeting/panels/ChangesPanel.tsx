@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Institution, ObservationSet } from '../../../simulation/index.ts'
 import { buildChanges, type ChangeSource } from '../changes.ts'
+import type { CounterfactualLine } from '../counterfactualLine.ts'
 
 /**
  * What changed since the last meeting.
@@ -47,15 +48,26 @@ export function ChangesPanel({
   observation,
   previousObservation,
   institution,
+  counterfactual,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
   readonly institution: Institution
+  /**
+   * What the policy has actually delivered, exactly.
+   *
+   * It *replaces* the derived "your decision" entry rather than joining it.
+   * That entry read the stance decomposition and said what the decision did to
+   * the real rate — true, useful, and one inference short of the question the
+   * player was asking, which is what it did to the economy. This answers that
+   * directly and there is no reason to print both.
+   */
+  readonly counterfactual: CounterfactualLine | null
 }) {
   const changes = useMemo(
     () => buildChanges(observation, previousObservation, institution),
     [observation, previousObservation, institution],
-  )
+  ).filter((item) => counterfactual === null || item.source !== 'decision')
 
   return (
     <section
@@ -70,6 +82,17 @@ export function ChangesPanel({
       </h2>
 
       <ol className="mt-3 space-y-3">
+        {counterfactual !== null && (
+          <li className="border-l-2 border-good pl-3">
+            <span
+              className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${SOURCE_CLASS.decision}`}
+            >
+              {counterfactual.arrived ? 'What you did' : 'The lag'}
+            </span>
+            <p className="mt-1 font-medium text-ink">{counterfactual.headline}</p>
+            <p className="mt-0.5 text-sm text-ink-soft">{counterfactual.detail}</p>
+          </li>
+        )}
         {changes.map((item) => (
           <li key={item.id} className="border-l-2 border-edge pl-3">
             <span

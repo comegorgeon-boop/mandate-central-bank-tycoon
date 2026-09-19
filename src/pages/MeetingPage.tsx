@@ -1,5 +1,7 @@
 import { Navigate, useParams } from 'react-router-dom'
 import { useRun } from '../features/game/runContext.ts'
+import { readAttribution } from '../features/game/counterfactualRun.ts'
+import { counterfactualLine } from '../features/meeting/counterfactualLine.ts'
 import { MeetingScreen } from '../features/meeting/MeetingScreen.tsx'
 
 /**
@@ -23,6 +25,17 @@ export default function MeetingPage() {
     return <Navigate to={`/play/meeting/${expected}`} replace />
   }
 
+  // The exact counterfactual: the same shocks, replayed without the player's
+  // decisions. Null at the first meeting, where there is nothing yet to have
+  // done differently. See `game/counterfactualRun.ts`.
+  const counterfactual =
+    active.session.state.meetingIndex === 0
+      ? null
+      : counterfactualLine(
+          readAttribution(active.session, active.arms),
+          active.session.state.meetingIndex,
+        )
+
   // Keying on the meeting index resets the panel and the desk selection at
   // every meeting, so a decision can never be carried over unintentionally.
   return (
@@ -31,6 +44,7 @@ export default function MeetingPage() {
       session={active.session}
       ledger={active.ledger}
       settled={active.settled}
+      counterfactual={counterfactual}
       onConfirm={submit}
     />
   )

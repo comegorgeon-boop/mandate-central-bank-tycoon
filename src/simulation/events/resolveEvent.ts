@@ -225,6 +225,12 @@ export function resolveEvent(
     newswire: event.newswire,
     immediate: [...asymmetric.aggregate, ...immediate],
     delayedStepDelays: delayed.map((spec) => spec.delaySteps),
+    // The queue as scaled, so the same world can be replayed without the
+    // player's policy in it. See `ResolvedEventRecord.delayed`.
+    delayed: pending.map((entry) => ({
+      fireAtStep: entry.fireAtStep,
+      effects: entry.effects,
+    })),
     // Named so the press can report *which* member was hit rather than
     // reporting an area-wide event that half the area did not experience.
     members: asymmetric.hit,

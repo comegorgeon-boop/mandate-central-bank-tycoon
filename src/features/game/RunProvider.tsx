@@ -20,6 +20,7 @@ import {
   recordInstruments,
 } from '../policy/instrumentLedger.ts'
 import { settledPromise } from '../policy/settledPromise.ts'
+import { advanceArms, openArms } from './counterfactualRun.ts'
 import { makeRunId } from './seed.ts'
 
 /** Verdict returned when a package arrives with no run open to apply it to. */
@@ -49,11 +50,13 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
       seed: options.seed,
       simulationVersion: SIMULATION_VERSION,
     })
+    const session = startRun(config)
     setActive({
       runId: makeRunId(options.seed),
-      session: startRun(config),
+      session,
       ledger: [],
       settled: null,
+      arms: openArms(session),
     })
     setFinished(null)
   }, [])
@@ -82,6 +85,9 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
           session.state.guidance,
           session.state.config.difficulty,
         ),
+        // The same meeting, played again with each lever held still and the
+        // same shocks applied verbatim. Exact, not estimated.
+        arms: advanceArms(active.arms, active.session, session, pkg),
       })
 
       // The engine decides when a mandate is over; the score is computed once,

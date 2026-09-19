@@ -9,6 +9,7 @@ import {
 } from '../../simulation/index.ts'
 import { realiseDue, type LedgerEntry } from '../policy/instrumentLedger.ts'
 import type { SettledPromise } from '../policy/settledPromise.ts'
+import type { CounterfactualLine } from './counterfactualLine.ts'
 import { PolicyDeskPanel } from '../policy/PolicyDeskPanel.tsx'
 import { ReactionPanel } from '../policy/ReactionPanel.tsx'
 import { StanceStrip } from '../policy/StanceStrip.tsx'
@@ -73,6 +74,7 @@ export function MeetingScreen({
   session,
   ledger,
   settled,
+  counterfactual,
   onConfirm,
 }: {
   readonly session: RunSession
@@ -80,6 +82,8 @@ export function MeetingScreen({
   readonly ledger: readonly LedgerEntry[]
   /** A promise the last decision settled, if it settled one. */
   readonly settled: SettledPromise | null
+  /** What the policy has delivered, exactly. Null before the first decision. */
+  readonly counterfactual: CounterfactualLine | null
   readonly onConfirm: (pkg: PolicyPackage) => MeetingResult
 }) {
   const [panel, setPanel] = useState<PanelId>('press')
@@ -285,6 +289,7 @@ export function MeetingScreen({
                   observation={session.observation}
                   previousObservation={session.previousObservation}
                   institution={config.institution}
+                  counterfactual={counterfactual}
                 />
                 <MeetingBriefPanel
                   observation={session.observation}

@@ -9,6 +9,7 @@ import type {
 } from '../../simulation/index.ts'
 import type { LedgerEntry } from '../policy/instrumentLedger.ts'
 import type { SettledPromise } from '../policy/settledPromise.ts'
+import type { CounterfactualArms } from './counterfactualRun.ts'
 
 /**
  * The run currently being played, held in memory only.
@@ -35,6 +36,13 @@ export interface ActiveRun {
    * them needs to know that a screen would like to say well done.
    */
   readonly settled: SettledPromise | null
+  /**
+   * The same mandate with each lever held still, advanced in lockstep.
+   *
+   * What makes "without your rises, inflation would be at 6.2 %" an exact
+   * statement rather than an estimate. See `counterfactualRun.ts`.
+   */
+  readonly arms: CounterfactualArms
 }
 
 /** A run that has reached its end state, with its score already computed. */
