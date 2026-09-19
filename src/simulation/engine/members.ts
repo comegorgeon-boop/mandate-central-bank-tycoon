@@ -1,7 +1,12 @@
 import type { Institution } from '../types/core.ts'
 import type { LatentState, MemberLatent } from '../types/state.ts'
 import { clamp } from '../config/bounds.ts'
-import { MEMBERS, MEMBER_DYNAMICS, type MemberId } from '../config/members.ts'
+import {
+  MEMBERS,
+  MEMBER_DYNAMICS,
+  type MemberId,
+  type MemberProfile,
+} from '../config/members.ts'
 import { FRAGMENTATION } from '../config/model.ts'
 
 /**
@@ -38,6 +43,50 @@ import { FRAGMENTATION } from '../config/model.ts'
 const OFFSET_BOUND = 12
 const SPREAD_BOUND: readonly [number, number] = [-150, 1500]
 
+/**
+ * The structural loadings, rescaled so their weighted mean is exactly one.
+ *
+ * `config/members.ts` states each loading "relative to the area average, where
+ * 1.00 is average". That was an aspiration and not a fact: written by hand,
+ * the six labour-sensitivity figures average to 0.95 and the six energy
+ * exposures to 1.09, because a weighted mean of hand-chosen numbers has no
+ * reason to land on anything.
+ *
+ * The consequence was not cosmetic. Every channel here multiplies the
+ * *difference* between a loading and the average, so loadings that do not
+ * average to one leave a net differential on a shock that hits the area
+ * evenly — and the renormalisation then spreads that residue across everybody,
+ * including the bloc that is average on every loading by construction and
+ * should therefore never move at all from a common impulse. Measured, it was
+ * drifting a fifth as far as the most cyclical member in the area.
+ *
+ * Rescaling here rather than editing the config is the same choice
+ * `createMembers` makes for the opening offsets, for the same reason: six
+ * numbers hand-tuned until they average correctly is a maintenance trap that
+ * fails silently the first time one of them is retuned for a good reason.
+ */
+const LOADINGS = (() => {
+  const mean = (read: (member: MemberProfile) => number): number =>
+    MEMBERS.reduce((sum, member) => sum + member.weight * read(member), 0)
+
+  const debt = mean((member) => member.debtLoading)
+  const labour = mean((member) => member.labourSensitivity)
+  const industrial = mean((member) => member.industrialWeight)
+  const energy = mean((member) => member.energyExposure)
+
+  return new Map(
+    MEMBERS.map((member) => [
+      member.id,
+      {
+        debt: member.debtLoading / debt,
+        labour: member.labourSensitivity / labour,
+        industrial: member.industrialWeight / industrial,
+        energy: member.energyExposure / energy,
+      },
+    ]),
+  )
+})()
+
 /** Opens the area at its configured dispersion, renormalised to sum to zero. */
 export function createMembers(institution: Institution): readonly MemberLatent[] {
   if (institution !== 'ecb') return []
@@ -62,7 +111,7 @@ export function createMembers(institution: Institution): readonly MemberLatent[]
     // Spreads open at the level the area's opening fragmentation implies for
     // each member's debt, so meeting one already shows the structure rather
     // than a flat row of zeros that fills in over the first year.
-    spread: FRAGMENTATION.ecb.base * member.debtLoading,
+    spread: FRAGMENTATION.ecb.base * (LOADINGS.get(member.id)?.debt ?? 1),
   }))
 }
 
@@ -127,14 +176,18 @@ export function advanceMembers(
 
   const next = members.map((member): MemberLatent => {
     const profile = byId.get(member.id)
-    if (profile === undefined) return member
+    const loading = LOADINGS.get(member.id)
+    if (profile === undefined || loading === undefined) return member
 
-    // Differentials. A member at 1.00 on a loading contributes nothing from
-    // that channel, whatever the area is doing.
-    const labourGap = profile.labourSensitivity - 1
-    const industrialGap = profile.industrialWeight - 1
-    const energyGap = profile.energyExposure - 1
-    const debtGap = profile.debtLoading - 1
+    // Differentials, against loadings rescaled to average exactly one. A
+    // member at average on a loading contributes nothing from that channel,
+    // whatever the area is doing, and the differentials across the area cancel
+    // — which is what keeps a common shock from leaving a residue that the
+    // renormalisation would then hand to everybody.
+    const labourGap = loading.labour - 1
+    const industrialGap = loading.industrial - 1
+    const energyGap = loading.energy - 1
+    const debtGap = loading.debt - 1
 
     // A member the rate has stopped reaching is *shielded* from tightening in
     // the short run and pays for it through its own borrowing costs instead —

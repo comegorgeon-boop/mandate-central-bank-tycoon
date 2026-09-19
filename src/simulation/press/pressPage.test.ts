@@ -7,6 +7,7 @@ import { EVENT_CATALOG } from '../events/catalog.ts'
 import { createInitialState } from '../engine/initialState.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { testConfig } from '../testing/harness.ts'
+import { applyMemberShocks } from '../events/memberShocks.ts'
 import { FILLER } from './filler.ts'
 import { buildPressPage, type PressPage } from './pressPage.ts'
 
@@ -135,6 +136,72 @@ describe('the paper is deterministic', () => {
     const a = pageAt('press-seed-a')
     const b = pageAt('press-seed-b')
     expect(JSON.stringify(a.stories)).not.toBe(JSON.stringify(b.stories))
+  })
+})
+
+describe('an asymmetric event names who it hit', () => {
+  // An event that fell on two economies out of six, reported as though it fell
+  // on the area, is worse than no report: two thirds of the area did not
+  // experience it, and noticing who did is the whole skill the mechanic
+  // exercises. The aggregate will barely move — that is by construction — so
+  // if the paper does not say, nothing will.
+  function ecbPage(eventId: string): PressPage {
+    const base = createInitialState(testConfig('ecb', 'medium', 'asymmetric'), {
+      openingEvent: false,
+      tutorialDamage: false,
+    })
+    const event = EVENT_CATALOG.find((entry) => entry.id === eventId)!
+    const shocks = event.memberEffects?.({
+      latent: base.latent,
+      members: base.members,
+      institution: 'ecb',
+      difficulty: 'medium',
+      meetingIndex: 0,
+      meetingCount: base.config.meetingCount,
+      stepIndex: 0,
+      occurrences: {},
+      lastOccurrence: {},
+      unlockedFollowUps: [],
+    }) ?? []
+    const applied = applyMemberShocks(base.members, shocks, 1)
+    const record: ResolvedEventRecord = {
+      ...recordFor(eventId),
+      members: applied.hit,
+    }
+    return buildPressPage({
+      state: { ...base, members: applied.members },
+      observation: generateObservation(base, {
+        meetingIndex: 0,
+        newswire: [record.newswire],
+        clues: [],
+      }),
+      newswire: [record.newswire],
+      majorEvent: null,
+      minorEvents: [record],
+    })
+  }
+
+  it('names the member a sovereign repricing found, and its share', () => {
+    const page = ecbPage('sovereign_repricing')
+    const text = page.stories.map((story) => story.standfirst ?? '').join(' ')
+    // Resolved by structure: the most indebted member, which is Italy.
+    expect(text).toContain('Italy')
+    expect(text).toMatch(/% of the area/)
+  })
+
+  it('names both members a two-country shock found', () => {
+    const page = ecbPage('gas_supply_interruption')
+    const text = page.stories.map((story) => story.standfirst ?? '').join(' ')
+    expect(text).toMatch(/ and /)
+    expect(text).toMatch(/% of the area/)
+  })
+
+  it('says nothing about members for an area-wide event', () => {
+    const page = pageAt('press-symmetric', {}, null, [
+      'An area-wide story with no member effects at all. It has a second sentence.',
+    ])
+    const text = page.stories.map((story) => story.standfirst ?? '').join(' ')
+    expect(text).not.toMatch(/% of the area/)
   })
 })
 

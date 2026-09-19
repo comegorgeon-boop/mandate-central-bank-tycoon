@@ -6,6 +6,7 @@ import { getInstitution } from '../config/institutions.ts'
 import { EXPECTATIONS } from '../config/model.ts'
 import { EVENTS_BY_ID, isMajorEvent } from '../events/catalog.ts'
 import { revealedDispatches } from '../events/dispatches.ts'
+import { MEMBERS_BY_ID, type MemberId } from '../config/members.ts'
 import { hashUnit } from '../rng/prng.ts'
 import { FILLER } from './filler.ts'
 
@@ -397,11 +398,50 @@ function institutionStories(
   return drafts
 }
 
+/**
+ * Names the members an asymmetric event actually fell on.
+ *
+ * An event that hit two economies out of six, reported as though it hit the
+ * area, is worse than no report: two thirds of the area did not experience it,
+ * and noticing *who* did is the entire skill the mechanic exists to exercise.
+ * The aggregate will barely move — that is by construction — so if the paper
+ * does not say who was hit, nothing will.
+ */
+function appendMembers(
+  body: string,
+  members: readonly MemberId[] | undefined,
+): string {
+  if (members === undefined || members.length === 0) return body
+  const names = members
+    .map((id) => MEMBERS_BY_ID.get(id))
+    .filter((profile): profile is NonNullable<typeof profile> => profile !== undefined)
+    .map((profile) => `${profile.article}${profile.name}`)
+  if (names.length === 0) return body
+
+  const share = members.reduce(
+    (sum, id) => sum + (MEMBERS_BY_ID.get(id)?.weight ?? 0),
+    0,
+  )
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  const sentence =
+    `Felt in ${list} — ${(share * 100).toFixed(0)} % of the area, so the ` +
+    `area-wide figures will move by much less than the national ones.`
+  return body.length === 0 ? sentence : `${body} ${sentence}`
+}
+
+function withMembers(record: ResolvedEventRecord): string {
+  return appendMembers(record.newswire, record.members)
+}
+
 /** Events that actually fired, and the follow-ups still unfolding. */
 function eventStories(
   state: SimulationState,
   newswire: readonly string[],
   majorEvent: ResolvedEventRecord | null,
+  minorEvents: readonly ResolvedEventRecord[],
 ): readonly Draft[] {
   const drafts: Draft[] = []
 
@@ -412,7 +452,7 @@ function eventStories(
         ? 'institution'
         : 'world',
       headline: majorEvent.title,
-      standfirst: majorEvent.newswire,
+      standfirst: withMembers(majorEvent),
       material: true,
       // A major event outranks everything on the page, which is what makes it
       // the lead. Nothing else reaches 8.
@@ -440,11 +480,14 @@ function eventStories(
     // which is how a wire item becomes a story without writing it twice.
     const stop = line.indexOf('. ')
     const headline = stop > 20 ? line.slice(0, stop) : line
+    const record = minorEvents[index]
+    const body = stop > 20 ? line.slice(stop + 2) : null
     drafts.push({
       id: `wire-${index}`,
       desk: 'world',
       headline,
-      standfirst: stop > 20 ? line.slice(stop + 2) : null,
+      standfirst:
+        record === undefined ? body : appendMembers(body ?? '', record.members),
       material: true,
       weight: 3.4 - index * 0.1,
     })
@@ -514,11 +557,20 @@ export function buildPressPage({
   observation,
   newswire,
   majorEvent,
+  minorEvents = [],
 }: {
   readonly state: SimulationState
   readonly observation: ObservationSet
   readonly newswire: readonly string[]
   readonly majorEvent: ResolvedEventRecord | null
+  /**
+   * The minor events behind `newswire`, in the same order.
+   *
+   * Carried so an asymmetric event can name the members it fell on. The wire
+   * line itself cannot: it is written once, in the catalog, and which members
+   * a structural selector resolves to is only known when the event fires.
+   */
+  readonly minorEvents?: readonly ResolvedEventRecord[]
 }): PressPage {
   const institution = state.config.institution
   const drafts = [
@@ -526,6 +578,7 @@ export function buildPressPage({
       state,
       newswire,
       majorEvent !== null && isMajorEvent(majorEvent.eventId) ? majorEvent : null,
+      minorEvents,
     ),
     ...dataStories(observation, institution),
     ...marketStories(observation),

@@ -232,6 +232,30 @@ function describeWhyThisScore(
       biggestGap.explanation,
   )
 
+  // The currency area's own line, and only where there is one.
+  //
+  // A single policy rate for members whose inflation, unemployment and
+  // borrowing costs differ is the ECB's problem and nobody else's, so a
+  // mandate that held the area together should be told it did — and one that
+  // let it come apart should be told that the aggregate it was steering by had
+  // stopped describing anything. Neither is visible from the area-wide numbers,
+  // which is the whole difficulty.
+  const cohesion = score.components.find((component) => component.id === 'cohesion')
+  if (cohesion !== undefined) {
+    paragraphs.push(
+      cohesion.raw >= 0.7
+        ? `The area held together: ${(cohesion.raw * 100).toFixed(0)} % on cohesion, ` +
+            `carrying ${(cohesion.weight * 100).toFixed(0)} % of the scorecard. ` +
+            `${cohesion.explanation} A single rate is only a coherent instrument ` +
+            `while that stays true.`
+        : `The area came apart under this mandate: ${(cohesion.raw * 100).toFixed(0)} % ` +
+            `on cohesion, carrying ${(cohesion.weight * 100).toFixed(0)} % of the ` +
+            `scorecard. ${cohesion.explanation} The area-wide figures this desk ` +
+            `steered by were averages of members living very different economies, ` +
+            `and an average is exactly the statistic that hides that.`,
+    )
+  }
+
   // Said explicitly, always, whichever way it went. The player who asked for
   // this watched the equity index halve and could not tell whether it had
   // counted — and it had not, so a component that is *sometimes* mentioned

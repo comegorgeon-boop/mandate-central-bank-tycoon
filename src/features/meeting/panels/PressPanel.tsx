@@ -92,6 +92,7 @@ export function PressPanel({ session }: { readonly session: RunSession }) {
         observation: session.observation,
         newswire: session.newswire,
         majorEvent: session.majorEvent,
+        minorEvents: session.minorEvents,
       }),
     [session],
   )

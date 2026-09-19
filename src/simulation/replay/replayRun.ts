@@ -61,6 +61,14 @@ export interface RunSession {
    */
   readonly newswire: readonly string[]
   /**
+   * The records behind those headlines, in the same order.
+   *
+   * The press needs them to name the members an asymmetric event fell on:
+   * which members a structural selector resolves to is only known when the
+   * event fires, so it cannot be written into the wire line in the catalog.
+   */
+  readonly minorEvents: readonly ResolvedEventRecord[]
+  /**
    * The major event resolved since the previous meeting, if any — or, at the
    * first meeting of an easy mandate, the crisis the run opened on. Null
    * otherwise. `events/dispatches.ts` derives the unfolding "story so far"
@@ -133,6 +141,7 @@ export function startRun(config: RunConfig): RunSession {
     outcome,
     decisions: [],
     newswire: [],
+    minorEvents: [],
     majorEvent: opener,
     clues: [],
     interval: [],
@@ -191,9 +200,10 @@ export function submitMeeting(
   // Majors get the dedicated banner, not the generic newswire list — see
   // `RunSession.majorEvent`.
   const majorEvent = resolution.resolved.find((record) => isMajorEvent(record.eventId)) ?? null
-  const newswire = resolution.resolved
-    .filter((record) => !isMajorEvent(record.eventId))
-    .map((record: ResolvedEventRecord) => record.newswire)
+  const minorEvents = resolution.resolved.filter(
+    (record) => !isMajorEvent(record.eventId),
+  )
+  const newswire = minorEvents.map((record) => record.newswire)
 
   return {
     ok: true,
@@ -206,6 +216,7 @@ export function submitMeeting(
       outcome,
       decisions: [...session.decisions, { meetingIndex, package: pkg }],
       newswire,
+      minorEvents,
       majorEvent,
       clues: resolution.clues,
       interval: buildIntervalFrames(

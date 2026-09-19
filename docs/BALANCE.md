@@ -2240,6 +2240,139 @@ retuning a scorecard that was working. Median-of-independent-runs cannot
 resolve a 1 % effect at this sample size; the paired form can, and every score
 comparison in this section uses it.
 
+## The euro area stops being one economy
+
+The brief called this the thing that would make the ECB genuinely different,
+and it is: a single policy rate set for members whose inflation, unemployment
+and borrowing costs differ by more than the rate itself can bridge. Until this
+block the euro area was one homogeneous block with a scalar "fragmentation"
+number attached — the problem's shadow rather than the problem.
+
+### Why members are offsets and not levels
+
+The obviously-right design is to make members primitive and derive the
+aggregate. It was rejected, and the reason is worth recording because it would
+be tempting to revisit: it means running the Phillips curve, the IS curve,
+Okun's law, the expectations block and the lag pipeline **six times per
+sub-step**, against constants every one of which is calibrated on the
+aggregate. The result is a differently calibrated engine wearing the same
+numbers, and every measurement in this document void.
+
+Members therefore carry *offsets* from the area's own figures, with the
+weighted mean of each offset held at zero. The area-wide economy is unchanged:
+the Fed's ladder is byte-identical across this block, which is the check that
+the second dimension really is orthogonal.
+
+It also makes the brief's requirement structural instead of tuned. "A severe
+shock to one member barely moves the aggregate" is not a coefficient anywhere.
+It is the arithmetic of `shockMember`:
+
+    level_i = (A + w_i·x) + (o_i + (1 − w_i)·x) = old level + x
+    level_j = (A + w_i·x) + (o_j − w_i·x)       = old level
+
+A shock worth two points of Italian inflation moves the area's by 0.28 because
+Italy is 14 % of the area, and there is no way to write it that does not.
+
+### The loadings did not average to one
+
+`config/members.ts` documents every structural loading as "relative to the area
+average, where 1.00 is average". Writing `members.test.ts` showed that was an
+aspiration: hand-written, the six labour-sensitivity figures average to **0.95**
+and the six energy exposures to **1.09**.
+
+Not cosmetic. Every channel multiplies the *difference* between a loading and
+the average, so loadings that do not average to one leave a net differential on
+a shock that hits the area evenly — and the renormalisation then hands that
+residue to everybody, including the residual bloc that is average on every
+loading by construction. It was drifting a fifth as far as the most cyclical
+member in the area. `engine/members.ts` now rescales them, in code, for the
+same reason `createMembers` re-centres the opening offsets in code: six numbers
+hand-tuned until they average correctly is a trap that fails silently the first
+time one is retuned for a good reason.
+
+The residual still moves a little, and that part is the model. Re-centring
+shifts everybody when the distinctive members diverge, and `memberTransmission`
+differs by member, so a common tightening reaches a widely-spread member less
+than a tightly-spread one. The test guards the ratio, not zero.
+
+### The benchmark rule was structurally blind
+
+`toolkitRule` reads area-wide inflation, unemployment, stress and spreads, so
+an asymmetric shock — which moves the aggregate almost not at all, by design —
+changed nothing it did. Measured, **four of the five new events scored zero out
+of 48** on `consequence.test.ts`.
+
+Two fixes, and the first is a real improvement to the rule rather than a
+concession to the test:
+
+**It reads the widest member spread, not the area-wide average.** Fragmentation
+is one member coming adrift, and an average is exactly the statistic that hides
+it. Over a quiet ECB mandate the area figure drifts from 71 to 87 bp while the
+widest member goes from 65 to 160 — the average reports a calm decade the area
+did not have. It is also the only clean signal: national statistics carry
+measurement error, and the mean absolute deviation of noisy readings is biased
+upward by its own noise, so statistical dispersion bounces between 0.4 and 1.3
+on an unshocked hard mandate. A spread is a price.
+
+**It escalates the anti-fragmentation instrument**, which it had never once
+used, and carries a one-step dispersion tilt with bars set *above* the range an
+unshocked mandate runs at.
+
+### What it cost the ladder
+
+| bucket | before | after |
+| --- | --- | --- |
+| fed/easy · medium · hard | unchanged | **byte-identical** |
+| ecb/easy | 3170 (100 %) | 3263 (100 %) |
+| ecb/medium | 5549 (99 %) | 5641 (99 %) |
+| ecb/hard | 4369 (**53 %**) | 4396 (**63 %**) |
+
+ECB hard completion rises ten points, from two causes worth separating. The
+benchmark now uses an instrument it never touched, which is a better benchmark
+rather than an easier mode. And five new ECB-only events dilute the draw, so
+the severe families fire less often — that part is an accident of adding
+content and is the thing to watch if the ECB starts feeling soft.
+
+Paired, competent play beats passive everywhere and by more than before:
+ecb/hard goes from +69 to **+262** (se 100, 90/150 wins).
+
+### Three tests that had been passing
+
+- **`consequence.test.ts`'s own harness never applied member effects.** Every
+  currency-area event measured as changing nothing, which was true of the
+  harness and false of the events — `regional_labour_shock` has no area-wide
+  immediate effects at all, deliberately.
+- **Its criterion needed generalising.** An asymmetric shock moves the
+  aggregate almost not at all *by construction*, so the benchmark package can
+  be unchanged while the area comes visibly apart. It now also passes on moving
+  2 % of the score, which is what cohesion does. A test that called that
+  scenery would be measuring the rule's blind spot rather than the event.
+- **`winnability.test.ts` asserted a 63 % completion rate exceeds 50 % on forty
+  draws.** That is 1.7 sigma; it failed on exactly 20 of 40. Replaced by a band
+  it can resolve, with the paired skill assertion left alone.
+
+And one real bug the sweep caught: the dispersion tilt could push the staff
+recommendation past the instrument's bound, ending an ECB hard run on a
+*rejected package* at meeting 13. Clamped, and snapped back onto the increment
+grid so a bound that is not a multiple of the step cannot fail validation for a
+second reason.
+
+### The content rules, kept
+
+Real countries. Real economic structure — size, debt burden, industrial share,
+imported-energy dependence, labour-market cyclicality. Invented starting
+positions, chosen so the single-rate problem is live from meeting one. No real
+person named anywhere, no dispatch attributed to any office-holder,
+characterisation strictly economic and never cultural, and the panel says in
+plain words that it is a simulation.
+
+Events find their member by *structure* — the most indebted, the most
+energy-exposed — so the economics chooses the country rather than a story
+choosing it. `gas_supply_restored` exists because `events/balance.test.ts`
+caught the interruption writing 0.086 of net inflation impulse per meeting
+against a band of 0.08: an asymmetric impulse with no mirror is a one-sided
+inflation tax hiding behind a matched name.
+
 ## Still open
 
 - **`marketExpectedRate` reaches its rail in three *completed* ecb/hard
