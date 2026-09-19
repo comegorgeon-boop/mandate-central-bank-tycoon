@@ -198,6 +198,10 @@ function playThroughTheInterface(): {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     fireEvent.click(screen.getByRole('button', { name: `+${MOVE_BP} bp` }))
+    // The words are a bench on the desk now: the dial and the rate it lands on
+    // are what stands in front of the chair, and everything else is one click
+    // away. See `PolicyDeskPanel`.
+    fireEvent.click(screen.getByRole('tab', { name: 'The words' }))
     fireEvent.click(
       screen.getByRole('button', { name: /We expect to go materially further/ }),
     )

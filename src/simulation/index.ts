@@ -104,6 +104,7 @@ export {
   type IntervalFrame,
 } from './observation/interval.ts'
 export { diagnoseShock } from './observation/diagnose.ts'
+export { isUnlocked, unlockedAt } from './observation/unlock.ts'
 export {
   observeMembers,
   type AreaObservation,

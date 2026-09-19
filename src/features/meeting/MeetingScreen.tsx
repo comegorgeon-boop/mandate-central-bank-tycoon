@@ -2,7 +2,9 @@ import { useState } from 'react'
 import {
   decisionFrontPages,
   getInstitution,
+  getSeries,
   isMajorEvent,
+  unlockedAt,
   tutorialProgress,
   type MeetingResult,
   type PolicyPackage,
@@ -148,6 +150,12 @@ export function MeetingScreen({
               lastDecision.package.communication?.commitment === 'strong_commitment',
           },
         })
+
+  // Indicators joining the dashboard at this meeting, on the learning mandate.
+  // Empty everywhere else. See `observation/unlock.ts`.
+  const newSeries = unlockedAt(config.difficulty, session.state.meetingIndex)
+    .map((id) => getSeries(id)?.label)
+    .filter((label): label is string => label !== undefined)
 
   const meetingNumber = session.state.meetingIndex + 1
   // A mandate-defining crisis now lives on the press page rather than in a
@@ -314,6 +322,7 @@ export function MeetingScreen({
                   previousObservation={session.previousObservation}
                   institution={config.institution}
                   counterfactual={counterfactual}
+                  newSeries={newSeries}
                 />
                 <MeetingBriefPanel
                   observation={session.observation}
@@ -326,6 +335,7 @@ export function MeetingScreen({
               <MarketsPanel
                 observation={session.observation}
                 previousObservation={session.previousObservation}
+                difficulty={config.difficulty}
               />
             )}
             {panel === 'prices' && (
@@ -333,10 +343,15 @@ export function MeetingScreen({
                 observation={session.observation}
                 inflationTarget={institution.inflationTarget}
                 register={register}
+                difficulty={config.difficulty}
               />
             )}
             {panel === 'labor' && (
-              <LaborPanel observation={session.observation} register={register} />
+              <LaborPanel
+                observation={session.observation}
+                register={register}
+                difficulty={config.difficulty}
+              />
             )}
             {panel === 'area' && session.observation.area !== null && (
               <DispersionPanel area={session.observation.area} />

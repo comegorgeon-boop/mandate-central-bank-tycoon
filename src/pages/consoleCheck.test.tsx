@@ -161,36 +161,56 @@ describe('the toolkit each difficulty actually reaches', () => {
     reachTheDesk()
   }
 
+  /**
+   * Opens one of the desk's benches.
+   *
+   * The desk shows the dial, the rate it lands on and one sentence; the case,
+   * the words and the toolkit are each one click away and only one is open at
+   * a time. Reaching for a facility without opening its bench is reaching for
+   * something that is deliberately not on screen.
+   */
+  function openBench(label: 'The case' | 'The words' | 'The toolkit'): void {
+    fireEvent.click(screen.getByRole('tab', { name: label }))
+  }
+
   it('gives easy the rate and the words, and nothing else', () => {
     openTheDesk('easy')
-    expect(screen.queryByRole('heading', { name: 'Standing settings' })).toBeNull()
+    // No toolkit bench at all: there is nothing behind it to reach.
+    expect(screen.queryByRole('tab', { name: 'The toolkit' })).toBeNull()
     expect(screen.queryByRole('heading', { name: /committee is/ })).toBeNull()
-    expect(screen.queryByText('In what tone?')).toBeNull()
-    // The learning mandate keeps its reliable adviser.
+    // The case bench opens by default, and the learning mandate keeps its
+    // reliable adviser on it.
     expect(screen.getByRole('heading', { name: /The services recommend/ })).toBeTruthy()
+    openBench('The words')
+    expect(screen.queryByText('In what tone?')).toBeNull()
   })
 
   it('opens the balance sheet at medium, with the advice still on the table', () => {
     openTheDesk('medium', 2)
+    expect(screen.getByRole('heading', { name: /The services recommend/ })).toBeTruthy()
+    openBench('The toolkit')
     expect(screen.getByRole('heading', { name: 'Standing settings' })).toBeTruthy()
     expect(screen.getByText('Securities purchases')).toBeTruthy()
     expect(screen.getByText('Balance sheet runoff')).toBeTruthy()
-    expect(screen.getByRole('heading', { name: /The services recommend/ })).toBeTruthy()
     // The words still cannot depart from the deed here.
+    openBench('The words')
     expect(screen.queryByText('In what tone?')).toBeNull()
   })
 
   it('opens the full toolkit and the free tone at hard, and withdraws the recommendation', () => {
     openTheDesk('hard', 2)
+    expect(screen.queryByRole('heading', { name: /The services recommend/ })).toBeNull()
+    openBench('The toolkit')
     expect(screen.getByRole('heading', { name: 'Standing settings' })).toBeTruthy()
     expect(screen.getByText('Interest on reserve balances')).toBeTruthy()
     expect(screen.getByText('Liquidity swap lines')).toBeTruthy()
+    openBench('The words')
     expect(screen.getByText('In what tone?')).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: /The services recommend/ })).toBeNull()
   })
 
   it('carries a facility the player moved into the confirmed package', () => {
     openTheDesk('medium')
+    openBench('The toolkit')
     // Two steps up from a standing zero: the confirmation must say so, or the
     // player is confirming something they were never shown.
     fireEvent.click(screen.getByRole('button', { name: 'Raise Securities purchases' }))
@@ -203,6 +223,7 @@ describe('the toolkit each difficulty actually reaches', () => {
 
   it('quantifies what each moved instrument is expected to do on its own', () => {
     openTheDesk('medium')
+    openBench('The toolkit')
     fireEvent.click(screen.getByRole('button', { name: 'Raise Securities purchases' }))
     fireEvent.click(screen.getByRole('button', { name: 'Review policy package' }))
 
@@ -224,12 +245,22 @@ describe('the toolkit each difficulty actually reaches', () => {
     // for every instrument the difficulty opens rather than for a chosen few.
     for (const difficulty of ['easy', 'medium', 'hard'] as const) {
       openTheDesk(difficulty, 2)
+      // The purposes are spread across the benches — the rate's is always on
+      // screen, guidance's is on the words, the rest on the toolkit — so the
+      // union of what each bench renders is what has to cover the toolkit.
+      const seen = new Set<string>()
+      for (const bench of ['The case', 'The words', 'The toolkit'] as const) {
+        const tab = screen.queryByRole('tab', { name: bench })
+        if (tab !== null) fireEvent.click(tab)
+        for (const instrument of availableInstruments('fed', difficulty)) {
+          if (screen.queryAllByText(instrument.purpose).length > 0) {
+            seen.add(instrument.id)
+          }
+        }
+      }
       for (const instrument of availableInstruments('fed', difficulty)) {
         expect(instrument.purpose.length, instrument.id).toBeGreaterThan(0)
-        expect(
-          screen.getAllByText(instrument.purpose).length,
-          `${difficulty}: ${instrument.id}`,
-        ).toBeGreaterThan(0)
+        expect(seen.has(instrument.id), `${difficulty}: ${instrument.id}`).toBe(true)
       }
       cleanup()
     }

@@ -1,5 +1,5 @@
-import type { ObservationSet, SeriesId } from '../../../simulation/index.ts'
-import { getSeries } from '../../../simulation/index.ts'
+import type { Difficulty, ObservationSet, SeriesId } from '../../../simulation/index.ts'
+import { getSeries, isUnlocked } from '../../../simulation/index.ts'
 import { Sparkline } from '../../../components/Sparkline.tsx'
 
 /**
@@ -51,13 +51,18 @@ function formatChange(value: number, previous: number, decimals: number): string
 export function MarketsPanel({
   observation,
   previousObservation,
+  difficulty,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
+  /** Decides how much of the dashboard has filled in. See `observation/unlock.ts`. */
+  readonly difficulty: Difficulty
 }) {
-  const rows = MARKET_SERIES.map((id) => observation.indicators[id]).filter(
-    (row) => row !== undefined,
+  const rows = MARKET_SERIES.filter((id) =>
+    isUnlocked(id, difficulty, observation.meetingIndex),
   )
+    .map((id) => observation.indicators[id])
+    .filter((row) => row !== undefined)
 
   return (
     <section aria-labelledby="markets-heading">

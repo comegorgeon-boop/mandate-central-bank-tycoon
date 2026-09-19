@@ -8,6 +8,7 @@ import {
   getInstitution,
   getInstrument,
   getInstrumentRange,
+  availableInstruments,
   setsStandingLevel,
   standingLevel,
   projectPackage,
@@ -54,6 +55,17 @@ import { buildStatement, deriveTone } from './statement.ts'
  * written had never once been reachable by a player.
  */
 
+/**
+ * The benches: everything a decision may need, one click away.
+ *
+ * Not "advanced options". A committee's words are as much of the decision as
+ * its rate, and the balance sheet is a standing instrument that keeps acting
+ * whether or not it is looked at. What the bench buys is that only one of them
+ * is open at a time, so the dial is the first thing on the desk rather than
+ * the fifth.
+ */
+type BenchId = 'advice' | 'words' | 'toolkit'
+
 function formatMove(basisPoints: number): string {
   if (basisPoints === 0) return 'Hold'
   return `${basisPoints > 0 ? '+' : '−'}${Math.abs(basisPoints)} bp`
@@ -82,6 +94,7 @@ export function PolicyDeskPanel({
   const [levels, setLevels] = useState<Partial<Record<InstrumentId, number>>>({})
   // Only reachable where the difficulty lets the words depart from the deed.
   const [chosenTone, setChosenTone] = useState<CommunicationTone | null>(null)
+  const [bench, setBench] = useState<BenchId>('advice')
   const [reviewing, setReviewing] = useState(false)
   const [validation, setValidation] = useState<PolicyValidation | null>(null)
 
@@ -133,6 +146,16 @@ export function PolicyDeskPanel({
   if (instrument === undefined || range === null) {
     return <p className="text-ink-soft">The policy rate instrument is unavailable.</p>
   }
+
+  const hasToolkit =
+    availableInstruments(institution, difficulty).some(
+      (entry) => setsStandingLevel(entry.id) && entry.id !== 'forward_guidance',
+    )
+  const benches: readonly { readonly id: BenchId; readonly label: string }[] = [
+    { id: 'advice', label: 'The case' },
+    { id: 'words', label: 'The words' },
+    ...(hasToolkit ? [{ id: 'toolkit' as const, label: 'The toolkit' }] : []),
+  ]
 
   const resultingRate = currentRate + move / 100
   const marketRate = session.observation.indicators.market_expected_rate?.value ?? null
@@ -421,81 +444,118 @@ export function PolicyDeskPanel({
         </p>
       </fieldset>
 
+      {/* The number that counts, and one sentence about it.
+       *
+       * Everything else on this desk moved behind a bench below. What stays is
+       * what a chair needs in front of them to make the decision: the dial,
+       * the rate it lands on, and what that does to the stance. The screen's
+       * standing complaint is that there is too much on it, and a desk with
+       * five panels open at once is a desk where the dial is the fifth thing
+       * you see. */}
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-y border-edge py-3">
+        <span className="text-sm text-ink-soft">The rate after this decision</span>
+        <span className="font-display text-2xl font-semibold tabular-nums text-ink">
+          {resultingRate.toFixed(2)} %
+        </span>
+      </div>
+
       <StancePreview observation={session.observation} move={move} />
 
-      {advice !== null && (
-        <StaffAdvicePanel recommendation={advice} selectedMove={move} />
-      )}
-
-      {committee.length > 0 && (
-        <CommitteeSplitPanel views={committee} selectedMove={move} />
-      )}
-
-      <BalanceSheetPanel
-        institution={institution}
-        difficulty={difficulty}
-        stance={session.state.stance}
-        balanceSheet={session.observation.indicators.balance_sheet?.value ?? null}
-        levels={levels}
-        onChange={(id, next) => setLevels((current) => ({ ...current, [id]: next }))}
-      />
-
-      <CommunicationPanel
-        move={move}
-        signal={signal}
-        commitment={commitment}
-        allowedCommitments={COMMUNICATION_AVAILABILITY[difficulty].commitments}
-        difficulty={difficulty}
-        selectedRate={resultingRate}
-        pricedRate={marketRate}
-        guidance={session.state.guidance}
-        meetingIndex={session.state.meetingIndex}
-        observation={session.observation}
-        derivedTone={deriveTone(move, signal, commitment)}
-        chosenTone={difficultyConfig.choosesTone ? chosenTone : null}
-        allowsFreeTone={difficultyConfig.choosesTone}
-        onSignal={setSignal}
-        onCommitment={setCommitment}
-        onTone={setChosenTone}
-      />
-
-      <dl className="mt-5 divide-y divide-edge border-y border-edge text-sm">
-        <div className="flex justify-between gap-4 py-2">
-          <dt className="text-ink-soft">Resulting policy rate</dt>
-          <dd className="tabular-nums text-ink">{resultingRate.toFixed(2)} %</dd>
-        </div>
-        <div className="flex justify-between gap-4 py-2">
-          <dt className="text-ink-soft">Expected lag</dt>
-          <dd className="text-right text-ink">
-            peaks around {formatMeetings(lag.peakMeetings)}, mostly delivered within{' '}
-            {formatMeetings(lag.spanMeetings)}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-4 py-2">
-          <dt className="text-ink-soft">Priced in?</dt>
-          <dd className="max-w-md text-right text-ink">
-            {pricedInSummary(move, pricedGap)}
-          </dd>
-        </div>
-      </dl>
-
-      {showsHints && (
-        <div className="mt-4 rounded border border-edge bg-sunk p-3">
-          <h3 className="text-sm font-medium text-ink">Estimated effect</h3>
-          <p className="mt-1 text-sm text-ink-soft">{rateEffectHint(move)}</p>
-          <p className="mt-2 text-xs text-ink-faint">
-            An estimate of direction, not a promise of magnitude. The economy is
-            simultaneously being moved by forces this desk does not control.
-          </p>
-        </div>
-      )}
-
-      <p className="mt-4 text-xs text-ink-faint">
-        Risks both ways: too little tightening lets inflation and expectations drift,
-        while too much cools employment and can strain the financial system. The
-        institution&rsquo;s standing depends on getting that balance right over the
-        whole mandate, not at any one meeting.
+      <p className="mt-2 text-sm text-ink-soft">
+        {pricedInSummary(move, pricedGap)}
+        {showsHints ? ` ${rateEffectHint(move)}` : ''}
       </p>
+
+      {/* The bench. Everything a decision *may* need, one click away and never
+          two of them open at once. */}
+      <div
+        role="tablist"
+        aria-label="Policy desk"
+        className="mt-5 flex flex-wrap gap-1 border-b border-edge"
+      >
+        {benches.map((entry) => {
+          const selected = entry.id === bench
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              role="tab"
+              id={`bench-${entry.id}`}
+              aria-selected={selected}
+              aria-controls={`benchpanel-${entry.id}`}
+              onClick={() => setBench(entry.id)}
+              className={`-mb-px rounded-t border border-b-0 px-3 py-1.5 text-sm ${
+                selected
+                  ? 'border-edge bg-sunk font-semibold text-ink'
+                  : 'border-transparent text-ink-soft hover:text-ink'
+              }`}
+            >
+              {entry.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div
+        role="tabpanel"
+        id={`benchpanel-${bench}`}
+        aria-labelledby={`bench-${bench}`}
+        tabIndex={-1}
+        className="rounded-b border border-t-0 border-edge bg-sunk/40 p-3"
+      >
+        {bench === 'advice' && (
+          <>
+            {advice !== null && (
+              <StaffAdvicePanel recommendation={advice} selectedMove={move} />
+            )}
+            {committee.length > 0 && (
+              <CommitteeSplitPanel views={committee} selectedMove={move} />
+            )}
+            <p className="mt-3 text-xs text-ink-faint">
+              Peak effect around {formatMeetings(lag.peakMeetings)} from now,
+              mostly delivered within {formatMeetings(lag.spanMeetings)}. Too
+              little tightening lets inflation and expectations drift; too much
+              cools employment and strains the financial system. The
+              institution&rsquo;s standing depends on that balance over the
+              whole mandate, not at any one meeting.
+            </p>
+          </>
+        )}
+
+        {bench === 'words' && (
+          <CommunicationPanel
+            move={move}
+            signal={signal}
+            commitment={commitment}
+            allowedCommitments={COMMUNICATION_AVAILABILITY[difficulty].commitments}
+            difficulty={difficulty}
+            selectedRate={resultingRate}
+            pricedRate={marketRate}
+            guidance={session.state.guidance}
+            meetingIndex={session.state.meetingIndex}
+            observation={session.observation}
+            derivedTone={deriveTone(move, signal, commitment)}
+            chosenTone={difficultyConfig.choosesTone ? chosenTone : null}
+            allowsFreeTone={difficultyConfig.choosesTone}
+            onSignal={setSignal}
+            onCommitment={setCommitment}
+            onTone={setChosenTone}
+          />
+        )}
+
+        {bench === 'toolkit' && (
+          <BalanceSheetPanel
+            institution={institution}
+            difficulty={difficulty}
+            stance={session.state.stance}
+            balanceSheet={session.observation.indicators.balance_sheet?.value ?? null}
+            levels={levels}
+            onChange={(id, next) =>
+              setLevels((current) => ({ ...current, [id]: next }))
+            }
+          />
+        )}
+      </div>
 
       <button
         type="button"

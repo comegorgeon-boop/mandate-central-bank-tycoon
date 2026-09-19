@@ -49,6 +49,7 @@ export function ChangesPanel({
   previousObservation,
   institution,
   counterfactual,
+  newSeries,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
@@ -63,6 +64,8 @@ export function ChangesPanel({
    * directly and there is no reason to print both.
    */
   readonly counterfactual: CounterfactualLine | null
+  /** Indicators joining the dashboard at this meeting. Easy only. */
+  readonly newSeries: readonly string[]
 }) {
   const changes = useMemo(
     () => buildChanges(observation, previousObservation, institution),
@@ -82,6 +85,23 @@ export function ChangesPanel({
       </h2>
 
       <ol className="mt-3 space-y-3">
+        {newSeries.length > 0 && (
+          <li className="border-l-2 border-edge-accent pl-3">
+            <span className="inline-block rounded border border-edge-accent px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-strong">
+              New on the table
+            </span>
+            <p className="mt-1 font-medium text-ink">
+              {newSeries.length === 1
+                ? `${newSeries[0]} joins the dashboard`
+                : `${newSeries.length} indicators join the dashboard`}
+            </p>
+            <p className="mt-0.5 text-sm text-ink-soft">
+              {newSeries.join(', ')}. The learning mandate fills the table in
+              rather than handing you all of it at once — twenty-six series on
+              the first morning is how a reader decides none of them matter.
+            </p>
+          </li>
+        )}
         {counterfactual !== null && (
           <li className="border-l-2 border-good pl-3">
             <span

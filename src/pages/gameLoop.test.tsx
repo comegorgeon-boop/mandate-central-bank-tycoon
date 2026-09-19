@@ -109,7 +109,10 @@ describe('the playable loop', () => {
   it('shows every panel at a meeting', () => {
     startRunOnSeed('PANELS')
 
-    const panel = (): HTMLElement => screen.getByRole('tabpanel')
+    // The *meeting's* panel. The desk has benches of its own, so there is more
+    // than one tabpanel on screen once it is open.
+    const panel = (): HTMLElement =>
+      screen.getByRole('tabpanel', { name: /Meeting Brief|The Press|Prices|Labor|Markets|Policy Desk|The Area/ })
 
     // The press opens first: it is what a chair reads before anything else,
     // and it is now the only place the news is.
