@@ -2373,6 +2373,133 @@ caught the interruption writing 0.086 of net inflation impulse per meeting
 against a band of 0.08: an asymmetric impulse with no mirror is a one-sided
 inflation tax hiding behind a matched name.
 
+## The balance check on hard
+
+Asked for because the player has not played it, and said why: *"it's too
+long."* 150 seeds a bucket, competent play is the toolkit rule.
+
+### Is it winnable, and is skill worth anything
+
+Yes to both, and the second more clearly than the first.
+
+| | fed/hard | ecb/hard |
+| --- | --- | --- |
+| completed, competent | 61 % | 56 % |
+| completed, passive | 50 % | 44 % |
+| paired score, competent − passive | +50 (se 75) | +407 (se 104) |
+| seeds where only competence survived | **30 against 14** | **34 against 16** |
+| sabotage: median score / revoked | 211 / 92 % | 162 / 95 % |
+
+Read on medians the fed/hard score comparison inverts (6788 against 6856).
+Paired on the same seeds it is +50 with 85 of 150 wins, and the survival
+comparison is decisive. This is the third time in this document that a median
+over independent runs has failed to resolve an effect the paired form sees
+easily; medians are not used for these comparisons any more.
+
+**Finding: at fed/hard, skill buys survival rather than points.** A ten-point
+completion advantage and 30-against-14 on seeds where only competence finished,
+for fifty points of median score. On ecb/hard skill buys both.
+
+### What kills people
+
+| outcome | fed/hard | ecb/hard |
+| --- | --- | --- |
+| completed | 81 | 79 |
+| banking crisis | 25 | 19 |
+| dismissed | 24 | 27 |
+| inflation spiral | 19 | 23 |
+| currency dysfunction | 1 | 2 |
+
+Balanced. No single failure family swamps the others, which is the property
+this document has watched since the phase-3 rebalance.
+
+### Finding: price stability at hard is out of reach
+
+The largest single loss in the whole scorecard, and it is not a skill gap.
+
+| bucket | price stability, median | p10 → p90 | points lost |
+| --- | --- | --- | --- |
+| fed/medium | 0.27 | 0.00 → 0.69 | 1555 |
+| fed/hard | **0.02** | 0.00 → 0.35 | **1743** |
+| ecb/hard | **0.01** | 0.00 → 0.26 | **2309** |
+
+Measured against a deliberately aggressive rule that closes the entire Taylor
+gap every meeting **and reads the latent state directly** — no measurement
+error, no hesitation:
+
+| | toolkit rule | perfect-information rule |
+| --- | --- | --- |
+| fed/medium inflation RMSE | 2.96 | 2.84 |
+| fed/hard | 4.55 | **4.20** |
+| ecb/hard | 4.88 | **4.69** |
+
+Eight per cent better, with perfect information. The miss is the shocks, not
+the policy: more than half of a hard mandate runs under cost-push pressure
+(measured share 0.50–0.54), and no rate the desk can set removes a price level
+that has already moved.
+
+The regime shift is the designed compensation and it is **already at its cap**:
+`shareAtFullShift` is 0.3 and hard's measured share is 0.5+, so `maxShift`
+moves the full half it is allowed to, leaving 0.18–0.23 of weight on a
+component whose median is 0.02.
+
+Deliberately **not** changed. Raising `maxShift` would say price stability
+barely counts under a supply shock, which contradicts both the design note it
+carries — "price stability still counts; it counts for less" — and the brief's
+own framing that the objective *changes* under a regime rather than
+disappearing. This is a design question for the player, not a defect to fix
+quietly: hard currently charges every mandate about 1750–2300 points for an
+objective that cannot be reached, and the honest options are to accept it as
+the mode's character, to move more weight, or to make hard's shocks smaller.
+
+### Finding: hard's length is roughly half its difficulty
+
+The player's stated reason for not playing it. 32 scheduled meetings is four
+years of game time, and the median mandate runs all 32.
+
+| scheduled meetings | fed competent (complete) | ecb competent (complete) |
+| --- | --- | --- |
+| 32 (today) | 6779 (62 %) | 4476 (57 %) |
+| 24 | 7286 (78 %) | 4996 (73 %) |
+| 20 | 7556 (85 %) | 5166 (82 %) |
+| 16 | 7841 (87 %) | 5541 (88 %) |
+
+Length is not incidental to the difficulty — it is most of it. A longer mandate
+is more chances to meet a catastrophe, so cutting hard to 24 meetings raises
+completion by sixteen points and makes it materially easier. "Shorter and as
+hard" is available but is not free: it needs the shocks made more frequent or
+more severe to compensate. Left alone pending the player's call.
+
+### Fixed: cohesion was charging for the area's structure
+
+Caught by this check, and it is the same error `market_prosperity` made in its
+first form. At its first calibration the new component scored a median of 0.51
+under competent ECB play with a p10-to-p90 spread of only 0.24 — charging 390
+points for the fact that Spain's labour market is the most cyclical in the
+union and Italy carries the heaviest debt, neither of which is the chair's
+doing.
+
+Measured over 100 mandates a side, the blended dispersion penalty never falls
+below about 2.0 however well the area is steered. What sits above that floor
+*is* the chair's: at hard the penalty runs 2.49 under competent play against
+3.15 under passivity. A tolerance at 2.0 and a rescale:
+
+| | before | after |
+| --- | --- | --- |
+| cohesion, competent ecb/hard | 0.51 median, 0.24 spread | **0.86 median, 0.45 spread** |
+| points lost | 392 | **110** |
+
+`marketProsperity.test.ts` now fails if cohesion ever ties between competent
+and passive play — the shape of going back to being a constant subtracted from
+every ECB score.
+
+### Closed: the standing `marketExpectedRate` warning
+
+`npm run sim:sweep` reports **no balance warnings** for the first time in this
+document's history. The clamp that fired in two or three completed ecb/hard
+mandates per 150, carried here as "not diagnosed" for several sessions, no
+longer fires.
+
 ## Still open
 
 - **`marketExpectedRate` reaches its rail in three *completed* ecb/hard

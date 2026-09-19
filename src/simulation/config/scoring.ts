@@ -103,15 +103,35 @@ export const SCORE_SCALES = {
    */
   marketProsperity: 4.5,
   /**
-   * Average dispersion across the area, in the blended units of
-   * `cohesionPenalty`.
+   * Dispersion *beyond* `COHESION_TOLERANCE`, in the blended units of the
+   * cohesion penalty.
    *
-   * Calibrated against what the area actually does: a mandate that lets the
-   * members drift no further apart than they opened scores about 0.6, and one
-   * that lets an asymmetric shock run gives up several hundred points.
+   * Measured rather than estimated, and the first estimate was wrong in a way
+   * worth recording. At 3.0 with no tolerance, a competent ECB mandate scored
+   * a median of 0.51 on cohesion with a p10-to-p90 spread of 0.24 — a
+   * component that charged 390 points for the area's own structure and barely
+   * moved with play. Against the tolerance it scores about 0.85, a passive
+   * mandate about 0.40, and the gradient is the part the chair controls.
    */
-  cohesion: 3.0,
+  cohesion: 1.2,
 } as const
+
+/**
+ * Dispersion the area produces on its own, and is not charged for.
+ *
+ * Measured over 100 ECB mandates a side: the blended penalty never falls below
+ * about 2.0 however well the area is steered, because Spain's labour market is
+ * the most cyclical in the union, Italy carries the heaviest debt, and the
+ * members open apart. None of that is the chair's doing, and charging for it
+ * is the same mistake `market_prosperity` made in its first form — scoring the
+ * weather and calling it policy.
+ *
+ * What sits above it *is* the chair's doing: at hard the penalty runs at 2.49
+ * under competent play against 3.15 under passivity, so the part beyond the
+ * tolerance is roughly two thirds the size again under a committee that does
+ * nothing.
+ */
+export const COHESION_TOLERANCE = 2.0
 
 /**
  * How the three dispersions blend into one cohesion penalty.

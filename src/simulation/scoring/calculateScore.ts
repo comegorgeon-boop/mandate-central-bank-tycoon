@@ -13,6 +13,7 @@ import { getInstitution } from '../config/institutions.ts'
 import { SPREADS, VOLATILITY } from '../config/model.ts'
 import { YEARS_PER_MEETING } from '../config/time.ts'
 import {
+  COHESION_TOLERANCE,
   CONDUCT_GATE,
   MAX_SCORE,
   MISSED_OBJECTIVE_CREDIT,
@@ -303,7 +304,11 @@ export function calculateScore(
       )
     }),
   )
-  const cohesionRaw = performance(cohesionPenalty, SCORE_SCALES.cohesion)
+  // Only the part the chair could have done something about. See
+  // `COHESION_TOLERANCE`: the area is structurally dispersed and always will
+  // be, and scoring that is scoring the weather.
+  const cohesionCharged = Math.max(0, cohesionPenalty - COHESION_TOLERANCE)
+  const cohesionRaw = performance(cohesionCharged, SCORE_SCALES.cohesion)
 
   // ---- Expectations anchoring --------------------------------------------
   const anchorMisses = history.map((s) => s.latent.expectedInflationLong - target)
@@ -388,7 +393,13 @@ export function calculateScore(
       id: 'cohesion',
       label: 'Cohesion of the currency area',
       raw: cohesionRaw,
-      explanation: `Members sat ${cohesionPenalty.toFixed(2)} points apart on average across inflation, unemployment and sovereign spreads. One rate has to serve all of them.`,
+      explanation:
+        `Members sat ${cohesionPenalty.toFixed(2)} points apart on average across ` +
+        `inflation, unemployment and sovereign spreads` +
+        (cohesionCharged < 0.05
+          ? ', which is no wider than the area is structurally, so nothing was charged here.'
+          : `, of which ${cohesionCharged.toFixed(2)} was beyond what the area's own structure produces.`) +
+        ' One rate has to serve all of them.',
     },
     {
       id: 'anchoring',

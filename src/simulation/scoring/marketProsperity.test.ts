@@ -2,7 +2,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Institution } from '../types/core.ts'
 import type { LatentSnapshot, SimulationState } from '../types/state.ts'
+import { SIMULATION_VERSION } from '../version.ts'
 import { SCORE_WEIGHTS, VALUATION_TOLERANCE } from '../config/scoring.ts'
+import { createRunConfig } from '../engine/initialState.ts'
+import { toolkitPackage } from '../policy/toolkitRule.ts'
+import { playRun } from '../replay/replayRun.ts'
 import { createInitialState } from '../engine/initialState.ts'
 import { EQUITY_BASE, getSeries } from '../observation/series.ts'
 import { testConfig } from '../testing/harness.ts'
@@ -61,6 +65,54 @@ function prosperityOf(state: SimulationState): number {
   const score = calculateScore(state, evaluateEndConditions(state))
   return score.components.find((c) => c.id === 'market_prosperity')!.raw
 }
+
+describe('cohesion is a lever, not a constant', () => {
+  // The same error `market_prosperity` made in its first form, caught the same
+  // way. At its first calibration cohesion scored a median of 0.51 under
+  // competent ECB play with a p10-to-p90 spread of 0.24: it charged 390 points
+  // for the fact that Spain's labour market is the most cyclical in the union
+  // and Italy carries the heaviest debt, neither of which is the chair's
+  // doing. Against a measured tolerance it scores about 0.87 and the part that
+  // moves is the part that was played for.
+  function cohesionUnder(choose: 'competent' | 'passive'): number {
+    let total = 0
+    const runs = 8
+    for (let index = 0; index < runs; index += 1) {
+      const session = playRun(
+        createRunConfig({
+          institution: 'ecb',
+          difficulty: 'hard',
+          seed: `cohesion-${index}`,
+          simulationVersion: SIMULATION_VERSION,
+        }),
+        (run) =>
+          choose === 'competent'
+            ? toolkitPackage(run, 'ecb', 'hard')
+            : { actions: [], communication: null },
+      )
+      const score = calculateScore(session.state, session.outcome)
+      total += score.components.find((c) => c.id === 'cohesion')!.raw
+    }
+    return total / runs
+  }
+
+  it('leaves a well-held area near the top of the range', () => {
+    expect(cohesionUnder('competent')).toBeGreaterThan(0.7)
+  })
+
+  it('charges an area left to come apart', () => {
+    // If this ever ties, the component has gone back to being a constant
+    // subtracted from every ECB score.
+    expect(cohesionUnder('competent')).toBeGreaterThan(cohesionUnder('passive'))
+  })
+
+  it('exists for the ECB and not for the Fed', () => {
+    const ecb = SCORE_WEIGHTS.ecb.cohesion
+    expect(ecb).toBeGreaterThan(0)
+    expect(SCORE_WEIGHTS.fed.cohesion).toBe(0)
+    expect(ecb).toBeLessThan(SCORE_WEIGHTS.ecb.price_stability)
+  })
+})
 
 describe('market prosperity is scored, and weighted below the mandate', () => {
   for (const institution of INSTITUTIONS) {
