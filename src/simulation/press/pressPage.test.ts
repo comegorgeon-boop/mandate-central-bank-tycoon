@@ -205,6 +205,53 @@ describe('an asymmetric event names who it hit', () => {
   })
 })
 
+describe('good news leads too', () => {
+  // The interface signalled danger and nothing else for most of this build's
+  // life: a mandate held at target got the same page as one drifting into a
+  // spiral. Coming back to the objective is the best thing that can happen on
+  // this page and it now outranks the movement lines that used to bury it.
+  function arriving(previous: number, now: number): PressPage {
+    const base = createInitialState(testConfig('fed', 'easy', 'arriving'), {
+      openingEvent: false,
+      tutorialDamage: false,
+    })
+    // Two published periods: the meeting before, and this one. Easy relieves
+    // the publication lag, so the current period is the latest snapshot.
+    const at = (inflation: number) => ({ ...base.latent, inflationHeadline: inflation })
+    const state: SimulationState = {
+      ...base,
+      meetingIndex: 1,
+      latent: at(now),
+      history: [
+        { meetingIndex: 0, timeYears: 0, latent: at(previous), members: [] },
+        { meetingIndex: 1, timeYears: 0.125, latent: at(now), members: [] },
+      ],
+    }
+    return buildPressPage({
+      state,
+      observation: generateObservation(state, {
+        meetingIndex: 1,
+        newswire: [],
+        clues: [],
+      }),
+      newswire: [],
+      majorEvent: null,
+    })
+  }
+
+  it('leads on inflation arriving at the objective', () => {
+    const page = arriving(4.2, 2.02)
+    const lead = page.stories.find((story) => story.prominence === 'lead')
+    expect(lead?.headline).toMatch(/back at the objective/)
+  })
+
+  it('does not call it arriving when it was already there', () => {
+    const page = arriving(2.04, 2.02)
+    const text = page.stories.map((story) => story.headline).join(' ')
+    expect(text).not.toMatch(/back at the objective/)
+  })
+})
+
 describe('the bank is a subject, not only a reader', () => {
   it('reports a threat to the institution when there is one', () => {
     // The visible half of `anchoringIndependence`. The mechanic exists because

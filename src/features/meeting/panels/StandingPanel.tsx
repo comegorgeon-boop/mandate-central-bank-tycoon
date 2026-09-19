@@ -52,13 +52,30 @@ const TONE_BODY: Readonly<Record<StandingTone, string>> = {
 
 export function StandingPanel({
   standing,
+  previousTone,
   severeWarnings,
 }: {
   readonly standing: StandingReading
+  /**
+   * The reading at the last meeting, so the panel can tell an improvement
+   * from a continuation. Null at the first meeting.
+   */
+  readonly previousTone: StandingTone | null
   readonly severeWarnings: readonly EndConditionWarning[]
 }) {
   const critical = severeWarnings.length > 0
   const reasons = standing.achievements.length + standing.concerns.length
+
+  // The sweep fires when the mandate *turns* good, and never again until it
+  // stops being good and turns again. A flourish on every meeting of a decade
+  // held at target is wallpaper: it would say "things are well" so often that
+  // the one meeting they became well would look identical to the forty after
+  // it, which is the opposite of the point.
+  const turnedGood =
+    !critical &&
+    standing.tone === 'thriving' &&
+    previousTone !== null &&
+    previousTone !== 'thriving'
 
   return (
     <section
@@ -66,9 +83,9 @@ export function StandingPanel({
       // `alert` only when it is one. A green plaque that interrupts a screen
       // reader every meeting to say things are fine is not an improvement.
       role={critical ? 'alert' : undefined}
-      className={`mt-4 rounded-lg border-l-4 p-3 ${TONE_STYLE[standing.tone]} ${
+      className={`animate-rise mt-4 rounded-lg border-l-4 p-3 ${TONE_STYLE[standing.tone]} ${
         standing.tone === 'steady' ? '' : 'shadow-panel'
-      }`}
+      } ${turnedGood ? 'animate-sweep' : ''}`}
     >
       <h2
         id="standing-heading"
@@ -76,6 +93,13 @@ export function StandingPanel({
       >
         {critical ? 'Mandate at risk' : standing.headline}
       </h2>
+
+      {turnedGood && (
+        <p className={`mt-0.5 text-sm ${TONE_BODY[standing.tone]}`}>
+          It was not, at the last meeting. Whatever you did between them, that
+          is what it looks like when it works.
+        </p>
+      )}
 
       {critical ? (
         <ul className={`mt-1 list-disc space-y-0.5 pl-5 text-sm ${TONE_BODY[standing.tone]}`}>

@@ -144,21 +144,37 @@ function dataStories(
     const gap = headline.value - target
     const move =
       headline.previous == null ? 0 : Math.abs(headline.value - headline.previous)
+    // Arriving is news. A paper that leads on every deterioration and reports
+    // the recovery as one more line of movement is a paper that only ever
+    // tells the player things are going wrong, which is the complaint this
+    // whole session began with. Coming back to the objective, after being
+    // away from it, is the single best thing that can happen on this page and
+    // it now reads like it.
+    const arrived =
+      Math.abs(gap) <= 0.25 &&
+      headline.previous != null &&
+      Math.abs(headline.previous - target) > 0.25
     drafts.push({
       id: 'data-inflation',
       desk: 'economy',
-      headline:
-        headline.previous == null
+      headline: arrived
+        ? `Inflation is back at the objective, at ${headline.value.toFixed(2)} %`
+        : headline.previous == null
           ? `Consumer prices: inflation stands at ${headline.value.toFixed(2)} %`
           : `Consumer prices: inflation ${movementPhrase(headline.value, headline.previous, headline.unit, 2)}`,
-      standfirst:
-        Math.abs(gap) <= 0.25
+      standfirst: arrived
+        ? `The first reading within a quarter-point of ${target.toFixed(1)} % since it went away. Holding it there is a different job from getting it there.`
+        : Math.abs(gap) <= 0.25
           ? `That is within a quarter-point of the ${target.toFixed(1)} % objective.`
           : `The objective is ${target.toFixed(1)} %, leaving a gap of ${Math.abs(gap).toFixed(2)} pp ${gap > 0 ? 'above' : 'below'} it.`,
       material: true,
       // The level matters as much as the move: inflation two points off target
-      // is the story even in a quarter when it did not budge.
-      weight: 3 + move / Math.max(0.05, headline.uncertainty) + Math.abs(gap) * 1.5,
+      // is the story even in a quarter when it did not budge. And arriving
+      // outranks both, because it happens once.
+      weight:
+        (arrived ? 7 : 3) +
+        move / Math.max(0.05, headline.uncertainty) +
+        Math.abs(gap) * 1.5,
     })
   }
 
@@ -169,11 +185,16 @@ function dataStories(
       unemployment.previous == null
         ? 0
         : Math.abs(unemployment.value - unemployment.previous)
+    const recovered =
+      gap <= 0.3 &&
+      unemployment.previous != null &&
+      unemployment.previous - natural > 0.8
     drafts.push({
       id: 'data-unemployment',
       desk: 'economy',
-      headline:
-        unemployment.previous == null
+      headline: recovered
+        ? `Unemployment is back to what this economy can sustain, at ${unemployment.value.toFixed(2)} %`
+        : unemployment.previous == null
           ? `Labour market: unemployment stands at ${unemployment.value.toFixed(2)} %`
           : `Labour market: unemployment ${movementPhrase(unemployment.value, unemployment.previous, unemployment.unit, 2)}`,
       standfirst:
@@ -181,7 +202,10 @@ function dataStories(
           ? `That is ${gap.toFixed(2)} pp above the rate economists judge this economy can sustain.`
           : 'That is at or below the rate economists judge this economy can sustain.',
       material: true,
-      weight: 3 + move / Math.max(0.05, unemployment.uncertainty) + Math.max(0, gap) * 1.2,
+      weight:
+        (recovered ? 7 : 3) +
+        move / Math.max(0.05, unemployment.uncertainty) +
+        Math.max(0, gap) * 1.2,
     })
   }
 

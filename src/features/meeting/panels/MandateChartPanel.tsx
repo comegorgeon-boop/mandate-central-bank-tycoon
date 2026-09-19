@@ -89,7 +89,7 @@ export function MandateChartPanel({
   return (
     <section
       aria-labelledby="mandate-chart-heading"
-      className="mt-5 rounded-lg border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
+      className="animate-rise mt-5 rounded-lg border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
     >
       <h2
         id="mandate-chart-heading"

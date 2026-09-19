@@ -205,6 +205,13 @@ export function TrendChart({
             strokeLinejoin="round"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
+            // Drawn left to right as the panel arrives, which is the direction
+            // time runs on it. `pathLength` normalises the geometry to 1 so
+            // the dash animation in `tokens.css` needs no measurement — and
+            // `prefers-reduced-motion` switches the whole thing off with the
+            // one rule that governs every other animation in the build.
+            pathLength={1}
+            className="animate-draw"
           />
         ))}
 

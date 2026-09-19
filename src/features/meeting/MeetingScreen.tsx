@@ -105,6 +105,13 @@ export function MeetingScreen({
   // How the mandate is going, in both directions. The interface used to
   // signal only danger; a mandate going well now says so, and names why.
   const standing = readStanding(session.observation, session.outcome, config.institution)
+  // The same reading a meeting ago, so the panel can tell "it is going well"
+  // from "it has *started* going well" — the second is a moment and the first
+  // is a state, and only one of them is worth marking.
+  const previousStanding =
+    session.previousObservation === null
+      ? null
+      : readStanding(session.previousObservation, session.outcome, config.institution)
   // Easy ends on a goal rather than a clock, so the goal is on screen at every
   // meeting. Null at every other difficulty.
   const tutorial = tutorialProgress(session.state)
@@ -170,7 +177,11 @@ export function MeetingScreen({
         </div>
       ) : (
         <>
-          <StandingPanel standing={standing} severeWarnings={severeWarnings} />
+          <StandingPanel
+            standing={standing}
+            previousTone={previousStanding?.tone ?? null}
+            severeWarnings={severeWarnings}
+          />
 
           {tutorial !== null && <TutorialGoalPanel progress={tutorial} />}
 

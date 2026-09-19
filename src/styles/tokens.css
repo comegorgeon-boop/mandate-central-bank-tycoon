@@ -403,6 +403,106 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Motion.
+ *
+ * All of it is CSS animation, which the `prefers-reduced-motion` block above
+ * switches off wholesale with one rule. That is the reason none of this is
+ * done in JavaScript: a motion preference honoured in four places is a motion
+ * preference honoured in three of them the first time somebody adds a fifth.
+ *
+ * The rule each of these is written to: motion has to *say* something. A panel
+ * that rises as it arrives tells you it is new. A line that draws itself tells
+ * you which direction to read it in. A figure that flashes tells you it moved
+ * since you last looked. Decoration that says nothing is worse than stillness,
+ * because it spends the one thing the interface is short of — attention.
+ * ------------------------------------------------------------------------ */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A series drawing itself left to right, which is the direction time runs. */
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A figure that moved since the last meeting, said once and quietly. */
+@keyframes mark-change {
+  0% {
+    background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/**
+ * The mandate going well.
+ *
+ * A single sweep of light across the plaque, once, when the reading turns
+ * good. The interface used to signal danger and nothing else — a mandate held
+ * at target with everybody in work got the same grey screen as one drifting
+ * into a spiral. The words changed first; this is the part that makes it feel
+ * like something happened.
+ */
+@keyframes sweep {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+
+.animate-rise {
+  animation: rise-in 320ms ease-out both;
+}
+
+.animate-draw {
+  /* `pathLength="1"` on the element normalises the geometry, so the dash
+   * length is 1 whatever the chart's real coordinates are. */
+  stroke-dasharray: 1;
+  animation: draw-line 620ms ease-out both;
+}
+
+.animate-change {
+  animation: mark-change 900ms ease-out both;
+  border-radius: 0.2rem;
+}
+
+.animate-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    color-mix(in srgb, var(--good) 28%, transparent) 50%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  animation: sweep 1100ms ease-out both;
+}
+
 /* Figures line up in columns or they cannot be compared down a page. */
 .tabular,
 [class*='tabular-nums'] {
