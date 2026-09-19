@@ -62,9 +62,17 @@ export function ReactionPanel({
 
       <FrontPagesPanel pages={frontPages} />
 
+      {/* Staggered, so the tape reads as arriving rather than as a table that
+          was always there. Sixty milliseconds apart is fast enough not to be
+          a wait and slow enough to be a sequence; `prefers-reduced-motion`
+          collapses all of it with the one rule in `tokens.css`. */}
       <ul className="mt-4 divide-y divide-edge border-y border-edge">
-        {reaction.items.map((item) => (
-          <li key={item.id} className="py-3">
+        {reaction.items.map((item, index) => (
+          <li
+            key={item.id}
+            className="animate-rise py-3"
+            style={{ animationDelay: `${index * 60}ms` }}
+          >
             <div className="flex flex-wrap items-baseline justify-between gap-x-4">
               <span className="font-medium text-ink">{item.label}</span>
               <span className="tabular-nums text-ink-soft">
@@ -79,6 +87,45 @@ export function ReactionPanel({
           </li>
         ))}
       </ul>
+
+      {reaction.spreads.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+            Sovereign spreads, within the hour
+          </h3>
+          <ul className="mt-2 space-y-1">
+            {reaction.spreads.map((move, index) => (
+              <li
+                key={move.id}
+                className="animate-rise flex flex-wrap items-baseline justify-between gap-x-4 text-sm"
+                style={{ animationDelay: `${(reaction.items.length + index) * 60}ms` }}
+              >
+                <span className="text-ink">{move.name}</span>
+                <span className="tabular-nums">
+                  <span className="text-ink-faint">{move.before} bp</span>
+                  <span aria-hidden="true" className="mx-2 text-ink-faint">
+                    →
+                  </span>
+                  <span className="font-medium text-ink">{move.after} bp</span>
+                  <span
+                    className={`ml-2 text-xs ${
+                      move.change > 0 ? 'text-bad-strong' : 'text-good-strong'
+                    }`}
+                  >
+                    {move.change > 0 ? '+' : '−'}
+                    {Math.abs(move.change)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-ink-faint">
+            One decision, repriced six ways before any statistic has moved. The
+            member carrying the heaviest debt moves furthest, which is what
+            fragmentation is and why it has its own instrument.
+          </p>
+        </div>
+      )}
 
       {reaction.quiet && (
         <p className="mt-3 text-sm text-ink-soft">

@@ -121,7 +121,6 @@ export function observeMembers(
   )
   const period = state.meetingIndex - lag
   const snapshot = period >= 0 ? state.history[period] : undefined
-  const latest = state.history[state.history.length - 1]
 
   const inflationSd =
     inflationSeries.baseNoiseSd *
@@ -170,9 +169,11 @@ export function observeMembers(
             ),
           )
 
-    // The spread is read from the *current* state, not the lagged snapshot:
-    // it is a price, and a price is known the moment it is quoted.
-    const live = latest?.members.find((entry) => entry.id === member.id) ?? member
+    // The spread is read from `state.members` — the live state — and not from
+    // the history snapshot beside it. It is a price: it is known the moment it
+    // is quoted, and since the decision reprices sovereigns the instant it is
+    // announced, reading the snapshot would report yesterday's quote on the
+    // screen whose whole subject is what just moved.
 
     members.push({
       id: member.id,
@@ -182,7 +183,7 @@ export function observeMembers(
       weight: profile.weight,
       inflation: inflation === null ? null : round(inflation, 2),
       unemployment: unemployment === null ? null : round(unemployment, 2),
-      spread: Math.round(live.spread),
+      spread: Math.round(member.spread),
       inflationGap:
         inflation === null || areaInflation === null
           ? null

@@ -25,6 +25,7 @@ import {
   GUIDANCE_REVERSAL_JUSTIFICATION,
 } from '../config/thresholds.ts'
 import { effectivePolicyRate } from './initialState.ts'
+import { repriceMembers } from './members.ts'
 
 /**
  * Validating and applying a confirmed policy package.
@@ -441,6 +442,22 @@ export function applyPolicyPackage(
   latent.marketTrust -=
     INSTITUTIONAL.marketTrust.surprise * Math.abs(surprise) * 0.25 * sensitivity
 
+  // ---- Sovereign spreads, on the day --------------------------------------
+  //
+  // Sovereign debt reprices within minutes of a decision, not at the next
+  // quarter. Until now member spreads only moved inside `advanceMembers`,
+  // which runs a sub-step later, so the one channel that makes a currency
+  // area's problem visible *immediately* was the one channel that waited.
+  //
+  // Loaded by debt, which is the whole mechanism: a surprise tightening is a
+  // larger shock to the member paying the most to roll its stock than to the
+  // member paying the least, and it is why a single decision reprices six
+  // sovereigns by six different amounts within the hour.
+  const members =
+    state.members.length === 0
+      ? state.members
+      : repriceMembers(state.members, surprise, crisis)
+
   // ---- Communication ------------------------------------------------------
   const communication = pkg.communication
   if (communication) {
@@ -666,6 +683,7 @@ export function applyPolicyPackage(
     state: {
       ...state,
       latent: clamped,
+      members,
       stance,
       guidance,
       // Accumulated across the mandate, never reset — see

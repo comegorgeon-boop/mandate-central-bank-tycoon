@@ -315,3 +315,50 @@ export function spread(
   const values = members.map((member) => member[field])
   return Math.max(...values) - Math.min(...values)
 }
+
+/**
+ * How far a member's spread moves on the day, per point of policy surprise,
+ * per unit of debt loading above average.
+ *
+ * Measured against what the panel has to show: a 50 bp surprise tightening
+ * moves the most indebted member by about 20 bp and the least indebted by
+ * about 4, which is a visible fan across six rows without being a crisis. The
+ * *shape* is what matters — everyone moves, and the indebted move several
+ * times further — and the shape is debt loading, not this constant.
+ */
+const SAME_DAY_SPREAD = 26
+
+/** Extra repricing when markets are already frightened. */
+const SAME_DAY_CRISIS = 0.8
+
+/**
+ * Reprices sovereign spreads the moment a decision is announced.
+ *
+ * Sovereign debt does not wait for the next quarter. This is the one channel
+ * that makes a currency area's problem visible *immediately*: one decision,
+ * six different answers, and the member carrying the heaviest debt moving
+ * several times as far as the one carrying the least.
+ *
+ * A surprise *tightening* widens spreads — higher risk-free rates are a larger
+ * refinancing shock to a larger debt stock — and a surprise easing compresses
+ * them. It is the surprise and not the move: a decision markets had fully
+ * priced reprices nothing, which is the same discipline every other same-day
+ * channel in `applyPolicyPackage` follows.
+ */
+export function repriceMembers(
+  members: readonly MemberLatent[],
+  surprise: number,
+  crisis: number,
+): readonly MemberLatent[] {
+  if (members.length === 0 || Math.abs(surprise) < 1e-9) return members
+  const amplifier = 1 + SAME_DAY_CRISIS * crisis
+
+  return members.map((member) => {
+    const loading = LOADINGS.get(member.id)?.debt ?? 1
+    const move = SAME_DAY_SPREAD * surprise * loading * amplifier
+    return {
+      ...member,
+      spread: clamp(member.spread + move, SPREAD_BOUND[0], SPREAD_BOUND[1]),
+    }
+  })
+}
