@@ -6,6 +6,7 @@ import { buildMandateReport } from '../features/result/report.ts'
 import { Mascot } from '../components/Mascot.tsx'
 import { closingLine } from '../features/meeting/mascotLine.ts'
 import { DoctrineMandatesPanel } from '../features/result/DoctrineMandatesPanel.tsx'
+import { TheStandardPanel } from '../features/result/TheStandardPanel.tsx'
 
 /**
  * The post-mandate report.
@@ -288,6 +289,8 @@ export default function ResultPage() {
           ]}
         />
       </section>
+
+      <TheStandardPanel session={session} score={score} />
 
       <DoctrineMandatesPanel session={session} score={score} board={scoreboard} />
 

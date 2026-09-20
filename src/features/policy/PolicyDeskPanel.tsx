@@ -8,6 +8,8 @@ import {
   getInstitution,
   getInstrument,
   getInstrumentRange,
+  instrumentRangesFor,
+  scenarioOf,
   availableInstruments,
   setsStandingLevel,
   standingLevel,
@@ -17,6 +19,7 @@ import {
   type CommunicationTone,
   type InstrumentId,
   type MeetingResult,
+  type OperatingProcedure,
   type PolicyAction,
   type PolicyPackage,
   type PolicyValidation,
@@ -100,15 +103,33 @@ export function PolicyDeskPanel({
   // Only reachable where the difficulty lets the words depart from the deed.
   const [chosenTone, setChosenTone] = useState<CommunicationTone | null>(null)
   const [bench, setBench] = useState<BenchId>('advice')
+  // The October 1979 decision, if this is the meeting that offers it. Null
+  // means it has not been taken; the package then says nothing about it and
+  // the committee goes on voting a rate.
+  const [procedure, setProcedure] = useState<OperatingProcedure | null>(null)
   const [reviewing, setReviewing] = useState(false)
   const [validation, setValidation] = useState<PolicyValidation | null>(null)
 
   const { institution, difficulty } = session.state.config
   const instrument = getInstrument('policy_rate')
+  const scenario = scenarioOf(session.state.config)
   const range = useMemo(
-    () => (instrument ? getInstrumentRange(instrument, difficulty) : null),
-    [instrument, difficulty],
+    () =>
+      instrument
+        ? getInstrumentRange(
+            instrument,
+            difficulty,
+            instrumentRangesFor(session.state.config),
+          )
+        : null,
+    [instrument, difficulty, session.state.config],
   )
+  // Offered once, by one scenario, at one meeting.
+  const procedureOffered =
+    scenario !== null &&
+    scenario.procedureChoiceAt === session.state.meetingIndex
+  const reserveTargeting =
+    (procedure ?? session.state.stance.operatingProcedure) === 'reserve_target'
 
   const ledger = promiseLedger(session.state.guidance, difficulty)
   const currentRate = session.state.stance.targetRate
@@ -243,6 +264,7 @@ export function PolicyDeskPanel({
       commitment,
       channel: 'statement',
     },
+    ...(procedureOffered && procedure !== null ? { procedure } : {}),
   })
 
   const confirm = (): void => {
@@ -455,6 +477,67 @@ export function PolicyDeskPanel({
         </div>
       )}
 
+      {procedureOffered && (
+        <section
+          aria-labelledby="procedure-heading"
+          className="mt-4 rounded border-l-4 border-edge-accent bg-inset p-3"
+        >
+          <h3
+            id="procedure-heading"
+            className="text-sm font-semibold text-ink"
+          >
+            One decision, once: what the dial means
+          </h3>
+          <p className="mt-1 text-sm text-ink-soft">
+            The Committee can go on voting a rate and defending it, or vote a
+            path for bank reserves and let the market find the rate. Taken
+            today, it stands for the rest of the mandate.
+          </p>
+          <div className="mt-2 flex flex-col gap-2">
+            {(
+              [
+                [
+                  'rate_target',
+                  'Keep the funds rate on target',
+                  'You vote the rate. What is voted is what prevails, and every ' +
+                    'hundred basis points of it is yours to defend in public, one ' +
+                    'meeting at a time.',
+                ],
+                [
+                  'reserve_target',
+                  'Target nonborrowed reserves',
+                  'You vote a path and the rate goes where the path sends it. Your ' +
+                    'dial becomes a midpoint. You will be charged for the swings, ' +
+                    'and a committee that has stopped defending a number is read as ' +
+                    'one that will not blink.',
+                ],
+              ] as const
+            ).map(([id, name, detail]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={procedure === id}
+                onClick={() => setProcedure(id)}
+                className={`rounded border p-2.5 text-left ${
+                  procedure === id
+                    ? 'border-edge-accent bg-panel'
+                    : 'border-edge hover:bg-panel'
+                }`}
+              >
+                <span className="text-sm font-medium text-ink">{name}</span>
+                <span className="mt-0.5 block text-xs text-ink-soft">{detail}</span>
+              </button>
+            ))}
+          </div>
+          {procedure === null && (
+            <p className="mt-2 text-xs text-ink-faint">
+              Choose nothing and the Committee goes on voting a rate, which is
+              also a decision.
+            </p>
+          )}
+        </section>
+      )}
+
       <div className="mt-4">
         <RateSlider
           label={instrument.label[institution]}
@@ -467,6 +550,13 @@ export function PolicyDeskPanel({
           onChange={setMove}
         />
         <InstrumentBrief instrument={instrument} range={range} value={move} />
+        {reserveTargeting && (
+          <p className="mt-1.5 text-xs text-ink-faint">
+            You are targeting reserves, so this dial sets a midpoint: the rate
+            that actually prevails will sit somewhere either side of it, and
+            not by your choosing.
+          </p>
+        )}
         {sliderMin > range.min && (
           <p className="mt-1.5 text-xs text-ink-faint">
             The track stops at {formatMove(sliderMin)} because the rate cannot
@@ -598,8 +688,11 @@ export function PolicyDeskPanel({
       </button>
 
       <p className="mt-2 text-xs text-ink-faint">
-        {getInstitution(institution).name} mandate — simplified fictional simulation,
-        not an official product of any central bank.
+        {getInstitution(institution).name} mandate —{' '}
+        {scenario === null
+          ? 'simplified fictional simulation'
+          : 'a simplified model of a real period, played from sourced starting conditions'}
+        , not an official product of any central bank.
       </p>
     </section>
   )

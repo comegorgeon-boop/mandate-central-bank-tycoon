@@ -10,6 +10,7 @@ import { buildIntervalFrames, type IntervalFrame } from '../observation/interval
 import { createInitialState } from '../engine/initialState.ts'
 import { isMajorEvent } from '../events/catalog.ts'
 import { resolveEvent } from '../events/resolveEvent.ts'
+import { applyScheduledEvents, isScheduledMajor } from '../scenarios/scheduled.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
@@ -192,17 +193,20 @@ export function submitMeeting(
   // same-day channel observable at all.
   const onTheDay = observe(withRestatedSnapshot(applied.state), [], [])
 
-  // Events happen between meetings, on top of the confirmed decision.
-  const resolution = resolveEvent(applied.state)
+  // Events happen between meetings, on top of the confirmed decision. The
+  // dated ones first, and without a draw: they are history, not chance.
+  const scheduled = applyScheduledEvents(applied.state)
+  const resolution = resolveEvent(scheduled.state)
+  const allResolved = [...scheduled.resolved, ...resolution.resolved]
   const { state: advanced, steps } = advanceTrueStateTraced(resolution.state)
   const outcome = evaluateEndConditions(advanced, session.outcome.breachCounters)
 
   // Majors get the dedicated banner, not the generic newswire list — see
   // `RunSession.majorEvent`.
-  const majorEvent = resolution.resolved.find((record) => isMajorEvent(record.eventId)) ?? null
-  const minorEvents = resolution.resolved.filter(
-    (record) => !isMajorEvent(record.eventId),
-  )
+  const isMajor = (record: { readonly eventId: string }): boolean =>
+    isMajorEvent(record.eventId) || isScheduledMajor(applied.state, record.eventId)
+  const majorEvent = allResolved.find(isMajor) ?? null
+  const minorEvents = allResolved.filter((record) => !isMajor(record))
   const newswire = minorEvents.map((record) => record.newswire)
 
   return {

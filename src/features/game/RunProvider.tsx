@@ -5,11 +5,12 @@ import {
   createRunConfig,
   getInstrument,
   getInstrumentRange,
+  instrumentRangesFor,
   startRun,
   submitMeeting,
-  type Difficulty,
   type MeetingResult,
   type PolicyPackage,
+  type RunConfig,
 } from '../../simulation/index.ts'
 import {
   RunContext,
@@ -28,11 +29,11 @@ import { advanceScoreboard, openScoreboard } from './doctrineScoreboard.ts'
 import { makeRunId } from './seed.ts'
 
 /** The largest move the desk allows, which caps every school's advice. */
-function maxMoveFor(difficulty: Difficulty): number {
+function maxMoveFor(config: RunConfig): number {
   const instrument = getInstrument('policy_rate')
   return instrument === undefined
     ? 150
-    : getInstrumentRange(instrument, difficulty).max
+    : getInstrumentRange(instrument, config.difficulty, instrumentRangesFor(config)).max
 }
 
 /** Verdict returned when a package arrives with no run open to apply it to. */
@@ -61,6 +62,7 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
       difficulty: options.difficulty,
       seed: options.seed,
       simulationVersion: SIMULATION_VERSION,
+      scenario: options.scenario ?? null,
     })
     const session = startRun(config)
     setActive({
@@ -91,7 +93,7 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
         active.session,
         session,
         pkg,
-        maxMoveFor(active.session.state.config.difficulty),
+        maxMoveFor(active.session.state.config),
       )
       setActive({
         runId: active.runId,

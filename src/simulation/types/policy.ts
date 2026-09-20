@@ -1,3 +1,4 @@
+import type { OperatingProcedure } from './scenario.ts'
 import type { Difficulty, Institution } from './core.ts'
 
 /**
@@ -88,6 +89,15 @@ export interface CommunicationChoice {
 export interface PolicyPackage {
   readonly actions: readonly PolicyAction[]
   readonly communication: CommunicationChoice | null
+  /**
+   * A change of operating procedure, if this is the meeting that offers one.
+   *
+   * Not an instrument, which is why it is not in `actions`: an instrument has
+   * a level you set every meeting, and this is a decision about *what the dial
+   * means* that is taken once and stands. Only a historical scenario offers
+   * it, and only at the meeting it names. See `types/scenario.ts`.
+   */
+  readonly procedure?: OperatingProcedure | null
 }
 
 /**
@@ -99,6 +109,15 @@ export interface PolicyPackage {
  * package alone.
  */
 export interface PolicyStance {
+  /**
+   * What the rate the committee votes actually is.
+   *
+   * `rate_target`: the dial is the rate, and what is voted is what prevails.
+   * `reserve_target`: the dial is a midpoint, and the realised rate is left to
+   * the market around it — which is how the funds rate reached 19 % in 1981
+   * without the Committee ever having to vote for 19 %.
+   */
+  readonly operatingProcedure: OperatingProcedure
   /**
    * The policy rate the committee has voted, %, before administered-rate
    * adjustments. The latent `policyRate` is this plus the effect of the
@@ -155,6 +174,8 @@ export type PolicyRejectionCode =
   | 'effective_rate_below_floor'
   | 'communication_unavailable_at_difficulty'
   | 'channel_unavailable_at_difficulty'
+  /** The instrument had not been invented yet in this historical scenario. */
+  | 'unavailable_in_scenario'
 
 /** A rejected action, with enough detail for the confirmation screen. */
 export interface PolicyRejection {

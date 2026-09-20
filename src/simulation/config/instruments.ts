@@ -410,8 +410,10 @@ export function getInstrument(id: InstrumentId): InstrumentDefinition | undefine
 export function getInstrumentRange(
   instrument: InstrumentDefinition,
   difficulty: Difficulty,
+  overrides?: Readonly<Partial<Record<string, InstrumentRange>>>,
 ): InstrumentRange {
   return (
+    overrides?.[instrument.id] ??
     instrument.rangeByDifficulty?.[difficulty] ?? {
       min: instrument.min,
       max: instrument.max,
@@ -420,15 +422,25 @@ export function getInstrumentRange(
   )
 }
 
-/** Instruments the player can actually reach in this run. */
+/**
+ * Instruments the player can actually reach in this run.
+ *
+ * `withheld` is how a historical scenario says an instrument did not exist
+ * yet — interest on reserves in 1979, an asset purchase programme, a standing
+ * reverse repo facility. It is a list rather than a date because the reason
+ * differs per instrument and belongs with the scenario that knows it; see
+ * `docs/SCENARIOS.md`.
+ */
 export function availableInstruments(
   institution: Institution,
   difficulty: Difficulty,
+  withheld: readonly string[] = [],
 ): readonly InstrumentDefinition[] {
   return INSTRUMENTS.filter(
     (instrument) =>
       instrument.availableTo.includes(institution) &&
-      meetsDifficulty(difficulty, instrument.availableFrom),
+      meetsDifficulty(difficulty, instrument.availableFrom) &&
+      !withheld.includes(instrument.id),
   )
 }
 
@@ -444,7 +456,11 @@ export function availableInstruments(
  * an instrument to a difficulty stays a change to this file and to
  * `deriveStance`, and never to a screen.
  */
-const STANCE_FIELD: Readonly<Partial<Record<InstrumentId, keyof PolicyStance>>> = {
+type NumericStanceField = {
+  [K in keyof PolicyStance]: PolicyStance[K] extends number ? K : never
+}[keyof PolicyStance]
+
+const STANCE_FIELD: Readonly<Partial<Record<InstrumentId, NumericStanceField>>> = {
   asset_purchases: 'assetPurchasePace',
   balance_sheet_runoff: 'runoffPace',
   iorb_spread: 'iorbSpread',

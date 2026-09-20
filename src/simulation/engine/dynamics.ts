@@ -28,11 +28,13 @@ import {
   WAGES,
 } from '../config/model.ts'
 import { INSTRUMENT_EFFECTS } from '../config/instruments.ts'
+import { RESERVE_TARGETING } from '../config/model.ts'
 import { FISCAL_SHOCK, FX_SHOCK_VOLATILITY, SHOCK_PROCESSES } from '../config/shocks.ts'
 import { convolve, pushLag, tighteningSpeed } from './lags.ts'
 import {
   financialConditionsIndex,
   purchaseEffectiveness,
+  expostRealRateGap,
   realPolicyRate,
   realRateGap,
   supplyRegimePressure,
@@ -74,6 +76,15 @@ export interface SubstepContext {
   readonly guidance: GuidanceState
   /** Distributed-lag kernel for this difficulty. */
   readonly kernel: readonly number[]
+  /**
+   * Multiplier on the IS curve's response to the rate, 1 in an ordinary
+   * mandate. See `Scenario.rateTransmission`.
+   */
+  readonly rateTransmission: number
+  /** Slope of the Phillips curve on the output gap, for this mandate. */
+  readonly phillipsGapSlope: number
+  /** How fast the output gap closes on its own, for this mandate. */
+  readonly gapMeanReversion: number
   readonly dt: number
 }
 
@@ -210,18 +221,46 @@ export function advanceSubstep(
     latent.expectedInflationLong +
     EXPECTATIONS.longAdjustment * (longTarget - latent.expectedInflationLong) * dt
 
-  const missPressure =
+  const rawMissPressure =
     Math.abs(latent.expectedInflationLong - target) +
     0.5 * Math.abs(latent.inflationHeadline - target)
+  // Linear below the knee, compressed above it: see `anchoringMissKnee`.
+  const missPressure =
+    rawMissPressure <= EXPECTATIONS.anchoringMissKnee
+      ? rawMissPressure
+      : EXPECTATIONS.anchoringMissKnee +
+        (rawMissPressure - EXPECTATIONS.anchoringMissKnee) *
+          EXPECTATIONS.anchoringMissCompression
   // A visible threat to the institution's independence weakens the anchor on
   // its own, whatever the bank's record: the anchor is a belief about what the
   // bank will be *allowed* to do as much as about what it wants to do.
   const independencePressure =
     Math.max(0, latent.politicalPressure - EXPECTATIONS.independenceTolerance) / 100
+  // What a sustained restrictive stance buys back, and the mechanism without
+  // which an anchor that has slipped can never be recovered: the miss term
+  // above is large precisely when the anchor is gone, so with nothing on the
+  // other side the target sits at zero for ever and the disinflation is a
+  // trap rather than a decision. Zero when the anchor is where it should be —
+  // there is nothing to rebuild, and paying a premium to rebuild it would be
+  // an error rather than a demonstration.
+  const anchorAdriftShare = clamp(
+    Math.abs(latent.expectedInflationLong - target) - 1,
+    0,
+    1,
+  )
+  const anchorResolve =
+    EXPECTATIONS.anchoringResolve *
+      clamp(expostRealRateGap(latent) / EXPECTATIONS.anchoringResolveFullAt, 0, 1) *
+      anchorAdriftShare +
+    (stance.operatingProcedure === 'reserve_target'
+      ? RESERVE_TARGETING.anchoring * anchorAdriftShare
+      : 0)
+
   const anchoringTarget = clamp(
     1 -
       EXPECTATIONS.anchoringMissSensitivity * missPressure +
-      EXPECTATIONS.anchoringCredibility * ((latent.credibility - 50) / 50) -
+      EXPECTATIONS.anchoringCredibility * ((latent.credibility - 50) / 50) +
+      anchorResolve -
       EXPECTATIONS.anchoringIndependence * independencePressure,
     0,
     1,
@@ -235,7 +274,7 @@ export function advanceSubstep(
     latent.wageGrowth - latent.potentialGrowth - latent.inflationCore
   const coreTarget =
     latent.expectedInflationShort +
-    PHILLIPS.gapSlope * latent.outputGap +
+    ctx.phillipsGapSlope * latent.outputGap +
     PHILLIPS.wagePressure * unitLabourCost +
     latent.supplyShock
   next.inflationCore =
@@ -391,7 +430,7 @@ export function advanceSubstep(
   const efficiency = transmissionEfficiency(latent, inst.id)
 
   const gapDelta =
-    (-IS_CURVE.rateSensitivity * efficiency * rateImpulse -
+    (-IS_CURVE.rateSensitivity * ctx.rateTransmission * efficiency * rateImpulse -
       IS_CURVE.financialConditions * financialImpulse +
       IS_CURVE.balanceSheet * balanceSheetImpulse * efficiency +
       IS_CURVE.fiscal * latent.fiscalImpulse +
@@ -402,7 +441,7 @@ export function advanceSubstep(
       IS_CURVE.confidence * latent.confidenceShock -
       IS_CURVE.supply * latent.supplyShock +
       latent.demandShock -
-      IS_CURVE.meanReversion * latent.outputGap) *
+      ctx.gapMeanReversion * latent.outputGap) *
     dt
   next.outputGap = latent.outputGap + gapDelta
 
@@ -470,11 +509,37 @@ export function advanceSubstep(
   // immediately below. See `supplyMissForgiveness`.
   const missCharged =
     1 - cred.supplyMissForgiveness * supplyRegimePressure(latent)
+  // Linear up to the knee and compressed beyond it: see `missKnee`. The
+  // fictional modes never reach the knee, so this is the identity function
+  // everywhere except in a historical scenario.
+  const rawMiss = Math.abs(latent.inflationHeadline - target)
+  const chargedMiss =
+    rawMiss <= cred.missKnee
+      ? rawMiss
+      : cred.missKnee + (rawMiss - cred.missKnee) * cred.missCompression
+
+  // What a committee earns by bearing the cost of getting the anchor back —
+  // zero whenever the anchor is where it should be, because then there is
+  // nothing to prove. See `resolve` in config/model.ts.
+  const anchorAdrift = Math.abs(latent.expectedInflationLong - target)
+  const adriftShare = clamp((anchorAdrift - 1) / cred.resolveLiveAt, 0, 1)
+  const resolveEarned =
+    cred.resolve *
+    clamp(expostRealRateGap(latent) / cred.resolveFullAt, 0, 1) *
+    adriftShare +
+    // A committee that has stopped defending a number is read as one that
+    // will not blink. Worth nothing when the anchor is fine, for the same
+    // reason as the term above: there is nothing to prove.
+    (stance.operatingProcedure === 'reserve_target'
+      ? RESERVE_TARGETING.credibility * adriftShare
+      : 0)
+
   const credibilityTarget =
     cred.ceiling -
     // What happened to you: unscaled, because the difficulty is already in the
     // size of the miss and of the stress.
-    cred.inflationMiss * Math.abs(latent.inflationHeadline - target) * missCharged -
+    cred.inflationMiss * chargedMiss * missCharged +
+    resolveEarned -
     cred.anchoring * (1 - latent.anchoring) -
     cred.bankingStress * latent.bankingStress -
     // What you did: scaled, because a harder mandate judges your own errors
@@ -516,7 +581,11 @@ export function advanceSubstep(
   const politicalTarget =
     pol.base +
     pol.unemployment * Math.max(0, unemploymentGap(latent)) +
-    pol.policyRate * Math.max(0, latent.policyRate - pol.policyRateTolerance) +
+    pol.policyRate *
+      Math.max(
+        0,
+        latent.policyRate - latent.inflationHeadline - pol.realRateTolerance,
+      ) +
     pol.publicTrust * Math.max(0, 60 - latent.publicTrust) +
     pol.inflation * Math.max(0, latent.inflationHeadline - target) +
     INSTRUMENT_EFFECTS.transmissionProtection.politicalCost *

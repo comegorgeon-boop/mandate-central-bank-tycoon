@@ -18,13 +18,22 @@ import {
   getInstrument,
   getInstrumentRange,
 } from '../config/instruments.ts'
-import { BANKING, COMMUNICATION, INSTITUTIONAL, SPREADS, VOLATILITY } from '../config/model.ts'
+import {
+  BANKING,
+  COMMUNICATION,
+  INSTITUTIONAL,
+  RESERVE_TARGETING,
+  SPREADS,
+  VOLATILITY,
+} from '../config/model.ts'
 import {
   GUIDANCE_DELIVERY_TOLERANCE,
   GUIDANCE_HORIZON_MEETINGS,
   GUIDANCE_REVERSAL_JUSTIFICATION,
 } from '../config/thresholds.ts'
-import { effectivePolicyRate } from './initialState.ts'
+import { hashGaussian } from '../rng/prng.ts'
+import { scenarioOf } from '../scenarios/scenarios.ts'
+import { effectivePolicyRate, runSeedString } from './initialState.ts'
 import { repriceMembers } from './members.ts'
 
 /**
@@ -117,6 +126,7 @@ export function validatePolicyPackage(
   pkg: PolicyPackage,
 ): PolicyValidation {
   const { institution, difficulty } = state.config
+  const scenario = scenarioOf(state.config)
   const rejections: PolicyRejection[] = []
   const seen = new Set<string>()
 
@@ -160,6 +170,19 @@ export function validatePolicyPackage(
       continue
     }
 
+    // A historical scenario withholds what had not been invented yet. Checked
+    // in the engine rather than only in the desk, because a package assembled
+    // anywhere — a replay, a doctrine's alternative mandate, a sweep — must
+    // not be able to reach for a tool the year did not have.
+    if (scenario !== null && scenario.withheldInstruments.includes(definition.id)) {
+      rejections.push({
+        instrument: action.instrument,
+        code: 'unavailable_in_scenario',
+        message: `${definition.label[institution]} did not exist in ${scenario.subtitle}.`,
+      })
+      continue
+    }
+
     if (!Number.isFinite(action.magnitude)) {
       rejections.push({
         instrument: action.instrument,
@@ -169,7 +192,7 @@ export function validatePolicyPackage(
       continue
     }
 
-    const range = getInstrumentRange(definition, difficulty)
+    const range = getInstrumentRange(definition, difficulty, scenario?.instrumentRanges)
     if (action.magnitude < range.min) {
       rejections.push({
         instrument: action.instrument,
@@ -208,9 +231,50 @@ export function validatePolicyPackage(
     }
   }
 
+  // The operating procedure: a decision about what the dial means, offered
+  // once, by one scenario, at one meeting.
+  if (pkg.procedure != null) {
+    const offeredAt = scenario?.procedureChoiceAt ?? null
+    if (offeredAt === null) {
+      rejections.push({
+        instrument: null,
+        code: 'unavailable_in_scenario',
+        message: 'This committee does not choose its operating procedure.',
+      })
+    } else if (state.meetingIndex !== offeredAt) {
+      rejections.push({
+        instrument: null,
+        code: 'unavailable_in_scenario',
+        message:
+          'The operating procedure is decided once, at the meeting that ' +
+          'decides it, and stands for the rest of the mandate.',
+      })
+    }
+  }
+
   const availability = COMMUNICATION_AVAILABILITY[difficulty]
   const communication = pkg.communication
   if (communication) {
+    // Volcker's Fed communicated constantly and committed to nothing: the
+    // FOMC did not announce its policy decisions until 1994, and after
+    // October 1979 it was not targeting the rate it would have been
+    // announcing. Withholding `forward_guidance` covers the instrument; this
+    // covers the words, which are still available at every strength short of
+    // a promise. See `docs/SCENARIOS.md`.
+    if (
+      scenario !== null &&
+      scenario.withheldInstruments.includes('forward_guidance') &&
+      (communication.commitment === 'conditional_path' ||
+        communication.commitment === 'strong_commitment')
+    ) {
+      rejections.push({
+        instrument: null,
+        code: 'unavailable_in_scenario',
+        message:
+          'This committee does not announce its decisions, and cannot promise ' +
+          'a path for a rate it is not announcing.',
+      })
+    }
     if (!availability.channels.includes(communication.channel)) {
       rejections.push({
         instrument: null,
@@ -343,6 +407,10 @@ export function detectContradictions(
 function deriveStance(state: SimulationState, pkg: PolicyPackage): PolicyStance {
   const stance = { ...state.stance }
 
+  // Taken once and standing thereafter. Validation has already refused it
+  // anywhere but the meeting the scenario names.
+  if (pkg.procedure != null) stance.operatingProcedure = pkg.procedure
+
   for (const action of pkg.actions) {
     switch (action.instrument) {
       case 'policy_rate':
@@ -412,6 +480,7 @@ export function applyPolicyPackage(
   const difficulty = getDifficulty(state.config.difficulty)
   const sensitivity = difficulty.credibilitySensitivity
   const stance = deriveStance(state, pkg)
+  const { institution } = state.config
 
   // How keyed-up markets already are, judged from what the committee
   // inherited walking in — see `crisisIntensity`. Governs how hard every word
@@ -420,7 +489,29 @@ export function applyPolicyPackage(
   const crisisAmplifier = 1 + COMMUNICATION.crisisAmplifier * crisis
 
   const previousRate = state.latent.policyRate
-  const newRate = effectivePolicyRate(stance, state.config.institution)
+  // Under reserve targeting the voted rate is a *midpoint* and the market
+  // finds the rest. The offset is drawn from a stateless hash rather than the
+  // run's own generator, so a mandate played with and without the reform
+  // consumes the same random sequence and the two remain comparable — which
+  // is the whole premise of the counterfactual arms elsewhere in this build.
+  const band =
+    stance.operatingProcedure === 'reserve_target'
+      ? clamp(
+          hashGaussian(
+            0,
+            RESERVE_TARGETING.bandSd,
+            runSeedString(state.config),
+            'reserve_band',
+            state.meetingIndex,
+          ),
+          -RESERVE_TARGETING.bandLimit,
+          RESERVE_TARGETING.bandLimit,
+        )
+      : 0
+  const newRate = Math.max(
+    POLICY_RATE_FLOOR[institution],
+    effectivePolicyRate(stance, state.config.institution) + band,
+  )
   const actualMove = newRate - previousRate
 
   const latent: LatentState = {

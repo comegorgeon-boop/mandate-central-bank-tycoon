@@ -41,6 +41,9 @@ export interface GhostMarker {
   readonly rate: number
 }
 
+/** Track width, in percent, inside which two labels would collide. */
+const LABEL_WIDTH = 22
+
 function percent(basisPoints: number, min: number, max: number): number {
   if (max <= min) return 50
   return ((basisPoints - min) / (max - min)) * 100
@@ -78,7 +81,7 @@ export function RateSlider({
   // to the end of the track and labelled as beyond it, because "the rule wants
   // more than this desk can do in one meeting" is information, and a marker
   // that silently vanished would read as "the rule agrees with you".
-  const drawn = markers.map((marker) => {
+  const placed = markers.map((marker) => {
     const clamped = Math.min(max, Math.max(min, marker.basisPoints))
     return {
       ...marker,
@@ -87,6 +90,17 @@ export function RateSlider({
       left: percent(clamped, min, max),
     }
   })
+
+  // Two references can land on the same point of the track — a committee that
+  // agrees with the market is not a rare state — and two labels centred there
+  // print on top of each other. The second one is lifted a line, which keeps
+  // both readable without moving either tick off the value it marks.
+  const drawn = placed.map((marker, index) => ({
+    ...marker,
+    stacked: placed
+      .slice(0, index)
+      .some((earlier) => Math.abs(earlier.left - marker.left) < LABEL_WIDTH),
+  }))
 
   const market = markers.find((marker) => marker.id === 'market') ?? null
   const surprise = market === null ? null : value - market.basisPoints
@@ -114,7 +128,9 @@ export function RateSlider({
         {drawn.map((marker) => (
           <div
             key={marker.id}
-            className="pointer-events-none absolute -top-5 flex flex-col"
+            className={`pointer-events-none absolute flex flex-col ${
+              marker.stacked ? '-top-[2.35rem]' : '-top-5'
+            }`}
             // The tick is centred on its value; the *label* is anchored to
             // whichever side keeps it on the page. A label centred on a mark
             // at 95 % of the track hangs off the edge of the panel, which is
@@ -142,7 +158,7 @@ export function RateSlider({
             </span>
             <span
               aria-hidden="true"
-              className={`mt-0.5 h-3 w-px ${
+              className={`mt-0.5 w-px ${marker.stacked ? 'h-[1.6rem]' : 'h-3'} ${
                 marker.id === 'market' ? 'bg-accent' : 'bg-edge-accent'
               }`}
             />

@@ -7,6 +7,8 @@ import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { DT, SUBSTEPS_PER_MEETING, YEARS_PER_MEETING } from '../config/time.ts'
 import { advanceSubstep } from './dynamics.ts'
+import { IS_CURVE, PHILLIPS } from '../config/model.ts'
+import { scenarioOf } from '../scenarios/scenarios.ts'
 import { realRateGap } from './indices.ts'
 import { buildLagKernel } from './lags.ts'
 import { advanceMembers } from './members.ts'
@@ -106,6 +108,12 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
   const institution = getInstitution(state.config.institution)
   const difficulty = getDifficulty(state.config.difficulty)
   const kernel = buildLagKernel(state.config.difficulty)
+  // 1 in an ordinary mandate; a historical scenario says how hard its own
+  // economy was to move. See `Scenario.rateTransmission`.
+  const scenario = scenarioOf(state.config)
+  const rateTransmission = scenario?.rateTransmission ?? 1
+  const phillipsGapSlope = scenario?.phillipsGapSlope ?? PHILLIPS.gapSlope
+  const gapMeanReversion = scenario?.gapMeanReversion ?? IS_CURVE.meanReversion
   const prng = restorePrng(state.rng)
 
   const diagnostics: DiagnosticEvent[] = []
@@ -136,6 +144,9 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
         stance: state.stance,
         guidance: state.guidance,
         kernel,
+        rateTransmission,
+        phillipsGapSlope,
+        gapMeanReversion,
         dt: DT,
       },
       prng,

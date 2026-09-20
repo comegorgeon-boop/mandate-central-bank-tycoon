@@ -25,6 +25,29 @@ export function realRateGap(latent: LatentState): number {
   return realPolicyRate(latent) - latent.neutralRealRate
 }
 
+/**
+ * Restrictiveness measured against *realised* inflation, not expected.
+ *
+ * The gauge the anchor and the institution's standing are rebuilt against, and
+ * deliberately a different one from `realRateGap`.
+ *
+ * `realRateGap` deflates by one-year expectations, which is the right reading
+ * for demand: what borrowers think they will repay in. It is the wrong reading
+ * for *resolve*, because expectations are exactly the variable being rebuilt.
+ * Deflating by them makes the measure circular — an unanchored economy reports
+ * a low real rate however hard policy is actually being run, so nothing the
+ * committee does registers as restrictive and the anchor can never come back.
+ * Measured on this build: holding the funds rate at 9 % with realised
+ * inflation at 4 % read as a real rate of 1.4 %, because expectations were
+ * still sitting at 7.5 %.
+ *
+ * Against realised inflation the same stance reads +3.4 and the trap opens.
+ * It also tracks the history it has to: 1979 reads negative, 1981 reads +9.
+ */
+export function expostRealRateGap(latent: LatentState): number {
+  return latent.policyRate - latent.inflationHeadline - latent.neutralRealRate
+}
+
 /** Unemployment above its natural rate. Positive means slack. */
 export function unemploymentGap(latent: LatentState): number {
   return latent.unemployment - latent.naturalUnemployment

@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   MEETING_COUNT,
+  SCENARIOS,
   getInstitution,
   type Difficulty,
   type Institution,
+  type ScenarioId,
 } from '../simulation/index.ts'
 import { useRun } from '../features/game/runContext.ts'
 import { MAX_SEED_LENGTH, randomSeed, sanitizeSeed } from '../features/game/seed.ts'
@@ -63,12 +65,14 @@ export default function SetupPage() {
   const [seed, setSeed] = useState(randomSeed)
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
   const [institution, setInstitution] = useState<Institution>('fed')
+  const [scenario, setScenario] = useState<ScenarioId | null>(null)
 
   const trimmed = sanitizeSeed(seed)
+  const chosen = SCENARIOS.find((entry) => entry.id === scenario) ?? null
 
   const start = (): void => {
     if (trimmed.length === 0) return
-    begin({ institution, difficulty, seed: trimmed })
+    begin({ institution, difficulty, seed: trimmed, scenario })
     navigate('/play/briefing')
   }
 
@@ -76,11 +80,81 @@ export default function SetupPage() {
     <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8 text-onwood">
       <h1 className="text-2xl font-semibold text-onwood">Set up your mandate</h1>
       <p className="mt-2 text-sm text-onwood-soft">
-        A simplified fictional simulation of monetary policy. Not affiliated with, and
-        not an official product of, any central bank.
+        {chosen === null
+          ? 'A simplified fictional simulation of monetary policy. Not affiliated with, and not an official product of, any central bank.'
+          : 'A simplified model of a real period, played from sourced starting conditions. The decisions are yours and the economy is a model; nothing here is a record of what anyone said. Not affiliated with, and not an official product of, any central bank.'}
       </p>
 
       <fieldset className="mt-8">
+        <legend className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
+          Mandate
+        </legend>
+        <p className="mt-1 text-sm text-onwood-soft">
+          An economy this build invents, or one that happened.
+        </p>
+        <div className="mt-2 flex flex-col gap-2">
+          <button
+            type="button"
+            aria-pressed={scenario === null}
+            onClick={() => setScenario(null)}
+            className={`rounded border p-3 text-left ${
+              scenario === null
+                ? 'border-edge-accent bg-inset'
+                : 'border-edge-room bg-room hover:bg-inset'
+            }`}
+          >
+            <span className="font-medium text-onwood">A fictional mandate</span>
+            <span className="mt-1 block text-sm text-onwood-soft">
+              A seeded economy, an institution you pick and a difficulty you
+              set.
+            </span>
+          </button>
+          {SCENARIOS.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              aria-pressed={scenario === entry.id}
+              onClick={() => setScenario(entry.id)}
+              className={`rounded border p-3 text-left ${
+                scenario === entry.id
+                  ? 'border-edge-accent bg-inset'
+                  : 'border-edge-room bg-room hover:bg-inset'
+              }`}
+            >
+              <span className="font-medium text-onwood">
+                {entry.title} — {entry.subtitle}
+              </span>
+              <span className="mt-1 block text-sm text-onwood-soft">
+                {entry.briefing}
+              </span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      {chosen !== null && (
+        <section
+          className="mt-6 rounded border border-edge-room bg-room p-3"
+          aria-labelledby="scenario-terms"
+        >
+          <h2
+            id="scenario-terms"
+            className="text-sm font-semibold uppercase tracking-wide text-onwood-soft"
+          >
+            There is no difficulty to choose
+          </h2>
+          <p className="mt-1 text-sm text-onwood-soft">
+            Difficulty here is what was known at the time, and it is already
+            decided: {getInstitution(chosen.institution).shortName},{' '}
+            {chosen.meetingCount} meetings, on the statistics that were actually
+            published — including the ones that were wrong in one direction the
+            whole way through. The seed still changes what happens around you.
+          </p>
+        </section>
+      )}
+
+      {chosen === null && (
+      <fieldset className="mt-6">
         <legend className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           Institution
         </legend>
@@ -116,7 +190,9 @@ export default function SetupPage() {
           })}
         </div>
       </fieldset>
+      )}
 
+      {chosen === null && (
       <fieldset className="mt-6">
         <legend className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           Difficulty
@@ -153,6 +229,7 @@ export default function SetupPage() {
           })}
         </div>
       </fieldset>
+      )}
 
       <section className="mt-6" aria-labelledby="seed-heading">
         <h2 id="seed-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">

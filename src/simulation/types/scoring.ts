@@ -71,6 +71,15 @@ export type EndConditionId =
   | 'currency_dysfunction'
   | 'loss_of_monetary_control'
   | 'dismissed'
+  /**
+   * Scenario only: the disinflation was abandoned before it had worked.
+   *
+   * Not unpopularity and not a bad quarter. The real policy rate back below
+   * zero while long-run expectations are still far above target, held long
+   * enough that it is a policy rather than a slip — which is the trap of 1980
+   * and the one thing Volcker did not do twice.
+   */
+  | 'gave_in'
 
 export type RunStatus = 'active' | 'completed' | 'failed'
 

@@ -1,3 +1,5 @@
+import type { ScenarioId } from './scenario.ts'
+
 /** The two playable institutions. They differ in mandate, tools and scoring. */
 export type Institution = 'fed' | 'ecb'
 
@@ -20,6 +22,16 @@ export interface RunConfig {
   readonly mode: GameMode
   /** Number of scheduled policy meetings in this mandate. */
   readonly meetingCount: number
+  /**
+   * The historical scenario being played, if any.
+   *
+   * A scenario replaces the opening state with a sourced table and the
+   * measurement regime with what was knowable in that year; `difficulty` then
+   * supplies only the rules of the game — instrument ranges, the information
+   * ladder, the scoring weights — and is never chosen by the player on a
+   * scenario. See `simulation/scenarios/scenarios.ts`.
+   */
+  readonly scenario: ScenarioId | null
 }
 
 /**

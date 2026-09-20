@@ -15,6 +15,7 @@ import { applyEffects } from '../engine/advanceTrueState.ts'
 import { EVENT_CATALOG } from './catalog.ts'
 import { applyMemberShocks } from './memberShocks.ts'
 import { NEUTRAL_BAND, immediateInflationImpulse } from './inflationImpulse.ts'
+import { scenarioOf } from '../scenarios/scenarios.ts'
 
 /**
  * Procedural event resolution.
@@ -175,11 +176,21 @@ export function resolveEvent(
   const prng = restorePrng(state.rng)
   const ctx = buildEventContext(state)
 
-  const candidates = eligibleEvents(ctx, catalog)
+  const scenarioNow = scenarioOf(state.config)
+  const candidates = eligibleEvents(ctx, catalog).filter(
+    (event) => !(scenarioNow?.suppressedFamilies.includes(event.family) ?? false),
+  )
 
   // The draw is consumed unconditionally so that whether an event fires never
   // shifts the random sequence the rest of the run depends on.
-  const fires = prng.bernoulli(difficulty.eventProbability)
+  //
+  // A historical scenario thins this stream rather than switching it off: the
+  // dated events make the mandate recognisable as 1979-83, and the drawn ones
+  // are the whole reason two seeds of it are different mandates.
+  const scenario = scenarioNow
+  const fires = prng.bernoulli(
+    difficulty.eventProbability * (scenario?.proceduralEventScale ?? 1),
+  )
   const weights = selectionWeights(candidates, ctx)
   const index = prng.weightedIndex(weights)
 

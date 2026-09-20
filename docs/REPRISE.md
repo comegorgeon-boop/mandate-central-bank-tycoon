@@ -106,7 +106,7 @@ nothing is lost if the session stops.
 | --- | --- | --- |
 | 1 | the rate as a slider, with the two references on the track | **done** |
 | 2 | ten doctrines, the scoreboard, and the end-of-mandate comparison | **done** |
-| 3 | historical scenarios: design for five, build Volcker 1979-83 | not started |
+| 3 | historical scenarios: design for five, build Volcker 1979-83 | **done** |
 
 ### 1. The slider
 
@@ -196,6 +196,57 @@ every meeting and broke none, the ten schools' credibility component came out
 
 **Deferred by the player, explicitly: adopting a doctrine.** "Later, not in
 this chantier."
+
+### 3. The historical scenarios
+
+`docs/SCENARIOS.md` is the authority and the long account. What belongs here is
+what a reader picking the work up needs to know first.
+
+**The design decision, which the player made and which applies to all five:**
+there is no difficulty chooser on a historical mandate. Difficulty *is* the
+year — what could be measured then — so a scenario replaces the opening state
+(a sourced table, not a seeded draw) and the measurement regime, and inherits
+everything else from a difficulty profile it names.
+
+**Three design questions were put to the player rather than guessed**, and all
+three answers are built:
+
+1. *What does the player hold, given that after October 1979 the funds rate was
+   an outcome rather than an instrument?* → the rate, **plus** a one-time
+   choice of operating procedure at the 6 October 1979 meeting. Reserve
+   targeting turns the dial into a midpoint, costs the steadiness score and
+   buys the anchor.
+2. *Which span?* → August 1979 to July 1983, 32 meetings, which is exactly the
+   engine's four-year hard mandate at the FOMC's own eight meetings a year.
+3. *Can the player be broken?* → not by being hated; dismissal is out of reach
+   here because the person who held this office was reappointed. You lose by
+   **giving in**, which is a new end condition.
+
+**The test that matters** is `volcker.test.ts`: it *parses*
+`docs/SCENARIOS.md` and compares the document to the code row by row. Edit
+either and the other fails. That is the player's non-negotiable condition
+implemented rather than promised.
+
+**The calibration is the part that took the night**, and the account of it is
+in `docs/BALANCE.md` under "The model changes the Volcker scenario forced".
+Four shared-model changes were needed, all gated so they do nothing in an
+ordinary mandate: credibility could be lost but never earned; the anchor once
+lost could never return; the resolve gauge was the variable being rebuilt; and
+political pressure double-counted inflation. The sweep moved by very little and
+ecb/hard improved — eight fewer dismissals.
+
+**Where the model is still wrong, measured and written down:** replaying the
+historical funds-rate path gives a peak of 13.9 % against 14.59 %, an ending of
+1.5 % against 2.36 %, and worst unemployment of 8.3 % against 10.8 %. The
+unemployment gap is the engine's Okun coefficient of 0.42, which this scenario
+does not override. The fit table in `docs/SCENARIOS.md` states all of it.
+
+**The one thing to be careful with.** The scenario needs its own failure
+thresholds, and the method used to set them is stated in the document: each was
+raised until the historical path survived, and nothing else was moved. That is
+a defensible procedure and also an easy one to abuse. If a sixth scenario is
+added, the same method has to be applied honestly or the thresholds stop
+meaning anything.
 
 ## The rule the session was worked to
 

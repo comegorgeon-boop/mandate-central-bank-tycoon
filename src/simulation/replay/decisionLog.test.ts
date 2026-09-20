@@ -25,6 +25,7 @@ const SAMPLE: DecisionLog = {
   institution: 'ecb',
   difficulty: 'medium',
   mode: 'fictional',
+  scenario: null,
   seed: 'sample-seed',
   decisions: [
     {
@@ -100,19 +101,19 @@ describe('malformed input is rejected safely', () => {
     ['an object', { simulationVersion: '1.0.0' }],
     ['an empty string', ''],
     ['random text', 'not a decision log at all'],
-    ['too few fields', 'MCBT1~1.0.0~fed~easy'],
-    ['an unknown format tag', 'MCBT9~1.0.0~fed~easy~fictional~seed~'],
-    ['an unknown institution', 'MCBT1~1.0.0~bundesbank~easy~fictional~seed~'],
-    ['an unknown difficulty', 'MCBT1~1.0.0~fed~impossible~fictional~seed~'],
-    ['an unknown mode', 'MCBT1~1.0.0~fed~easy~time_travel~seed~'],
-    ['an empty seed', 'MCBT1~1.0.0~fed~easy~fictional~~'],
-    ['a missing version', 'MCBT1~~fed~easy~fictional~seed~'],
-    ['an unknown instrument code', 'MCBT1~1.0.0~fed~easy~fictional~seed~zz=5'],
-    ['a non-numeric magnitude', 'MCBT1~1.0.0~fed~easy~fictional~seed~pr=abc'],
-    ['an infinite magnitude', 'MCBT1~1.0.0~fed~easy~fictional~seed~pr=Infinity'],
-    ['a malformed action', 'MCBT1~1.0.0~fed~easy~fictional~seed~pr'],
-    ['a malformed communication block', 'MCBT1~1.0.0~fed~easy~fictional~seed~!1.2'],
-    ['an out-of-range communication index', 'MCBT1~1.0.0~fed~easy~fictional~seed~!9.0.0.0'],
+    ['too few fields', 'MCBT2~1.0.0~fed~easy'],
+    ['an unknown format tag', 'MCBT9~1.0.0~fed~easy~fictional~-~seed~'],
+    ['an unknown institution', 'MCBT2~1.0.0~bundesbank~easy~fictional~-~seed~'],
+    ['an unknown difficulty', 'MCBT2~1.0.0~fed~impossible~fictional~-~seed~'],
+    ['an unknown mode', 'MCBT2~1.0.0~fed~easy~time_travel~-~seed~'],
+    ['an empty seed', 'MCBT2~1.0.0~fed~easy~fictional~-~~'],
+    ['a missing version', 'MCBT2~~fed~easy~fictional~-~seed~'],
+    ['an unknown instrument code', 'MCBT2~1.0.0~fed~easy~fictional~-~seed~zz=5'],
+    ['a non-numeric magnitude', 'MCBT2~1.0.0~fed~easy~fictional~-~seed~pr=abc'],
+    ['an infinite magnitude', 'MCBT2~1.0.0~fed~easy~fictional~-~seed~pr=Infinity'],
+    ['a malformed action', 'MCBT2~1.0.0~fed~easy~fictional~-~seed~pr'],
+    ['a malformed communication block', 'MCBT2~1.0.0~fed~easy~fictional~-~seed~!1.2'],
+    ['an out-of-range communication index', 'MCBT2~1.0.0~fed~easy~fictional~-~seed~!9.0.0.0'],
   ]
 
   for (const [label, input] of cases) {
@@ -125,20 +126,20 @@ describe('malformed input is rejected safely', () => {
   }
 
   it('rejects a seed that is not valid percent-encoded text', () => {
-    const result = decodeDecisionLog('MCBT1~1.0.0~fed~easy~fictional~%E0%A4%A~')
+    const result = decodeDecisionLog('MCBT2~1.0.0~fed~easy~fictional~-~%E0%A4%A~')
     expect(result.ok).toBe(false)
   })
 
   it('rejects a log with more meetings than the mandate allows', () => {
     const slots = new Array(MEETING_COUNT.easy + 4).fill('').join('|')
-    const result = decodeDecisionLog(`MCBT1~1.0.0~fed~easy~fictional~seed~${slots}`)
+    const result = decodeDecisionLog(`MCBT2~1.0.0~fed~easy~fictional~-~seed~${slots}`)
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.error).toContain('more than')
   })
 
   it('rejects an implausibly large payload without parsing it', () => {
-    const result = decodeDecisionLog(`MCBT1~1.0.0~fed~easy~fictional~seed~${'x'.repeat(30000)}`)
+    const result = decodeDecisionLog(`MCBT2~1.0.0~fed~easy~fictional~-~seed~${'x'.repeat(30000)}`)
     expect(result.ok).toBe(false)
   })
 
@@ -172,6 +173,6 @@ describe('challenge codes', () => {
 
   it('carries nothing personal: no nickname, no score, no dates', () => {
     // The whole code is short enough to assert on directly.
-    expect(code).toBe(`MCBT1~${SIMULATION_VERSION}~fed~hard~fictional~challenge-seed~`)
+    expect(code).toBe(`MCBT2~${SIMULATION_VERSION}~fed~hard~fictional~-~challenge-seed~`)
   })
 })

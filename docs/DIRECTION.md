@@ -307,3 +307,73 @@ reads `contradictionCost`?).
   evaluated automatically): a committee that can vote no confidence gives
   the institution's *other* members a voice, which nothing in the game
   currently has.
+
+---
+
+# Historical scenarios
+
+Designed in this session, one built. **The design, the sources and every
+number are in `docs/SCENARIOS.md`**, which is the authority: the Volcker test
+parses that file and fails if the code disagrees with it.
+
+What belongs here is the decision the scenarios embody, because it applies to
+all five and to anything added later.
+
+## Difficulty is not a setting; it is the year
+
+A historical scenario has **no difficulty chooser**, and this is the design
+rather than a simplification of it. Difficulty is *what was known at the time*,
+and it was different in every year because the statistical system was different
+in every year. A chairman in 1929 had no official national income statistic and
+read bank conditions weeks late. A chairman in 2021 had excellent data,
+released on schedule, and was wrong anyway. Offering to make either of those
+harder would be offering to make the past more uncertain than it was.
+
+So a scenario replaces exactly two things and inherits everything else from an
+ordinary difficulty profile it names:
+
+1. **the opening state**, which becomes a sourced table rather than a seeded
+   draw, and
+2. **the measurement regime**, which becomes the year's — including, where the
+   sources support one, a *systematic bias* in a published series rather than
+   more noise.
+
+Everything that is not measurement — instrument ranges, the information
+ladder, the scoring weights — stays with the named difficulty, so a new
+scenario is a data file and not a second copy of the balance sheet of
+constants. Where a period genuinely needs its own structure (1979-83 needs a
+steeper transmission and a flatter Phillips curve), the scenario carries it as
+a named, argued parameter and `docs/SCENARIOS.md` says whether it is sourced or
+calibrated. Most of them are calibrated, and the document says so in those
+words.
+
+## The honesty rules
+
+Non-negotiable, and they are the reason this took the time it took:
+
+- Opening states and dates are **sourced**, with the series named. Anything
+  derived is labelled a derivation and the derivation is given. Anything
+  approximated is labelled an approximation in the document *and* in the code.
+- **No words in anybody's mouth.** What people did is in the game. What they
+  said is not, unless a sourced quotation carries its citation — and the
+  Volcker scenario has none, by choice, because the cost of getting one wrong
+  is higher than anything a quotation adds. A test forbids quotation marks and
+  attribution verbs in scenario prose.
+- **The documented table is the authority.** `volcker.test.ts` parses
+  `docs/SCENARIOS.md` and compares it to the code row by row. Edit either and
+  the other fails.
+- **The fit is reported, including where it is wrong.** The model's replay of
+  the historical policy path is compared against what happened, with the
+  misses named and quantified.
+
+## The five, and the one
+
+1929-33 · **1979-83 (built)** · 2008-10 · 2010-12 · 2021-23. The other four are
+specified in `docs/SCENARIOS.md` only to the level that constrains the code —
+what each makes the game *about*, and what was knowable then — and at no level
+beyond that.
+
+## Deferred
+
+The player **adopting** a doctrine, which was explicitly put off: later, not in
+that chantier.

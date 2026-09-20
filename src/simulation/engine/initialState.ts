@@ -12,6 +12,7 @@ import { applyOpeningCrisis } from '../events/openingCrisis.ts'
 import { fillLag } from './lags.ts'
 import { financialConditionsIndex, realRateGap, taylorBenchmark } from './indices.ts'
 import { createMembers } from './members.ts'
+import { getScenario, scenarioOf } from '../scenarios/scenarios.ts'
 
 /**
  * How tightly the opening perturbation clusters around the institution's
@@ -150,13 +151,31 @@ export function createRunConfig(options: {
   readonly seed: string
   readonly simulationVersion: string
   readonly mode?: RunConfig['mode']
+  readonly scenario?: RunConfig['scenario']
 }): RunConfig {
+  const scenario = options.scenario ?? null
+  if (scenario !== null) {
+    // A scenario decides its own institution, its own rules and its own
+    // length. The caller passes a seed and nothing else that matters, which is
+    // the point: there is no difficulty to choose on a historical mandate.
+    const definition = getScenario(scenario)
+    return {
+      simulationVersion: options.simulationVersion,
+      institution: definition.institution,
+      difficulty: definition.rules,
+      seed: options.seed,
+      mode: 'historical',
+      meetingCount: definition.meetingCount,
+      scenario,
+    }
+  }
   return {
     simulationVersion: options.simulationVersion,
     institution: options.institution,
     difficulty: options.difficulty,
     seed: options.seed,
     mode: options.mode ?? 'fictional',
+    scenario: null,
     // A tutorial has no scheduled length, so its "count" is the point at which
     // it ends unfinished — the only sense in which it has one. Everything that
     // divides by `meetingCount` (the share served, the churn allowance) then
@@ -184,6 +203,9 @@ export function effectivePolicyRate(
 /** The stance a run opens with: rate at its starting level, nothing else on. */
 export function createInitialStance(targetRate: number): PolicyStance {
   return {
+    // Every mandate begins by voting a rate. Volcker's October 1979 meeting is
+    // the only place in this build where that can change.
+    operatingProcedure: 'rate_target',
     targetRate,
     assetPurchasePace: 0,
     runoffPace: 0,
@@ -226,7 +248,14 @@ export function createInitialState(
   // below consuming exactly one Gaussian regardless of the scale, so the
   // setup substream's draw count — and therefore everything drawn from the
   // `|run` stream afterward — is identical across difficulties.
-  const perturbationScale = OPENING_PERTURBATION_SCALE[config.difficulty]
+  // A historical mandate opens where it actually opened. The draws below are
+  // still made — the setup substream has to consume the same count whatever
+  // the mode, or the run stream that follows it would be a different one — and
+  // then the sourced table overwrites what they produced. The opening is
+  // history; the path is not, which is where the seed still earns its keep.
+  const scenario = scenarioOf(config)
+  const perturbationScale =
+    scenario === null ? OPENING_PERTURBATION_SCALE[config.difficulty] : 0
   const noise = (sd: number): number => setup.gaussian(0, sd) * perturbationScale
 
   // Round the opening rate to a quarter point, as a real committee would set it.
@@ -245,7 +274,7 @@ export function createInitialState(
   const credibility = clamp(base.credibility + noise(7), 40, 90)
   const anchoring = clamp(0.88 - Math.abs(headline - inst.inflationTarget) * 0.06, 0.4, 1)
 
-  const stance = createInitialStance(targetRate)
+  const stance = createInitialStance(scenario?.opening.policyRate ?? targetRate)
   const policyRate = effectivePolicyRate(stance, config.institution)
 
   const expectedShort = clamp(
@@ -322,25 +351,64 @@ export function createInitialState(
     geopoliticalRisk,
   }
 
+  // ---- A historical mandate opens where it actually opened ----------------
+  //
+  // The sourced table replaces what the draws above produced. Every figure is
+  // in `docs/SCENARIOS.md` with its series, and the two approximations say so
+  // in both places. What is *not* overwritten — banking stress, volatility,
+  // asset pressure, spreads — has no 1979 counterpart that can be sourced to a
+  // number on this scale, so it stays at the engine's neutral values rather
+  // than being invented to look authoritative.
+  const opened: LatentState =
+    scenario === null
+      ? latent
+      : {
+          ...latent,
+          inflationHeadline: scenario.opening.inflationHeadline,
+          inflationCore: scenario.opening.inflationCore,
+          expectedInflationShort: scenario.opening.expectedInflationShort,
+          expectedInflationLong: scenario.opening.expectedInflationLong,
+          anchoring: scenario.opening.anchoring,
+          wageGrowth: scenario.opening.wageGrowth,
+          supplyShock: scenario.opening.supplyShock,
+          importPriceInflation: scenario.opening.importPriceInflation,
+          outputGap: scenario.opening.outputGap,
+          unemployment: scenario.opening.unemployment,
+          naturalUnemployment: scenario.opening.naturalUnemployment,
+          policyRate,
+          credibility: scenario.opening.credibility,
+          // The long rate is sourced; the term premium is what is left of it
+          // once the expected path is taken out, which is the definition.
+          termPremium: Math.max(
+            -1,
+            scenario.opening.longRate - scenario.opening.expectedInflationLong - 2,
+          ),
+        }
+  const latentAtOpen = opened
+
   // The market opens priced roughly on the benchmark, not on a blank slate.
-  latent.marketExpectedRate = clamp(
-    0.5 * policyRate + 0.5 * taylorBenchmark(latent, config.institution),
+  // The ceiling is the fictional modes' own, and a scenario needs more room:
+  // a 1979 opening prices a benchmark rate well above anything the fictional
+  // economies produce, and clamping it there would open the mandate with the
+  // market pricing a policy nobody could be running.
+  latentAtOpen.marketExpectedRate = clamp(
+    0.5 * policyRate + 0.5 * taylorBenchmark(latentAtOpen, config.institution),
     -2,
-    15,
+    scenario === null ? 15 : 30,
   )
 
   // Pre-fill the lag buffers with the opening steady state. Without this the
   // convolution would read an empty history and the economy would behave as
   // though policy had just been switched on.
-  const openingRateGap = realRateGap(latent)
-  const openingConditions = financialConditionsIndex(latent, config.institution)
+  const openingRateGap = realRateGap(latentAtOpen)
+  const openingConditions = financialConditionsIndex(latentAtOpen, config.institution)
 
   let state: SimulationState = {
     config,
     meetingIndex: 0,
     stepIndex: 0,
     timeYears: 0,
-    latent,
+    latent: latentAtOpen,
     lags: {
       realRateGap: fillLag(openingRateGap),
       balanceSheetImpulse: fillLag(0),
@@ -355,7 +423,7 @@ export function createInitialState(
     contradictionCost: 0,
     reversalCount: 0,
     diagnostics: [],
-    history: [{ meetingIndex: 0, timeYears: 0, latent, members }],
+    history: [{ meetingIndex: 0, timeYears: 0, latent: latentAtOpen, members }],
   }
 
   // The scripted opener (docs/DIRECTION.md): a healthy economy, then a major,
@@ -391,7 +459,10 @@ export function createInitialState(
     }
   }
 
-  if (options.openingEvent ?? true) {
+  // A historical mandate does not get a drawn opening crisis. Its opening is
+  // the situation that actually obtained, and the things that broke it are on
+  // the scenario's calendar with dates on them.
+  if (scenario === null && (options.openingEvent ?? true)) {
     state = applyOpeningCrisis(state)
     // `history[0]` was captured above, before the crisis. The observation
     // layer reads history for "current period" values (`generateObservation`

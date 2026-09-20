@@ -7,6 +7,7 @@ import type {
   RunSession,
   ScoreBreakdown,
 } from '../../simulation/index.ts'
+import type { ScenarioId } from '../../simulation/index.ts'
 import type { LedgerEntry } from '../policy/instrumentLedger.ts'
 import type { SettledPromise } from '../policy/settledPromise.ts'
 import type { CounterfactualArms } from './counterfactualRun.ts'
@@ -71,6 +72,11 @@ export interface StartRunOptions {
   readonly institution: Institution
   readonly difficulty: Difficulty
   readonly seed: string
+  /**
+   * A historical scenario, which then decides the institution, the rules and
+   * the length — and is never accompanied by a difficulty the player chose.
+   */
+  readonly scenario?: ScenarioId | null
 }
 
 export interface RunContextValue {

@@ -4,6 +4,7 @@ import {
   getInstitution,
   getSeries,
   isMajorEvent,
+  meetingLabel,
   unlockedAt,
   tutorialProgress,
   type MeetingResult,
@@ -162,6 +163,10 @@ export function MeetingScreen({
     .filter((label): label is string => label !== undefined)
 
   const meetingNumber = session.state.meetingIndex + 1
+  // In a historical mandate the meeting has a date, and the date is the
+  // better name for it: "Meeting 6 of 32" tells you where you are in a
+  // schedule, "March 18, 1980" tells you what is happening outside.
+  const dated = meetingLabel(config, session.state.meetingIndex)
   // A mandate-defining crisis now lives on the press page rather than in a
   // banner above the tabs. That is the right home for it — it is the lead
   // story, and three unranked news channels competing above the fold is what
@@ -181,15 +186,19 @@ export function MeetingScreen({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
-              {institution.name} · {config.difficulty} · seed {config.seed}
+              {institution.name} ·{' '}
+              {dated === null ? config.difficulty : 'historical'} · seed{' '}
+              {config.seed}
             </p>
             <h1 className="mt-1 font-display text-2xl font-semibold text-onwood">
               {/* A tutorial has no scheduled length, so "of N" would be a
                   promise it does not make: N is the point at which it gives
                   up, not the point at which it ends. */}
-              {tutorial === null
-                ? `Meeting ${meetingNumber} of ${config.meetingCount}`
-                : `Meeting ${meetingNumber}`}
+              {dated !== null
+                ? dated
+                : tutorial === null
+                  ? `Meeting ${meetingNumber} of ${config.meetingCount}`
+                  : `Meeting ${meetingNumber}`}
             </h1>
           </div>
           <SettingsPanel className="w-full sm:w-72" />

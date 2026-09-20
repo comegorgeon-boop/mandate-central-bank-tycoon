@@ -9,8 +9,16 @@ import type {
   PolicyAction,
   PolicyPackage,
 } from '../types/policy.ts'
+import type { OperatingProcedure, ScenarioId } from '../types/scenario.ts'
 import { MEETING_COUNT } from '../config/time.ts'
 import { getInstrument } from '../config/instruments.ts'
+import { SCENARIOS } from '../scenarios/scenarios.ts'
+import { createRunConfig } from '../engine/initialState.ts'
+
+/** On the wire, "this run is not a scenario". */
+const NO_SCENARIO = '-'
+
+const SCENARIO_IDS: readonly string[] = SCENARIOS.map((scenario) => scenario.id)
 
 /**
  * Compact, validated serialisation of a run's decisions.
@@ -34,6 +42,15 @@ export interface DecisionLog {
   readonly institution: Institution
   readonly difficulty: Difficulty
   readonly mode: GameMode
+  /**
+   * The historical scenario, if the run is one.
+   *
+   * Carried because a scenario run is not reproducible without it: the
+   * opening state is the scenario's sourced table rather than a seeded draw,
+   * so a log that recorded only the seed would replay a different economy.
+   * `-` on the wire when there is none.
+   */
+  readonly scenario: ScenarioId | null
   readonly seed: string
   readonly decisions: readonly DecisionLogEntry[]
 }
@@ -42,11 +59,16 @@ export type DecodeResult =
   | { readonly ok: true; readonly log: DecisionLog }
   | { readonly ok: false; readonly error: string }
 
-const FORMAT_TAG = 'MCBT1'
+// Bumped from MCBT1 when the scenario field was added. An MCBT1 log cannot
+// be read as an MCBT2 one — it is a field short — and rejecting it is correct:
+// this build stores nothing, so there are no old logs to migrate.
+const FORMAT_TAG = 'MCBT2'
 const FIELD_SEPARATOR = '~'
 const MEETING_SEPARATOR = '|'
 const ACTION_SEPARATOR = ';'
 const COMMUNICATION_PREFIX = '!'
+/** Marks the one-off operating-procedure decision inside a meeting slot. */
+const PROCEDURE_PREFIX = '@'
 const COMMUNICATION_SEPARATOR = '.'
 
 /**
@@ -140,7 +162,10 @@ function encodePackage(pkg: PolicyPackage): string {
   const communication = pkg.communication
     ? COMMUNICATION_PREFIX + encodeCommunication(pkg.communication)
     : ''
-  const encoded = actions + communication
+  // Last, so the two optional blocks can be split off in a fixed order.
+  const procedure =
+    pkg.procedure == null ? '' : PROCEDURE_PREFIX + (pkg.procedure === 'reserve_target' ? 'r' : 't')
+  const encoded = actions + communication + procedure
   return encoded.length === 0 ? EMPTY_PACKAGE : encoded
 }
 
@@ -162,6 +187,7 @@ export function encodeDecisionLog(log: DecisionLog): string {
     log.institution,
     log.difficulty,
     log.mode,
+    log.scenario ?? NO_SCENARIO,
     encodeSeed(log.seed),
     slots.join(MEETING_SEPARATOR),
   ].join(FIELD_SEPARATOR)
@@ -193,6 +219,17 @@ function decodeCommunication(raw: string): CommunicationChoice | null {
 
 function decodePackage(raw: string, meetingIndex: number): PolicyPackage | string {
   if (raw === EMPTY_PACKAGE) return { actions: [], communication: null }
+
+  const procedureAt = raw.indexOf(PROCEDURE_PREFIX)
+  let procedure: OperatingProcedure | null = null
+  if (procedureAt >= 0) {
+    const code = raw.slice(procedureAt + 1)
+    if (code !== 'r' && code !== 't') {
+      return `Meeting ${meetingIndex}: malformed operating procedure "${code}".`
+    }
+    procedure = code === 'r' ? 'reserve_target' : 'rate_target'
+    raw = raw.slice(0, procedureAt)
+  }
 
   const communicationAt = raw.indexOf(COMMUNICATION_PREFIX)
   const actionsPart = communicationAt >= 0 ? raw.slice(0, communicationAt) : raw
@@ -229,7 +266,9 @@ function decodePackage(raw: string, meetingIndex: number): PolicyPackage | strin
     }
   }
 
-  return { actions, communication }
+  return procedure === null
+    ? { actions, communication }
+    : { actions, communication, procedure }
 }
 
 /**
@@ -248,11 +287,12 @@ export function decodeDecisionLog(encoded: unknown): DecodeResult {
   }
 
   const fields = encoded.split(FIELD_SEPARATOR)
-  if (fields.length !== 7) {
+  if (fields.length !== 8) {
     return { ok: false, error: 'Decision log does not have the expected structure.' }
   }
 
-  const [tag, simulationVersion, institution, difficulty, mode, seed, meetings] = fields
+  const [tag, simulationVersion, institution, difficulty, mode, scenario, seed, meetings] =
+    fields
 
   if (tag !== FORMAT_TAG) {
     return { ok: false, error: `Unrecognised decision log format "${tag}".` }
@@ -268,6 +308,9 @@ export function decodeDecisionLog(encoded: unknown): DecodeResult {
   }
   if (!MODES.includes(mode as GameMode)) {
     return { ok: false, error: `Unknown game mode "${mode}".` }
+  }
+  if (scenario !== NO_SCENARIO && !SCENARIO_IDS.includes(scenario as ScenarioId)) {
+    return { ok: false, error: `Unknown scenario "${scenario}".` }
   }
 
   let decodedSeed: string
@@ -304,6 +347,7 @@ export function decodeDecisionLog(encoded: unknown): DecodeResult {
       institution: institution as Institution,
       difficulty: difficulty as Difficulty,
       mode: mode as GameMode,
+      scenario: scenario === NO_SCENARIO ? null : (scenario as ScenarioId),
       seed: decodedSeed,
       decisions,
     },
@@ -312,6 +356,18 @@ export function decodeDecisionLog(encoded: unknown): DecodeResult {
 
 /** The RunConfig a decoded log describes. */
 export function configFromLog(log: DecisionLog): RunConfig {
+  if (log.scenario !== null) {
+    // A scenario owns its institution, its rules and its length, so the log's
+    // own fields are not consulted for any of them: rebuilding through
+    // `createRunConfig` is the only way the two can never drift apart.
+    return createRunConfig({
+      institution: log.institution,
+      difficulty: log.difficulty,
+      seed: log.seed,
+      simulationVersion: log.simulationVersion,
+      scenario: log.scenario,
+    })
+  }
   return {
     simulationVersion: log.simulationVersion,
     institution: log.institution,
@@ -319,6 +375,7 @@ export function configFromLog(log: DecisionLog): RunConfig {
     seed: log.seed,
     mode: log.mode,
     meetingCount: MEETING_COUNT[log.difficulty],
+    scenario: null,
   }
 }
 
@@ -334,6 +391,7 @@ export function encodeChallenge(config: RunConfig): string {
     institution: config.institution,
     difficulty: config.difficulty,
     mode: config.mode,
+    scenario: config.scenario,
     seed: config.seed,
     decisions: [],
   })

@@ -8,6 +8,7 @@ import type {
 } from '../types/scoring.ts'
 import { SCORING_VERSION } from '../version.ts'
 import { clamp } from '../config/bounds.ts'
+import { scenarioOf } from '../scenarios/scenarios.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { SPREADS, VOLATILITY } from '../config/model.ts'
@@ -329,7 +330,14 @@ export function calculateScore(
   const difficultyId = state.config.difficulty
   const { churn, reversals } = policyChurn(state)
   const yearsServed = Math.max(YEARS_PER_MEETING, state.timeYears)
-  const allowance = POLICY_VOLATILITY_ALLOWANCE_PER_YEAR[difficultyId] * yearsServed
+  // A historical scenario sets its own, from the path that actually prevailed:
+  // the modern allowance describes a committee that is not doing what this one
+  // is doing, and against it every mandate here — the real one included —
+  // scores a steadiness gate of 0.03 and the score stops measuring anything.
+  const allowancePerYear =
+    scenarioOf(state.config)?.churnAllowancePerYear ??
+    POLICY_VOLATILITY_ALLOWANCE_PER_YEAR[difficultyId]
+  const allowance = allowancePerYear * yearsServed
   const excess = Math.max(0, churn - allowance) + 0.25 * reversals
   const volatilityRaw = performance(excess, SCORE_SCALES.policyVolatility)
 

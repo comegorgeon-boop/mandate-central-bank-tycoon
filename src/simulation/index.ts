@@ -170,6 +170,25 @@ export {
   type DoctrineSpeaker,
 } from './doctrines/debate.ts'
 
+// ---- Historical scenarios --------------------------------------------------
+export {
+  SCENARIOS,
+  getScenario,
+  instrumentRangesFor,
+  measurementRegime,
+  meetingLabel,
+  thresholdsFor,
+  scenarioOf,
+} from './scenarios/scenarios.ts'
+export { VOLCKER_1979 } from './scenarios/volcker.ts'
+export type {
+  OperatingProcedure,
+  Scenario,
+  ScenarioEvent,
+  ScenarioId,
+  ScenarioMeeting,
+} from './types/scenario.ts'
+
 // ---- The counterfactual ----------------------------------------------------
 export {
   FROZEN_LABEL,

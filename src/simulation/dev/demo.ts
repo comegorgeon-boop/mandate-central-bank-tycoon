@@ -199,6 +199,7 @@ function main(): void {
       institution: config.institution,
       difficulty: config.difficulty,
       mode: config.mode,
+      scenario: null,
       seed: config.seed,
       decisions: session.decisions,
     })}`,

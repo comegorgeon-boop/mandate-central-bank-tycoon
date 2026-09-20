@@ -63,6 +63,34 @@ export const THRESHOLDS = {
     meetingsToFail: 3,
   },
   /**
+   * Giving in: a disinflation abandoned before it worked.
+   *
+   * Reached only in a historical scenario, because it is the only mode whose
+   * opening has expectations far enough above target for the second clause to
+   * be true at all. Four meetings is half a year of free real credit with the
+   * anchor still adrift, which is a policy rather than a slip — and it is long
+   * enough that the actual 1980 episode, three meetings of it, survives.
+   */
+  capitulation: {
+    watchRealRate: 0.5,
+    failRealRate: 0,
+    /** Long-run expectations this far above target still count as adrift. */
+    unanchoredBy: 3,
+    /**
+     * And inflation itself this far above target, still.
+     *
+     * The clause that separates giving in from normalising. Without it the
+     * condition fires at the *end* of a successful disinflation: inflation
+     * back to 4 %, the rate cut to 9 %, and long-run expectations still
+     * lagging at 8 because they always lag — which the model would read as
+     * capitulation when it is the thing capitulation prevents. Measured on
+     * the historical path across thirteen seeds, it was the only failure the
+     * real policy produced, and it produced it in 1983 rather than in 1980.
+     */
+    inflationStillAbove: 4,
+    meetingsToFail: 4,
+  },
+  /**
    * Forced resignation.
    *
    * Requires a sustained collapse in institutional standing: credibility must
@@ -76,6 +104,25 @@ export const THRESHOLDS = {
     meetingsToFail: 4,
   },
 } as const
+
+/**
+ * The shape of the threshold table, with the literal types widened.
+ *
+ * `THRESHOLDS` is `as const`, so every figure in it is its own literal type
+ * and nothing else can be assigned. A historical scenario brings its own
+ * numbers for some of them, so the merged table it produces needs a type that
+ * says "the same fields, holding numbers".
+ */
+export type ThresholdSet = {
+  readonly [Family in keyof typeof THRESHOLDS]: {
+    readonly [Key in keyof (typeof THRESHOLDS)[Family]]: number
+  }
+}
+
+/** What a scenario may override, family by family. */
+export type ThresholdOverrides = {
+  readonly [Family in keyof ThresholdSet]?: Partial<ThresholdSet[Family]>
+}
 
 /**
  * A shock large enough to justify reversing previously published guidance

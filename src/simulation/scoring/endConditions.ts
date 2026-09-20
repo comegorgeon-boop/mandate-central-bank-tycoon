@@ -9,7 +9,8 @@ import type { LatentState, SimulationState } from '../types/state.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { EXCHANGE, VOLATILITY } from '../config/model.ts'
-import { THRESHOLDS } from '../config/thresholds.ts'
+import type { ThresholdSet } from '../config/thresholds.ts'
+import { thresholdsFor } from '../scenarios/scenarios.ts'
 import { tutorialExhausted, tutorialProgress } from './tutorialGoal.ts'
 import { realRateGap, unemploymentGap } from '../engine/indices.ts'
 
@@ -73,7 +74,20 @@ interface ConditionDefinition {
   readonly warning: string
 }
 
-const CONDITIONS: readonly ConditionDefinition[] = [
+/**
+ * The conditions, read against whichever thresholds are in force.
+ *
+ * A function rather than a constant because a historical scenario brings its
+ * own. The fictional thresholds are calibrated on a fictional economy, and
+ * 1979 would fail three of them on the first meeting — inflation opens at
+ * 11.84 % against a spiral threshold of 12, and long-run expectations open
+ * five points above target against a loss-of-control threshold of four. A
+ * scenario that ended before the player's first decision would be saying that
+ * August 1979 was already lost, which is both false and the opposite of what
+ * the scenario is for. See `docs/SCENARIOS.md`.
+ */
+function conditionsFor(THRESHOLDS: ThresholdSet): readonly ConditionDefinition[] {
+  return [
   {
     id: 'inflation_spiral',
     label: 'Runaway inflation',
@@ -236,7 +250,47 @@ const CONDITIONS: readonly ConditionDefinition[] = [
       'confidence in the institution.',
     warning: 'Institutional standing is deteriorating badly.',
   },
-]
+  {
+    // Scenario only, and it is how you lose a disinflation.
+    //
+    // Not unpopularity, which this mandate has in quantity and survives, and
+    // not a bad quarter. Giving in: the real policy rate back below zero
+    // while long-run expectations are still far above the objective, held
+    // long enough to be a policy rather than a slip. That is the trap of 1980
+    // — the funds rate fell from 17.19 % in March to 9.03 % in July while
+    // expectations had not moved — and it is the one thing Volcker did not do
+    // twice. A player who does it has bought a recession and spent it.
+    //
+    // Stated on the real rate rather than on the size of the cut, which is
+    // both better economics and the only version that survives reserve
+    // targeting: under that procedure the realised rate moves without anybody
+    // voting for it, and charging a player for a fall they did not choose
+    // would be scoring them on the procedure rather than on the decision.
+    id: 'gave_in',
+    label: 'The disinflation was abandoned',
+    meetingsToFail: THRESHOLDS.capitulation.meetingsToFail,
+    watch: (latent, _leniency, target) =>
+      latent.policyRate - latent.expectedInflationShort <
+        THRESHOLDS.capitulation.watchRealRate &&
+      latent.expectedInflationLong - target > THRESHOLDS.capitulation.unanchoredBy &&
+      latent.inflationHeadline - target > THRESHOLDS.capitulation.inflationStillAbove,
+    fail: (latent, _leniency, target) =>
+      latent.policyRate - latent.expectedInflationShort <
+        THRESHOLDS.capitulation.failRealRate &&
+      latent.expectedInflationLong - target > THRESHOLDS.capitulation.unanchoredBy &&
+      latent.inflationHeadline - target > THRESHOLDS.capitulation.inflationStillAbove,
+    summary:
+      'Policy turned before it had worked. With expectations still far above ' +
+      'the objective, real short rates were allowed back below zero and left ' +
+      'there — which makes borrowing free again in exactly the conditions ' +
+      'that had made it expensive for a reason. The recession had already ' +
+      'been paid for. Nothing was bought with it.',
+    warning:
+      'Real short rates are near zero while expectations are still unanchored. ' +
+      'Held there, the disinflation is being abandoned rather than paused.',
+  },
+  ]
+}
 
 /** Unnormalised contributors, later scaled so the chain sums to one. */
 interface RawFactor {
@@ -414,6 +468,30 @@ function contributors(state: SimulationState, id: EndConditionId): RawFactor[] {
               : 'Guidance was kept, but performance alone had already cost the institution its standing.',
         },
       ]
+    case 'gave_in':
+      return [
+        ...shared,
+        {
+          label: 'The anchor never moved',
+          weight: Math.max(0, latent.expectedInflationLong - target) * 2,
+          detail:
+            `Long-run expectations were still ${(latent.expectedInflationLong - target).toFixed(1)} ` +
+            'points above the objective when policy turned. Nothing had been ' +
+            'bought with the recession that had been paid for.',
+        },
+        {
+          label: 'The real rate',
+          weight: Math.max(0, latent.expectedInflationShort - latent.policyRate) * 1.5,
+          detail:
+            `Short rates of ${latent.policyRate.toFixed(2)} % against expected inflation of ` +
+            `${latent.expectedInflationShort.toFixed(2)} % left borrowing free in real terms.`,
+        },
+        {
+          label: 'Political pressure',
+          weight: (latent.politicalPressure / 100) * 2,
+          detail: `Political pressure reached ${latent.politicalPressure.toFixed(0)}.`,
+        },
+      ]
     // Endings with no causal chain to build: nothing went wrong, so there is
     // nothing to attribute.
     case 'mandate_completed':
@@ -449,8 +527,9 @@ export function evaluateEndConditions(
   const leniency = difficulty.thresholdLeniency
   const target = getInstitution(state.config.institution).inflationTarget
   const latent = state.latent
+  const thresholds = thresholdsFor(state.config)
 
-  const applicable = CONDITIONS.filter(
+  const applicable = conditionsFor(thresholds).filter(
     (condition) =>
       condition.institutions === undefined ||
       condition.institutions.includes(state.config.institution),

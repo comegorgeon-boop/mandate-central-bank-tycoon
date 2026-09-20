@@ -2508,3 +2508,92 @@ longer fires.
   own rule, and not diagnosed.
 - Everything else in the previous section's "Still open" is closed: hard is
   winnable, competent beats passive everywhere, and the ECB is selectable.
+
+---
+
+# The model changes the Volcker scenario forced
+
+Four changes to the shared model, all made because the fictional calibration
+described a 1979 economy as impossible rather than as difficult, and all
+measured against the sweep before and after. Every one of them is **gated so
+that it does nothing in an ordinary mandate**: the gate is the point, not a
+courtesy.
+
+## 1. Credibility could not be earned, only lost
+
+`INSTITUTIONAL.credibility` had no term for *what the committee did*. The only
+route upward was keeping guidance promises — a theory of announcements rather
+than of resolve — so an institution whose anchor had slipped could never get it
+back. In Barro and Gordon a central bank establishes its type by paying:
+holding real rates above neutral through the recession that follows.
+
+**Added `resolve: 34`**, credited in proportion to the ex-post real rate gap
+and gated on long-run expectations being more than a point from target. In an
+ordinary mandate expectations sit inside that band and the term is exactly
+zero.
+
+**Added `missKnee: 6` / `missCompression: 0.3`.** The miss penalty was linear
+at 8 points of standing per point of miss, which at a ten-point miss charges 79
+against a ceiling of 90 — the model asserting that the Federal Reserve of 1979
+had no credibility at all, while the dollar was the reserve currency and its
+auctions cleared. Six is above anything the fictional modes produce.
+
+## 2. The anchor, once lost, could never return
+
+The same shape one level down, and this one was a genuine trap rather than a
+miscalibration. `anchoringTarget` fell linearly with the expectations miss, and
+expectations only fall when the anchor holds, so an economy that lost its
+anchor could not recover it at any policy — a claim about 1979-83 that history
+falsifies.
+
+**Added `anchoringResolve: 0.95`** on the same gate, and
+**`anchoringMissKnee: 4` / `anchoringMissCompression: 0.3`**. Ordinary mandates
+run a miss pressure around 1.25, so nothing below four is touched.
+
+## 3. The resolve gauge could not be the variable being rebuilt
+
+`realRateGap` deflates by one-year expectations, which is right for demand —
+what borrowers think they will repay in — and circular for resolve. Measured:
+holding the funds rate at 9 % with realised inflation at 4 % read as a real
+rate of 1.4 %, because expectations were still at 7.5 %. Added
+`expostRealRateGap`, deflating by realised inflation, used by the two resolve
+terms and nothing else. It reads negative in 1979 and +9 in 1981, which is the
+shape it has to have.
+
+## 4. Political pressure double-counted inflation
+
+`politicalPressure` charged resentment for a *nominal* rate above 3 % and, on
+the next line, for the inflation that was the reason the rate was there. In a
+2 %-target world the two nearly coincide and the error is invisible. In August
+1979 a funds rate of 10.94 % against inflation of 11.84 % — credit free in real
+terms, nobody in Congress writing letters yet — scored 32 points on the rate
+term alone and opened the mandate at maximum pressure before a single decision.
+
+Now read on the **real** rate, tolerance 1.5. That opening scores nothing; 1981
+(19 % against 9 %) scores 34, which is when the lumber actually arrived.
+
+## What it did to the fictional balance
+
+150 seeded runs per bucket, one fixed reaction rule, before and after:
+
+| bucket | median before | after | completed before | after |
+| --- | --- | --- | --- | --- |
+| fed/easy | 2751 | 2752 | 100 % | 100 % |
+| fed/medium | 6081 | 6089 | 99 % | **100 %** |
+| fed/hard | 5012 | **5104** | 39 % | 39 % |
+| ecb/easy | 1964 | **2005** | 100 % | 100 % |
+| ecb/medium | 4973 | 4970 | 97 % | 97 % |
+| ecb/hard | 2901 | 2880 | 35 % | **41 %** |
+
+The one substantive move is ecb/hard: **dismissals fall from 28 to 20** and
+completions rise six points, which is the political-pressure fix doing exactly
+what `credibilitySensitivity` next door was already documented as fixing —
+mandates ending for reasons that had nothing to do with how they were played.
+Two of those runs now survive long enough to spiral instead, which is why
+`inflation_spiral` goes 21 → 23.
+
+**One warning returns.** `marketExpectedRate` reaches its rail in one ecb/hard
+run in 150, where the baseline had none. It is the same tail this document has
+carried for several sessions, reshuffled: runs that used to end by dismissal
+now last long enough to reach it. Not a new instability, and recorded here
+rather than chased.
