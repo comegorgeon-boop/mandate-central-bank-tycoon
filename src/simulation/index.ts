@@ -51,7 +51,7 @@ export {
   SUBSTEPS_PER_MEETING,
   YEARS_PER_MEETING,
 } from './config/time.ts'
-export { MAX_SCORE } from './config/scoring.ts'
+export { MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
 export {
   GUIDANCE_DELIVERY_TOLERANCE,
   GUIDANCE_HORIZON_MEETINGS,
@@ -152,6 +152,23 @@ export {
   type CommitteeView,
   type StaffRecommendation,
 } from './policy/staffRule.ts'
+
+// ---- The doctrines ---------------------------------------------------------
+export {
+  DOCTRINES,
+  doctrineContext,
+  doctrineViews,
+  getDoctrine,
+  type Doctrine,
+  type DoctrineContext,
+  type DoctrineId,
+  type DoctrineView,
+} from './doctrines/doctrines.ts'
+export {
+  openDebate,
+  type Debate,
+  type DoctrineSpeaker,
+} from './doctrines/debate.ts'
 
 // ---- The counterfactual ----------------------------------------------------
 export {

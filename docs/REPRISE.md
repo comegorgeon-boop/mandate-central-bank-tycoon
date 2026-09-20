@@ -105,7 +105,7 @@ nothing is lost if the session stops.
 | | chantier | state |
 | --- | --- | --- |
 | 1 | the rate as a slider, with the two references on the track | **done** |
-| 2 | ten doctrines, the scoreboard, and the end-of-mandate comparison | not started |
+| 2 | ten doctrines, the scoreboard, and the end-of-mandate comparison | **done** |
 | 3 | historical scenarios: design for five, build Volcker 1979-83 | not started |
 
 ### 1. The slider
@@ -128,6 +128,74 @@ that silently vanished would read as agreement.
 
 Three interface tests were rewritten for it and got stronger: probing four
 buttons for offer-or-not became one assertion on the track's own minimum.
+
+### 2. The doctrines
+
+Ten advisers, each a real school, in `simulation/doctrines/doctrines.ts`. The
+acceptance test is the player's own and it is in `doctrines.test.ts`: *what
+each says facing a supply shock — inflation up, unemployment up; if two say the
+same thing, one of the two is badly written.*
+
+**The structural failure that test caught.** The first version had seven of the
+ten recommending the identical maximum tightening, including three whose entire
+position is that you do not tighten into a relative price change. They were not
+badly argued, they were badly wired: every school took a fraction of the
+*published Taylor benchmark*, which reacts to headline inflation and therefore
+runs away under a cost-push shock and drags the whole room with it. The schools
+that say *look through the first-round effect* are now anchored on
+`coreTaylorGap` — the same rule reading the measure that strips out the shock it
+says to look through, which is that sentence written as arithmetic. The room now
+spreads −150 to +150 on the same state.
+
+Two conditional schools — fiscal dominance and the neo-Fisherian — stay silent
+unless the state calls them, and a test asserts they are silent on a calm Fed
+opening. They are the point when they appear and noise if they appear always.
+
+**Who speaks.** `debate.ts` seats at most three by *maximum disagreement*, never
+two of the same mind, ordered hawkish to dovish so the table reads as a
+spectrum; only the first speaker rebuts, and it addresses another seated speaker
+by their stored `addressAs` (deriving it by lowercasing gives "the keynesian",
+which is why it is stored). The rest of the room is one click away with their
+numbers. The density constraint was explicit — *I have just made you take text
+off this screen, do not put it back through the window* — so positions are
+always visible and every full argument is behind a disclosure.
+
+**The scoreboard** (`features/game/doctrineScoreboard.ts`) is the part that
+turns ten positions into an education. Every school that disagreed with a
+decision gets a trial: the same world, the same shocks, that one meeting taken
+its way, judged four meetings later on the mandate's own loss with the
+institution's own score weights. Four meetings because that is where a rate
+change has largely arrived — judged at the next meeting every verdict is noise,
+judged at the end everything is confounded with everything since. Schools that
+agreed are recorded separately and not scored, because a school you always
+follow has your record rather than one of its own.
+
+**The end-of-mandate table** (`features/result/DoctrineMandatesPanel.tsx`) runs
+all ten complete alternative mandates on the player's own seed — about 60 ms —
+and puts the two halves in one table: *right when it differed* (the trials) and
+*its own mandate* (the full run). They can disagree, and that is the
+interesting case: on `8RAW-LUHT` the hawk was right 7 times of 13 at the margin
+and finished on 1,132 against the player's 7,684.
+
+**The number that would have lied.** That 1,132 is not a wrecked economy. The
+hawk's mandate ends with inflation at 1.6 % and unemployment at its sustainable
+rate; it loses 80 % of its score to the conduct gate, because it got there via
+1.75 → 7.00 → 4.25 → 5.50 → 2.25 and that is 12.5 points of cumulative movement
+against a 6-point allowance. Shown alone the number teaches that defending the
+anchor wrecks economies. The table therefore prints `steadiness ×0.20` under
+any score a gate took a large part of. Checked and *not* a miscalibration: a
+real tightening cycle with no reversals (the ECB's +450 bp over 2022-23) runs at
+about 3 points a year, exactly the allowance; what the hawk is being charged for
+is the reversals.
+
+Each school plays the rate and nothing else — no balance sheet, no guidance —
+because every one of them is a theory of the *rate*, and the caption says so.
+Measured before accepting it: on a mandate where the player issued guidance at
+every meeting and broke none, the ten schools' credibility component came out
+*below* the player's rather than above, so silence is not buying them anything.
+
+**Deferred by the player, explicitly: adopting a doctrine.** "Later, not in
+this chantier."
 
 ## The rule the session was worked to
 

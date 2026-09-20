@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import {
   COMMUNICATION_AVAILABILITY,
   POLICY_RATE_FLOOR,
-  committeeViews,
   detectContradictions,
+  doctrineContext,
   getDifficulty,
   getInstitution,
   getInstrument,
@@ -11,8 +11,8 @@ import {
   availableInstruments,
   setsStandingLevel,
   standingLevel,
+  openDebate,
   projectPackage,
-  staffRecommendation,
   type CommunicationCommitment,
   type CommunicationTone,
   type InstrumentId,
@@ -23,6 +23,9 @@ import {
   type RunSession,
 } from '../../simulation/index.ts'
 import { BalanceSheetPanel } from './BalanceSheetPanel.tsx'
+import { DebatePanel } from './DebatePanel.tsx'
+import { ScoreboardPanel } from './ScoreboardPanel.tsx'
+import type { Scoreboard } from '../game/doctrineScoreboard.ts'
 import { InstrumentBrief } from './InstrumentBrief.tsx'
 import { RateSlider, type GhostMarker } from './RateSlider.tsx'
 import { InstrumentEffectPanel } from './InstrumentEffectPanel.tsx'
@@ -30,9 +33,7 @@ import { formatMagnitude } from './InstrumentStepper.tsx'
 import { guidancePreview } from './guidancePreview.ts'
 import { promiseLedger } from './promiseLedger.ts'
 import { ProjectionPanel } from './ProjectionPanel.tsx'
-import { CommitteeSplitPanel } from './CommitteeSplitPanel.tsx'
 import { CommunicationPanel } from './CommunicationPanel.tsx'
-import { StaffAdvicePanel } from './StaffAdvicePanel.tsx'
 import { StancePreview } from './StancePreview.tsx'
 import { formatMeetings, transmissionLag } from './lag.ts'
 import { pricedInSummary, rateEffectHint } from './rateCopy.ts'
@@ -74,9 +75,12 @@ function formatMove(basisPoints: number): string {
 
 export function PolicyDeskPanel({
   session,
+  scoreboard,
   onConfirm,
 }: {
   readonly session: RunSession
+  /** Which school has been right so far. See `game/doctrineScoreboard.ts`. */
+  readonly scoreboard: Scoreboard
   /**
    * Submits the package. Returns the engine's verdict: a rejected package
    * leaves the run untouched and sends the player back to the desk with the
@@ -113,25 +117,33 @@ export function PolicyDeskPanel({
   const difficultyConfig = getDifficulty(difficulty)
   const showsHints = difficultyConfig.showsPolicyHints
 
-  const advice = useMemo(
-    () =>
-      difficultyConfig.showsStaffRecommendation
-        ? staffRecommendation(session.observation, institution, difficulty)
-        : null,
-    [difficultyConfig, session.observation, institution, difficulty],
-  )
-
-  // Hard replaces the single recommendation with a divided committee rather
-  // than removing advice altogether: an empty screen teaches nothing, while a
-  // disagreement between colleagues reading the same numbers is exactly the
-  // decision the mode is about.
-  const committee = useMemo(
-    () =>
-      difficultyConfig.splitsCommittee
-        ? committeeViews(session.observation, institution, difficulty)
-        : [],
-    [difficultyConfig, session.observation, institution, difficulty],
-  )
+  /**
+   * Who is arguing, and what they say.
+   *
+   * Present at every difficulty, deliberately. The information ladder
+   * withdraws *readings of the economy* as the mode hardens — what the shock
+   * is, where the true gap sits — because reading a situation is the skill
+   * those modes test. An argument about what to do with a reading is not a
+   * reading. Each school here computes its case from the same published
+   * figures the player has, so nothing reaches the table that the player
+   * could not have worked out.
+   */
+  const debate = useMemo(() => {
+    const lastPackage = session.decisions.at(-1)?.package
+    const lastMove =
+      lastPackage?.actions.find((action) => action.instrument === 'policy_rate')
+        ?.magnitude ?? 0
+    return openDebate(
+      doctrineContext({
+        observation: session.observation,
+        institution,
+        currentRate: session.state.stance.targetRate,
+        lastMove,
+        meetingIndex: session.state.meetingIndex,
+        maxMove: range?.max ?? 150,
+      }),
+    )
+  }, [session, institution, range])
 
   /**
    * The lowest move the track offers.
@@ -524,12 +536,13 @@ export function PolicyDeskPanel({
       >
         {bench === 'advice' && (
           <>
-            {advice !== null && (
-              <StaffAdvicePanel recommendation={advice} selectedMove={move} />
-            )}
-            {committee.length > 0 && (
-              <CommitteeSplitPanel views={committee} selectedMove={move} />
-            )}
+            {/* The ten schools, arguing. This replaces the single smooth
+                recommendation: two opposed cases argued well are worth more
+                than one verdict, and the disagreement is the thing a player
+                is actually examined on. The staff rule survives as the
+                engine's benchmark in `toolkitRule`, where it belongs. */}
+            <DebatePanel debate={debate} selectedMove={move} />
+            <ScoreboardPanel board={scoreboard} />
             <p className="mt-3 text-xs text-ink-faint">
               Peak effect around {formatMeetings(lag.peakMeetings)} from now,
               mostly delivered within {formatMeetings(lag.spanMeetings)}. Too

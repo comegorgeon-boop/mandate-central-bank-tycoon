@@ -13,6 +13,7 @@ import {
 import { realiseDue, type LedgerEntry } from '../policy/instrumentLedger.ts'
 import type { SettledPromise } from '../policy/settledPromise.ts'
 import type { CounterfactualLine } from './counterfactualLine.ts'
+import type { Scoreboard } from '../game/doctrineScoreboard.ts'
 import { PolicyDeskPanel } from '../policy/PolicyDeskPanel.tsx'
 import { ReactionPanel } from '../policy/ReactionPanel.tsx'
 import { StanceStrip } from '../policy/StanceStrip.tsx'
@@ -78,6 +79,7 @@ export function MeetingScreen({
   ledger,
   settled,
   counterfactual,
+  scoreboard,
   onConfirm,
 }: {
   readonly session: RunSession
@@ -87,6 +89,8 @@ export function MeetingScreen({
   readonly settled: SettledPromise | null
   /** What the policy has delivered, exactly. Null before the first decision. */
   readonly counterfactual: CounterfactualLine | null
+  /** Which school has been right so far. */
+  readonly scoreboard: Scoreboard
   readonly onConfirm: (pkg: PolicyPackage) => MeetingResult
 }) {
   const [panel, setPanel] = useState<PanelId>('press')
@@ -357,7 +361,11 @@ export function MeetingScreen({
               <DispersionPanel area={session.observation.area} />
             )}
             {panel === 'desk' && (
-              <PolicyDeskPanel session={session} onConfirm={onConfirm} />
+              <PolicyDeskPanel
+                session={session}
+                scoreboard={scoreboard}
+                onConfirm={onConfirm}
+              />
             )}
           </div>
 

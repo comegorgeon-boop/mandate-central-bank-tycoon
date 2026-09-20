@@ -5,6 +5,7 @@ import { useRun } from '../features/game/runContext.ts'
 import { buildMandateReport } from '../features/result/report.ts'
 import { Mascot } from '../components/Mascot.tsx'
 import { closingLine } from '../features/meeting/mascotLine.ts'
+import { DoctrineMandatesPanel } from '../features/result/DoctrineMandatesPanel.tsx'
 
 /**
  * The post-mandate report.
@@ -28,7 +29,7 @@ export default function ResultPage() {
     return <Navigate to={`/play/result/${finished.runId}`} replace />
   }
 
-  const { session, score } = finished
+  const { session, score, scoreboard } = finished
   const { config } = session.state
   const institution = getInstitution(config.institution)
   const outcome = session.outcome
@@ -287,6 +288,8 @@ export default function ResultPage() {
           ]}
         />
       </section>
+
+      <DoctrineMandatesPanel session={session} score={score} board={scoreboard} />
 
       </div>
 

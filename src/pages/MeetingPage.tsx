@@ -45,6 +45,7 @@ export default function MeetingPage() {
       ledger={active.ledger}
       settled={active.settled}
       counterfactual={counterfactual}
+      scoreboard={active.scoreboard}
       onConfirm={submit}
     />
   )

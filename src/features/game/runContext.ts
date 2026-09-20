@@ -10,6 +10,7 @@ import type {
 import type { LedgerEntry } from '../policy/instrumentLedger.ts'
 import type { SettledPromise } from '../policy/settledPromise.ts'
 import type { CounterfactualArms } from './counterfactualRun.ts'
+import type { Scoreboard } from './doctrineScoreboard.ts'
 
 /**
  * The run currently being played, held in memory only.
@@ -43,6 +44,13 @@ export interface ActiveRun {
    * statement rather than an estimate. See `counterfactualRun.ts`.
    */
   readonly arms: CounterfactualArms
+  /**
+   * Which school has been right, and how often.
+   *
+   * Settled by the counterfactual rather than by opinion — see
+   * `doctrineScoreboard.ts`.
+   */
+  readonly scoreboard: Scoreboard
 }
 
 /** A run that has reached its end state, with its score already computed. */
@@ -50,6 +58,13 @@ export interface FinishedRun {
   readonly runId: string
   readonly session: RunSession
   readonly score: ScoreBreakdown
+  /**
+   * The mandate-long record of which school was right when it disagreed.
+   *
+   * Carried across rather than recomputed, because it can only be built
+   * meeting by meeting from the states the decisions were actually taken in.
+   */
+  readonly scoreboard: Scoreboard
 }
 
 export interface StartRunOptions {

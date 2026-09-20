@@ -178,16 +178,17 @@ describe('the toolkit each difficulty actually reaches', () => {
     // No toolkit bench at all: there is nothing behind it to reach.
     expect(screen.queryByRole('tab', { name: 'The toolkit' })).toBeNull()
     expect(screen.queryByRole('heading', { name: /committee is/ })).toBeNull()
-    // The case bench opens by default, and the learning mandate keeps its
-    // reliable adviser on it.
-    expect(screen.getByRole('heading', { name: /The services recommend/ })).toBeTruthy()
+    // The case bench opens by default, and carries the committee arguing —
+    // at every difficulty. An argument about what to do with a reading is not
+    // a reading, so the information ladder has no claim on it.
+    expect(screen.getByRole('heading', { name: 'The committee' })).toBeTruthy()
     openBench('The words')
     expect(screen.queryByText('In what tone?')).toBeNull()
   })
 
   it('opens the balance sheet at medium, with the advice still on the table', () => {
     openTheDesk('medium', 2)
-    expect(screen.getByRole('heading', { name: /The services recommend/ })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'The committee' })).toBeTruthy()
     openBench('The toolkit')
     expect(screen.getByRole('heading', { name: 'Standing settings' })).toBeTruthy()
     expect(screen.getByText('Securities purchases')).toBeTruthy()
@@ -199,7 +200,11 @@ describe('the toolkit each difficulty actually reaches', () => {
 
   it('opens the full toolkit and the free tone at hard, and withdraws the recommendation', () => {
     openTheDesk('hard', 2)
+    // The smooth single recommendation is gone everywhere, replaced by the
+    // schools arguing. What the ladder still withdraws at hard is the shock's
+    // *name*, not the argument about what to do with it.
     expect(screen.queryByRole('heading', { name: /The services recommend/ })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'The committee' })).toBeTruthy()
     openBench('The toolkit')
     expect(screen.getByRole('heading', { name: 'Standing settings' })).toBeTruthy()
     expect(screen.getByText('Interest on reserve balances')).toBeTruthy()
