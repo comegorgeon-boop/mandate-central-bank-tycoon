@@ -370,6 +370,17 @@ export function calculateScore(
         `Inflation sat ${priceRmse.toFixed(2)} points from the ${target.toFixed(1)} % objective on average over the mandate, measured across headline and core.` +
         (supplyRegimeShare > 0.05
           ? ` Costs were being pushed up from outside domestic demand for much of the mandate, so this counts for less than usual here — ${(supplyRegimeShare * 100).toFixed(0)} % of the way toward the regime's own objective, which is the anchor and the total damage rather than the target itself.`
+          : '') +
+        // Said plainly rather than left to be inferred from a small number.
+        // Measured over 150 mandates a bucket, the median hard mandate scores
+        // 0.02 here and a rule reading the latent state directly and closing
+        // the whole Taylor gap every meeting improves the inflation RMSE by
+        // only 8 %: the miss is the shocks, not the policy. That is the mode's
+        // character and it is kept, so the one thing it must not be is a
+        // silent haircut. See docs/BALANCE.md, "price stability at hard is out
+        // of reach".
+        (supplyRegimeShare >= 0.999 && priceRaw < 0.2
+          ? ' Nobody returns inflation to the objective through this much cost-push pressure, and the weight that can move out of this component has already moved. What separates mandates here is how far from target they sat, not whether they got back.'
           : ''),
     },
     {

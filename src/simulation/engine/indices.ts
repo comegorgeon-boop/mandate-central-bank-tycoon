@@ -6,12 +6,14 @@ import {
   EXCHANGE,
   FINANCIAL_CONDITIONS,
   FRAGMENTATION,
+  MARKET_EXPECTATIONS,
   SPREADS,
   SUPPLY_REGIME_BAND,
   TAYLOR,
 } from '../config/model.ts'
 import { clamp } from '../config/bounds.ts'
 import { getInstitution } from '../config/institutions.ts'
+import { POLICY_RATE_FLOOR } from '../config/instruments.ts'
 
 /** Derived quantities shared by several blocks of the model. */
 
@@ -142,6 +144,21 @@ export function taylorBenchmark(
     TAYLOR.inflationWeight * (latent.inflationCore - target) +
     TAYLOR.gapWeight[institution] * latent.outputGap
   )
+}
+
+/**
+ * The lowest policy path markets will price for this institution.
+ *
+ * Lives here rather than in either config file because it is the one place
+ * where the instrument's floor (`POLICY_RATE_FLOOR`, a fact about cash) and
+ * the market block's willingness to price through it
+ * (`MARKET_EXPECTATIONS.belowFloorAllowance`, a fact about traders) have to
+ * agree — and three separate blocks write to `marketExpectedRate`, so if they
+ * do not all read the same floor one of them will walk the variable into the
+ * safety rail. One of them did; see `belowFloorAllowance`.
+ */
+export function pricedPathFloor(institution: Institution): number {
+  return POLICY_RATE_FLOOR[institution] - MARKET_EXPECTATIONS.belowFloorAllowance
 }
 
 /**

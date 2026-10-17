@@ -126,12 +126,27 @@ export const SCORE_SCALES = {
  * is the same mistake `market_prosperity` made in its first form — scoring the
  * weather and calling it policy.
  *
- * What sits above it *is* the chair's doing: at hard the penalty runs at 2.49
- * under competent play against 3.15 under passivity, so the part beyond the
- * tolerance is roughly two thirds the size again under a committee that does
- * nothing.
+ * What sits above it *is* the chair's doing: at hard the penalty runs at a
+ * median 2.93 under competent play against 3.57 under passivity, and its p90 at
+ * 3.73 against 5.18 — so the part beyond the tolerance is half the size again
+ * under a committee that does nothing, and several times the size in the tail.
+ *
+ * **Re-measure it with `dev/cohesion.ts` whenever anything upstream of member
+ * dispersion changes.** It has moved once already, from 2.0 to 2.3: cutting
+ * hard's term to 24 meetings required its events to be 15 % more frequent and
+ * severe to keep the mode as hard, bigger events disperse the area more, and
+ * the floor rose with them. Over 100 competent ECB hard mandates the blended
+ * penalty now never falls below 2.29 and its tenth percentile is 2.49.
+ *
+ * One consequence, recorded because it was not the intention: at medium the
+ * area's dispersion barely responds to policy at all — the penalty runs 2.73
+ * under competent play against 2.78 under passivity — so at this tolerance
+ * medium's cohesion component sits at 1.00 either way. That is better than the
+ * 0.94 against 0.92 it scored before, which charged six per cent of a
+ * component for the union's structure and called it conduct. But it does mean
+ * cohesion is a hard-mode component: see docs/QUESTIONS.md, question 2.
  */
-export const COHESION_TOLERANCE = 2.0
+export const COHESION_TOLERANCE = 2.3
 
 /**
  * How the three dispersions blend into one cohesion penalty.

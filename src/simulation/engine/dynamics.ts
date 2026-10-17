@@ -33,6 +33,7 @@ import { FISCAL_SHOCK, FX_SHOCK_VOLATILITY, SHOCK_PROCESSES } from '../config/sh
 import { convolve, pushLag, tighteningSpeed } from './lags.ts'
 import {
   financialConditionsIndex,
+  pricedPathFloor,
   purchaseEffectiveness,
   expostRealRateGap,
   realPolicyRate,
@@ -608,11 +609,19 @@ export function advanceSubstep(
     MARKET_EXPECTATIONS.taylorWeightBase * (1 - guidanceCredibility)
   const currentWeight = MARKET_EXPECTATIONS.currentWeight
   const totalWeight = guidanceWeight + benchmarkWeight + currentWeight
-  const marketRateTarget =
+  // The Taylor benchmark has no floor: in a deflation it prescribes a deeply
+  // negative rate, and markets will not price a rate the bank cannot set. The
+  // floor is modelled rather than left to the safety rail in `bounds.ts`,
+  // because a nominal path that stops falling while prices keep falling is the
+  // mechanism by which doing nothing becomes a tightening. See
+  // `MARKET_EXPECTATIONS.belowFloorAllowance`.
+  const marketRateTarget = Math.max(
+    pricedPathFloor(inst.id),
     (guidanceWeight * (guided ?? latent.policyRate) +
       benchmarkWeight * benchmark +
       currentWeight * latent.policyRate) /
-    totalWeight
+      totalWeight,
+  )
   next.marketExpectedRate =
     latent.marketExpectedRate +
     MARKET_EXPECTATIONS.adjustment *

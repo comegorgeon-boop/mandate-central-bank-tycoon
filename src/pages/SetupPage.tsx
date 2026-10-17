@@ -52,7 +52,9 @@ const DIFFICULTY_COPY: Readonly<
       'expectations that come unanchored, and tail risks. The full toolkit, and ' +
       'a statement whose tone you choose — so you can say one thing and do ' +
       'another, at a price. Nothing is named, nothing is read for you, and no ' +
-      'recommendation is put to you: the committee argues and you decide.',
+      'recommendation is put to you: the committee argues and you decide. ' +
+      'Returning inflation to the objective is not on the table here; ' +
+      'defending the anchor while it is out of reach is the whole job.',
   },
 }
 

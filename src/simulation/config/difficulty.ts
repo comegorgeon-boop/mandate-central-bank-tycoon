@@ -321,8 +321,20 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     missingObservationProbability: 0.1,
     forecastUncertaintyScale: 1.5,
     publicationLagRelief: 0,
-    eventProbability: 0.7,
-    eventSeverityScale: 1.35,
+    // Hard's term was cut from 32 scheduled meetings to 24 — see
+    // `HARD_MANDATE_MEETINGS` — and length is most of what made hard hard: a
+    // longer mandate is more chances to meet a catastrophe. These two numbers
+    // are the compensation that makes it "shorter and as hard" rather than
+    // simply shorter, and they are measured rather than guessed. At 24 meetings
+    // with the old 0.7 and 1.35 the fed completed 69 % and the ecb 74 %; at
+    // 0.8 and 1.55 they complete 63 % and 62 %, against 57 % and 61 % over the
+    // old four years. Re-measure with `dev/hardLength.ts`.
+    //
+    // Deliberately the *events* and not `shockScale`: a shorter mandate with
+    // more named crises in it is a denser game, while the same mandate with
+    // more ambient variance is only a noisier one.
+    eventProbability: 0.8,
+    eventSeverityScale: 1.55,
     // The real job. Supply weighted above everything else and no ceiling on
     // how much cost-push can be outstanding at once, so shocks pile onto one
     // another and the mandate is decided on how the expectations anchor is

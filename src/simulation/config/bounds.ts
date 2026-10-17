@@ -57,10 +57,18 @@ export const LATENT_BOUNDS: Readonly<
   // is linear in headline inflation, so in a genuine spiral it follows headline
   // upward — and, unlike headline, it *diverges* rather than settling, because
   // the priced path feeds financial conditions which feed the gap which feeds
-  // inflation. Widening does not stop that and is not meant to: this is the one
-  // rail in the file that regularly does the job the file describes. What
-  // reaches it are mandates already ending in `inflation_spiral`, which fires
-  // at 12 % held for three meetings — far below anything that gets here.
+  // inflation. Widening does not stop that and is not meant to.
+  //
+  // This comment used to go on to say that what reached the rail were mandates
+  // already ending in `inflation_spiral`. That was a guess and it was wrong in
+  // its *direction*: measured over 300 hard mandates, every run that touched it
+  // touched the **floor**, in a deflation, because the Taylor benchmark has no
+  // floor and prescribes about -11 at -7 % inflation. That is the diagnosis of
+  // the one standing clamp warning in `npm run sim:sweep`, carried in
+  // docs/BALANCE.md as "not diagnosed" for several sessions. The priced path now
+  // carries its own modelled floor — `MARKET_EXPECTATIONS.belowFloorAllowance` —
+  // which sits above this rail, so this is a safety rail again rather than a
+  // working part of the model.
   marketExpectedRate: [-2, 40],
 
   // Widened from [-8, 12]. Hard deliberately has no `costPushCeiling`, so

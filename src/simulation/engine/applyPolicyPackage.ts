@@ -34,6 +34,7 @@ import {
 import { hashGaussian } from '../rng/prng.ts'
 import { scenarioOf } from '../scenarios/scenarios.ts'
 import { effectivePolicyRate, runSeedString } from './initialState.ts'
+import { pricedPathFloor } from './indices.ts'
 import { repriceMembers } from './members.ts'
 
 /**
@@ -556,8 +557,17 @@ export function applyPolicyPackage(
     const credibilityShare = latent.credibility / 100
     const tone = COMMUNICATION.toneSignal[communication.tone]
 
-    latent.marketExpectedRate +=
-      COMMUNICATION.toneMarketImpact * tone * reach * credibilityShare * crisisAmplifier
+    // Floored, because a dovish statement cannot talk the priced path below a
+    // rate the bank is unable to set. This is the write that walked the
+    // variable into the safety rail in `bounds.ts` during deflationary hard
+    // mandates: `dynamics.ts` had already settled the path at its bottom, and
+    // the statement pushed it through. See
+    // `MARKET_EXPECTATIONS.belowFloorAllowance`.
+    latent.marketExpectedRate = Math.max(
+      pricedPathFloor(institution),
+      latent.marketExpectedRate +
+        COMMUNICATION.toneMarketImpact * tone * reach * credibilityShare * crisisAmplifier,
+    )
     latent.expectedInflationShort -=
       COMMUNICATION.toneExpectationImpact * tone * reach * credibilityShare * crisisAmplifier
     latent.anchoring = clamp(
@@ -713,8 +723,13 @@ export function applyPolicyPackage(
       0,
       1,
     )
-    latent.marketExpectedRate +=
-      jump * (guidance.impliedRatePath - latent.marketExpectedRate)
+    // Floored for the same reason as the statement above: an announced path
+    // below the floor is not a path markets can price.
+    latent.marketExpectedRate = Math.max(
+      pricedPathFloor(institution),
+      latent.marketExpectedRate +
+        jump * (guidance.impliedRatePath - latent.marketExpectedRate),
+    )
   }
 
   // ---- Cost of an internally contradictory package ------------------------

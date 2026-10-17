@@ -177,10 +177,35 @@ describe('the lag is calibrated on the mandate-to-lag ratio', () => {
     })
   }
 
-  it('holds the loop count roughly constant across difficulties', () => {
+  it('keeps every difficulty inside the workable band', () => {
+    // Three to five closed loops. Below three the consequence of a decision
+    // lands after the credits and skill cannot show; far above five the
+    // mandate is long enough that any error can be corrected twice over and
+    // the lag stops being a constraint at all.
+    //
+    // This replaces a max/min ratio under 1.5, and the replacement is the
+    // reason: the ratio was a proxy for the band and it was a worse one. It
+    // passed with all three difficulties at ten loops, and it failed the
+    // moment hard's term was cut to 24 meetings — at 3.0 loops against easy's
+    // 4.8 — even though every mode was still inside the band the design
+    // actually cares about. Asserting the band says what is meant.
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      const loops = MEETING_COUNT[difficulty] / (peakLagMeetings(difficulty) + 1)
+      expect(loops, difficulty).toBeGreaterThanOrEqual(3)
+      expect(loops, difficulty).toBeLessThanOrEqual(5)
+    }
+  })
+
+  it('holds the loop count roughly constant across the two real mandates', () => {
     // Difficulty must not change how many chances the player gets. It changes
     // whether they can react or have to anticipate.
-    const loops = (['easy', 'medium', 'hard'] as const).map(
+    //
+    // Medium and hard only. Easy's `MEETING_COUNT` of 12 is not a mandate
+    // length — easy ends on a goal and its twelve is the number the
+    // transmission calibration needed, with `tutorialGoal.maxMeetings` of 28
+    // as the backstop — so comparing a tutorial's nominal clock against two
+    // full terms was always comparing two different things.
+    const loops = (['medium', 'hard'] as const).map(
       (difficulty) => MEETING_COUNT[difficulty] / (peakLagMeetings(difficulty) + 1),
     )
     expect(Math.max(...loops) / Math.min(...loops)).toBeLessThan(1.5)

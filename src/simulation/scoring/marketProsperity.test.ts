@@ -74,9 +74,14 @@ describe('cohesion is a lever, not a constant', () => {
   // and Italy carries the heaviest debt, neither of which is the chair's
   // doing. Against a measured tolerance it scores about 0.87 and the part that
   // moves is the part that was played for.
+  // A median over twenty-four runs rather than a mean over eight. The mean
+  // over eight was a coin flip and this document has had one of those before:
+  // competent play's cohesion has a long left tail — its p90 penalty of 3.73
+  // scores about 0.24 — so a single torn-apart area moved the average by more
+  // than the thing being measured. `dev/cohesion.ts` prints the distribution.
   function cohesionUnder(choose: 'competent' | 'passive'): number {
-    let total = 0
-    const runs = 8
+    const values: number[] = []
+    const runs = 24
     for (let index = 0; index < runs; index += 1) {
       const session = playRun(
         createRunConfig({
@@ -91,9 +96,10 @@ describe('cohesion is a lever, not a constant', () => {
             : { actions: [], communication: null },
       )
       const score = calculateScore(session.state, session.outcome)
-      total += score.components.find((c) => c.id === 'cohesion')!.raw
+      values.push(score.components.find((c) => c.id === 'cohesion')!.raw)
     }
-    return total / runs
+    values.sort((a, b) => a - b)
+    return values[Math.floor(values.length / 2)]
   }
 
   it('leaves a well-held area near the top of the range', () => {

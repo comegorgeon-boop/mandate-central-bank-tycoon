@@ -26,6 +26,38 @@ export const DT = YEARS_PER_MEETING / SUBSTEPS_PER_MEETING
 /** Sub-steps of history retained for the distributed-lag convolution. */
 export const LAG_KERNEL_LENGTH = 72
 
+/**
+ * Hard's mandate length, which is most of hard's difficulty.
+ *
+ * Measured, not chosen, and the measurement is the reason this is a named
+ * constant instead of a literal in the table below: a longer mandate is more
+ * chances to meet a catastrophe, so length and shock severity are two settings
+ * of the same dial and moving one without the other silently retunes the mode.
+ * `src/simulation/dev/hardLength.ts` re-measures the whole table in a minute.
+ *
+ * | scheduled meetings | fed completes | ecb completes |
+ * | --- | --- | --- |
+ * | 32 | 57 % | 61 % |
+ * | 28 | 63 % | 71 % |
+ * | 24 | 69 % | 74 % |
+ * | 20 | 80 % | 81 % |
+ * | 16 | 86 % | 87 % |
+ *
+ * Four years was the realistic figure and the player's reason for not playing
+ * it: *"it's too long."* Twenty-four meetings is three years — still a full
+ * term, still four decision-to-effect-to-correction loops at hard's seven
+ * meeting transmission lag, and twelve fewer screens of it. The twelve points
+ * of completion that cutting it buys are given back in
+ * `config/difficulty.ts`, where hard's events are correspondingly more frequent
+ * and more severe: at 24 meetings with that compensation, the fed completes
+ * 63 % and the ecb 62 %, against 57 % and 61 % over the old four years.
+ *
+ * So: shorter, and as hard. **To put four years back, set this to 32 and
+ * restore `eventProbability` to 0.7 and `eventSeverityScale` to 1.35.** The two
+ * belong together and the revert is one line each.
+ */
+export const HARD_MANDATE_MEETINGS = 24
+
 /** Mandate length in scheduled meetings, per the difficulty design. */
 export const MEETING_COUNT: Readonly<Record<Difficulty, number>> = {
   // Eighteen months. Was one year, which was simply too short for a decision
@@ -35,7 +67,7 @@ export const MEETING_COUNT: Readonly<Record<Difficulty, number>> = {
   // to be at least as long as the instrument takes to work.
   easy: 12,
   medium: 16, // two-year mandate
-  hard: 32, // four-year full mandate
+  hard: HARD_MANDATE_MEETINGS, // three-year full term, with the shocks to match
 }
 
 /**
@@ -69,6 +101,9 @@ export const LAG_KERNEL: Readonly<
   easy: { peakSubsteps: 6, scale: 2 },
   // 3.5 meetings, about 5 months. 16 meetings / 4.5 ~= 3.6 loops.
   medium: { peakSubsteps: 14, scale: 4.5 },
-  // 7 meetings, about 10 months: the realistic figure. 32 / 8 = 4 loops.
+  // 7 meetings, about 10 months: the realistic figure. 24 / 8 = 3 loops, the
+  // bottom of the workable band — which is the price of the shorter term and
+  // the reason hard is still the mode where the only strategy is to act on the
+  // forecast rather than on the published present.
   hard: { peakSubsteps: 28, scale: 9 },
 }

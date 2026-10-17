@@ -564,6 +564,33 @@ export const MARKET_EXPECTATIONS = {
   /** Weight always retained on the current setting. */
   currentWeight: 0.25,
   adjustment: 2.8,
+  /**
+   * How far below the institution's own effective lower bound markets will
+   * price a policy path, in points.
+   *
+   * Markets do not price a rate the central bank cannot set. They will price
+   * a little *through* a floor — a bank that has gone to −0.50 might go to
+   * −0.75, and short rates traded through the ECB's deposit rate more than
+   * once — but not by much and not for long, because the floor is a fact about
+   * cash and the banking system rather than a preference.
+   *
+   * This exists because the Taylor benchmark has no floor at all. In a
+   * deflation of −7 % the rule prescribes about −11, the priced path followed
+   * it down, and the only thing stopping it was the safety rail at −2 in
+   * `config/bounds.ts` — which is how `marketExpectedRate` came to be the one
+   * standing clamp warning in `npm run sim:sweep`, carried in docs/BALANCE.md
+   * as "not diagnosed" for several sessions. Diagnosed: not an inflation
+   * spiral reaching the upper rail, as the bounds file guessed, but *deflation
+   * reaching the lower one*.
+   *
+   * Making it a modelled floor rather than a rail also matters for what the
+   * model can teach. A nominal path that cannot fall below zero while prices
+   * fall is the *entire* mechanism of 1929-33: the expected real rate rises
+   * exactly when the economy needs it to fall, and policy is tightening while
+   * doing nothing. A model whose priced path happily went to −11 could not
+   * produce that, and the number it produced instead was a clamp warning.
+   */
+  belowFloorAllowance: 0.5,
 } as const
 
 /**
