@@ -12,6 +12,7 @@ import type { LedgerEntry } from '../policy/instrumentLedger.ts'
 import type { SettledPromise } from '../policy/settledPromise.ts'
 import type { CounterfactualArms } from './counterfactualRun.ts'
 import type { Scoreboard } from './doctrineScoreboard.ts'
+import type { RecordEntry } from '../records/storage.ts'
 
 /**
  * The run currently being played, held in memory only.
@@ -66,6 +67,20 @@ export interface FinishedRun {
    * meeting by meeting from the states the decisions were actually taken in.
    */
   readonly scoreboard: Scoreboard
+  /**
+   * The best score this device had in this bucket **before** this mandate.
+   *
+   * Captured by the provider at the moment the run ends, which is the only
+   * moment it can be: `recordResult` writes this run into the records
+   * immediately, so anything reading them afterwards — including the result
+   * screen — sees a history that already contains the run it is trying to
+   * compare against. The achievements panel learned this the hard way, where
+   * the same ordering meant nothing could ever be marked as earned for the
+   * first time.
+   *
+   * Null when this is the first mandate of its kind on this device.
+   */
+  readonly previousBest: RecordEntry | null
 }
 
 export interface StartRunOptions {

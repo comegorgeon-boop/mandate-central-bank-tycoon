@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
   SIMULATION_VERSION,
   calculateScore,
+  scoreBucketKey,
   createRunConfig,
   getInstrument,
   getInstrumentRange,
@@ -31,6 +32,7 @@ import { advanceArms, openArms } from './counterfactualRun.ts'
 import { advanceScoreboard, openScoreboard } from './doctrineScoreboard.ts'
 import { makeRunId } from './seed.ts'
 import {
+  bestByBucket,
   clearSave,
   loadSave,
   recordResult,
@@ -199,11 +201,27 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
       // here, so the result screen never recomputes it from a moving state.
       if (session.outcome.status !== 'active') {
         const score = calculateScore(session.state, session.outcome)
+
+        // Read *before* `recordResult` writes this mandate into the history.
+        // One line, in the only place it can go: everything downstream — the
+        // result screen included — sees a record list that already contains
+        // this run, and comparing a run against a history containing itself
+        // reports every mandate as never having been beaten.
+        const bucket =
+          session.state.config.scenario ??
+          scoreBucketKey(
+            session.state.config.institution,
+            session.state.config.difficulty,
+            SIMULATION_VERSION,
+          )
+        const previousBest = bestByBucket().get(bucket) ?? null
+
         setFinished({
           runId: active.runId,
           session,
           score,
           scoreboard,
+          previousBest,
         })
         // A finished mandate is remembered and the save is dropped: there is
         // nothing left to resume, and a save that outlived its own run would

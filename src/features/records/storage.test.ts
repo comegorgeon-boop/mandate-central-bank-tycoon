@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   SIMULATION_VERSION,
   createRunConfig,
+  scoreBucketKey,
   replayRun,
   startRun,
   submitMeeting,
@@ -168,6 +169,32 @@ describe('records are grouped, never ranked across groups', () => {
     // The best survives; the worst does not.
     expect(Math.max(...kept.map((row) => row.score))).toBe(1800)
     expect(kept.some((row) => row.score === 1000)).toBe(false)
+  })
+
+  it('answers "what was my best before this run" only if asked first', () => {
+    // The ordering trap, which this project has now hit twice: `recordResult`
+    // writes a mandate into the history immediately, so anything that reads
+    // the records *afterwards* is comparing the run against a history that
+    // already contains it — and every mandate reports as having failed to
+    // beat itself. The achievements panel hit it first, where it meant
+    // nothing could ever be marked as earned for the first time.
+    //
+    // There is no API that can prevent this; the only defence is reading
+    // before writing, so this is the test that says so out loud.
+    recordResult(entry(4000))
+
+    const beforeTheSecondRun = bestByBucket().get(
+      scoreBucketKey('fed', 'medium', SIMULATION_VERSION),
+    )
+    expect(beforeTheSecondRun?.score).toBe(4000)
+
+    recordResult(entry(5500))
+    const afterwards = bestByBucket().get(
+      scoreBucketKey('fed', 'medium', SIMULATION_VERSION),
+    )
+    // Read after the write, the "previous" best is the run itself — which is
+    // exactly the wrong answer, and why the provider reads it one line earlier.
+    expect(afterwards?.score).toBe(5500)
   })
 
   it('reports the best of each bucket', () => {

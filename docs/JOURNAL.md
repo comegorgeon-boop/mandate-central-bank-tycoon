@@ -479,3 +479,44 @@ a player who had just watched prices triple. The condition was right — real
 rates below zero with the anchor adrift — and the label presupposed a 1979
 that 1972 did not have. It now names the mechanism, and the written account
 above it carries the period.
+
+---
+
+## 11 — The only league table a game with no server can have
+
+**Did.** The result screen now compares a finished mandate against **your own
+best in the same bucket**, and says so in one line: a personal best in green,
+or the number to beat and the seed it was set on. There is no server, no
+account and no online board — that is the project's first rule — so the only
+comparison available is against yourself. That turns out to be the right one
+anyway: the score means something different in every bucket, and a seeded game
+whose premise is "the same economy, played again" is a game about beating your
+own last attempt. A first mandate gets a different line, pointing at the seed.
+
+**Measured.** 1093 tests, and three mandates played end to end on one browser
+to watch it work: the first says "your first", the second reports 154 short of
+it, the third takes the personal best by 354 — and compares against the *first*
+run's 4,429 rather than the second's 4,275, which is the whole difficulty.
+
+**Bothers me.** That difficulty is the same ordering trap that broke the
+achievements badge two chantiers ago: `recordResult` writes the mandate into
+the history the instant it ends, so anything reading the records *afterwards*
+compares the run against a history containing itself, and every mandate
+reports as having failed to beat itself. I hit it a second time in the same
+week. The fix is the same — read before the write, which here means the
+provider captures the previous best one line earlier and carries it on the
+finished run — and there is now a test in `storage.test.ts` whose only purpose
+is to state the trap out loud, because no API can prevent it.
+
+Also: the audit could only ever reach the "this is your first mandate" branch,
+because every walk runs on a fresh profile. The browser tools can pre-seed a
+finished mandate now, so the comparison itself is a measured screen rather
+than one that only exists for a player who has come back.
+
+**And one I decided not to do.** The phone meeting screen carries 1,518 pixels
+— 1.8 phone-heights — of header, objective, charts and stance strip before the
+tab you came for, at every one of 24 meetings. I measured it intending to cut
+it, and the measurement said the height is *content*: three stacked charts and
+five readings with their provenance, not gloss. Restructuring the game's main
+screen to save scrolling on a page where scrolling is the medium would be
+churn. The board flags it so you can disagree.

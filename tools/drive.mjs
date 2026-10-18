@@ -68,6 +68,14 @@ export async function open({
    * would be measuring a different rasterisation than the player sees.
    */
   deviceScaleFactor = 1,
+  /**
+   * A finished mandate to pre-seed into this browser's records.
+   *
+   * Pass one to reach the result screen's "against yourself" comparison, which
+   * only exists for a device that has finished a mandate of the same kind
+   * before. See the init script below.
+   */
+  priorRecord = null,
 } = {}) {
   const browser = await chromium.launch()
   const context = await browser.newContext({ viewport, reducedMotion, deviceScaleFactor })
@@ -104,18 +112,30 @@ export async function open({
     })
   }
   await context.addInitScript(
-    ([dir, play]) => {
+    ([dir, play, priorRecord]) => {
       try {
         window.localStorage.setItem(
           'mandate.settings.v1',
           JSON.stringify({ direction: dir, playTheInterval: play }),
         )
+        // A mandate this device has already played, when the caller asks for
+        // one. The result screen compares a finished run against the player's
+        // own best in the same bucket, and on a fresh profile there is nothing
+        // to compare against — so the only branch a tool ever reached was the
+        // "your first mandate" one, and the comparison itself was a screen
+        // state no audit had ever measured.
+        if (priorRecord) {
+          window.localStorage.setItem(
+            'mandate.records.v1',
+            JSON.stringify([priorRecord]),
+          )
+        }
       } catch {
         // A context that will not let us write gets the defaults, which is
         // also what a player in a private window gets.
       }
     },
-    [direction, playTheInterval],
+    [direction, playTheInterval, priorRecord],
   )
 
   const page = await context.newPage()

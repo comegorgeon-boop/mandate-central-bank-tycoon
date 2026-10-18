@@ -1,5 +1,11 @@
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { MAX_SCORE, getInstitution, tutorialProgress } from '../simulation/index.ts'
+import {
+  MAX_SCORE,
+  SCENARIOS,
+  getInstitution,
+  tutorialProgress,
+  type RunSession,
+} from '../simulation/index.ts'
 import { LineChart, type ChartSeries } from '../components/LineChart.tsx'
 import { useRun } from '../features/game/runContext.ts'
 import { buildMandateReport } from '../features/result/report.ts'
@@ -8,6 +14,7 @@ import { closingLine } from '../features/meeting/mascotLine.ts'
 import { DoctrineMandatesPanel } from '../features/result/DoctrineMandatesPanel.tsx'
 import { TheStandardPanel } from '../features/result/TheStandardPanel.tsx'
 import { AchievementsPanel } from '../features/result/AchievementsPanel.tsx'
+import { AgainstYourselfPanel } from '../features/result/AgainstYourselfPanel.tsx'
 import { buildTheStandard } from '../features/result/theStandard.ts'
 
 /**
@@ -22,6 +29,21 @@ import { buildTheStandard } from '../features/result/theStandard.ts'
  * component breakdown come after, as the Scorecard — support for the
  * narrative, not the headline.
  */
+/**
+ * What this mandate is, in the words the player chose it by.
+ *
+ * The same grouping the records page and the scoring use — a scenario is its
+ * own bucket, a fictional mandate is its institution and difficulty — written
+ * out so a sentence can contain it.
+ */
+function bucketLabel(session: RunSession): string {
+  const { scenario, institution, difficulty } = session.state.config
+  if (scenario !== null) {
+    return SCENARIOS.find((entry) => entry.id === scenario)?.title ?? scenario
+  }
+  return `${getInstitution(institution).shortName} at ${difficulty}`
+}
+
 export default function ResultPage() {
   const { runId } = useParams()
   const navigate = useNavigate()
@@ -32,7 +54,7 @@ export default function ResultPage() {
     return <Navigate to={`/play/result/${finished.runId}`} replace />
   }
 
-  const { session, score, scoreboard } = finished
+  const { session, score, scoreboard, previousBest } = finished
   const { config } = session.state
   const institution = getInstitution(config.institution)
   const outcome = session.outcome
@@ -293,6 +315,16 @@ export default function ResultPage() {
       </section>
 
       <TheStandardPanel session={session} score={score} />
+
+      {/* Before the doctrines, because this is about the player and that is
+          about the argument. The order a reader wants at the end of a mandate
+          is: what I scored, how it compares with what I have done before, then
+          who in the room turned out to be right. */}
+      <AgainstYourselfPanel
+        score={score}
+        previousBest={previousBest}
+        bucketLabel={bucketLabel(session)}
+      />
 
       <DoctrineMandatesPanel session={session} score={score} board={scoreboard} />
 

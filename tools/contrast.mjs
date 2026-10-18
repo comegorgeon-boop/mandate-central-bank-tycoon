@@ -29,6 +29,7 @@
  * Run with: node tools/contrast.mjs
  */
 
+import { readFileSync } from 'node:fs'
 import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open, openPanel, settleMeeting, startMandate } from './drive.mjs'
 
 /**
@@ -227,6 +228,20 @@ async function audit(page, label) {
   )
 }
 
+
+/**
+ * The engine version, read from the source rather than copied.
+ *
+ * A record's bucket key carries it, so a pre-seeded record written against a
+ * stale version lands in a bucket nothing matches — and the comparison this
+ * exists to reach silently falls back to "this is your first mandate", which
+ * looks exactly like success.
+ */
+const SIMULATION_VERSION = (
+  readFileSync(new URL('../src/simulation/version.ts', import.meta.url), 'utf8')
+    .match(/SIMULATION_VERSION = '([^']+)'/) ?? [, 'unknown']
+)[1]
+
 /** One full mandate in one direction, measured at every screen it has. */
 async function walk({
   direction,
@@ -250,7 +265,27 @@ async function walk({
   toTheEnd = false,
 }) {
   const tag = scenario ?? `${institution}/${difficulty}`
-  const { browser, page, consoleMessages } = await open({ direction })
+  // The play-to-term walk gets a mandate already in its history, so the
+  // result screen's comparison against the player's own best is measured
+  // rather than only its "this is your first" branch.
+  const { browser, page, consoleMessages } = await open({
+    direction,
+    priorRecord: toTheEnd
+      ? {
+          finishedAt: '2026-01-01T00:00:00.000Z',
+          score: 4200,
+          outcome: 'mandate_completed',
+          outcomeLabel: 'Mandate completed',
+          meetingsServed: 16,
+          meetingCount: 16,
+          seed: 'AUDIT-PRIOR',
+          institution,
+          difficulty,
+          scenario,
+          bucket: scenario ?? `${institution}:${difficulty}:${SIMULATION_VERSION}`,
+        }
+      : null,
+  })
 
   const base = process.env.MANDATE_URL ?? 'http://localhost:4173'
   await page.goto(`${base}/`)
