@@ -3,6 +3,7 @@ import type { ObservationSet } from '../types/observation.ts'
 import type { PolicyAction, PolicyPackage } from '../types/policy.ts'
 import type { RunSession } from '../replay/replayRun.ts'
 import {
+  POLICY_RATE_FLOOR,
   availableInstruments,
   getInstrument,
   getInstrumentRange,
@@ -104,8 +105,29 @@ const FRAGMENTATION_SEVERE = 300
 const UNEMPLOYMENT_DISPERSION_BAR = 1.7
 const INFLATION_DISPERSION_BAR = 1.25
 
-/** The tilted recommendation, inside the difficulty's own bounds. */
-function tiltedMove(base: number, tilt: number, difficulty: Difficulty): number {
+/**
+ * The tilted recommendation, inside the difficulty's own bounds **and above
+ * the effective lower bound**.
+ *
+ * The second half was missing and it was a crash. `playRun` throws on a
+ * rejected package, so a rule that proposes a cut through the floor does not
+ * produce a bad mandate — it ends the process. The comment below the caller
+ * records the sweep finding the *base* recommendation doing this on the
+ * thirteenth meeting of an ECB hard mandate; the dispersion tilt could still
+ * do it, and did, at the eighteenth. The ECB's floor is -0.75 and a dovish
+ * tilt on a rate already there asks for -1.00.
+ *
+ * Stated against the rate rather than against the range because that is what
+ * the validator checks: the range is how far the committee may move, and the
+ * floor is where it may not go.
+ */
+function tiltedMove(
+  base: number,
+  tilt: number,
+  difficulty: Difficulty,
+  institution: Institution,
+  currentRate: number,
+): number {
   const instrument = getInstrument('policy_rate')
   if (instrument === undefined) return base
   const range = getInstrumentRange(instrument, difficulty)
@@ -114,7 +136,13 @@ function tiltedMove(base: number, tilt: number, difficulty: Difficulty): number 
   // Snap back onto the increment grid: a bound that is not a multiple of the
   // step would otherwise produce a magnitude the validator rejects for a
   // second, entirely different reason.
-  return Math.round(clamped / range.increment) * range.increment
+  const snapped = Math.round(clamped / range.increment) * range.increment
+  // Then up to the floor, in whole increments, so the result is still on the
+  // grid when it gets there.
+  const lowest =
+    Math.ceil(((POLICY_RATE_FLOOR[institution] - currentRate) * 100) / range.increment) *
+    range.increment
+  return Math.max(lowest, snapped)
 }
 
 /** One step of caution, in basis points. Never more. */
@@ -164,7 +192,13 @@ export function toolkitPackage(
   // rather than on policy, and which the 150-seed sweep found on the thirteenth
   // meeting of an ECB hard mandate.
   const tilt = dispersionTilt(session.observation)
-  const move = tiltedMove(advice?.basisPoints ?? 0, tilt, difficulty)
+  const move = tiltedMove(
+    advice?.basisPoints ?? 0,
+    tilt,
+    difficulty,
+    institution,
+    session.state.stance.targetRate,
+  )
   const actions: PolicyAction[] = []
   if (move !== 0) actions.push({ instrument: 'policy_rate', magnitude: move })
 

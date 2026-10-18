@@ -39,7 +39,7 @@ import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open
  * difference between "nothing failed" and "nothing was looked at" into an
  * error rather than a number nobody reads.
  */
-const MINIMUM_STATES = 260
+const MINIMUM_STATES = 320
 
 /**
  * Measure every text node in the page.
@@ -191,7 +191,7 @@ async function audit(page, label) {
 }
 
 /** One full mandate in one direction, measured at every screen it has. */
-async function walk({ direction, seed, scenario, institution, difficulty, meetings }) {
+async function walk({ direction, seed, scenario, institution, difficulty, meetings, move = 0 }) {
   const tag = scenario ?? `${institution}/${difficulty}`
   const { browser, page, consoleMessages } = await open({ direction })
 
@@ -216,6 +216,17 @@ async function walk({ direction, seed, scenario, institution, difficulty, meetin
     // The desk's second face: the confirmation screen, which is a whole
     // screen and was unmeasured for two of this tool's three blind spots.
     await openPanel(page, 'desk')
+    // Some walks tighten deliberately, to reach the screens that only exist
+    // under pressure. The slider is driven the way a keyboard player drives
+    // it, which also exercises the accessible path.
+    if (move !== 0) {
+      const slider = page.locator('input[type="range"]').first()
+      if (await slider.isVisible().catch(() => false)) {
+        const step = Number((await slider.getAttribute('step')) ?? 25)
+        const max = Number((await slider.getAttribute('max')) ?? 200)
+        await slider.fill(String(Math.min(max, Math.round(move / step) * step)))
+      }
+    }
     await page.getByRole('button', { name: 'Review policy package' }).click()
     await page.waitForSelector('text=Confirm the policy package')
     await audit(page, `${direction}:${tag}:m${meeting}:confirm`)
@@ -258,6 +269,10 @@ async function main() {
     // objective of zero.
     { seed: 'AUDIT-VOLCKER', institution: 'fed', difficulty: 'hard', scenario: 'volcker_1979', meetings: 3 },
     { seed: 'AUDIT-1929', institution: 'fed', difficulty: 'hard', scenario: 'great_contraction_1929', meetings: 3 },
+    // A seed and a policy that produce a demand from the government by the
+    // fourth meeting, because the demand panel is a screen that only exists
+    // under pressure and nothing else in this walk creates any.
+    { seed: 'DEMO-8', institution: 'fed', difficulty: 'hard', scenario: null, meetings: 5, move: 100 },
   ]
 
   const consoleProblems = []

@@ -32,6 +32,7 @@ export const PANELS = [
   'prices',
   'labor',
   'area',
+  'treasury',
   'desk',
 ]
 

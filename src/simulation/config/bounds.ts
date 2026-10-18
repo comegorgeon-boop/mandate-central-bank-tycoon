@@ -46,6 +46,17 @@ export const LATENT_BOUNDS: Readonly<
   fragmentation: [0, 1200],
 
   fiscalImpulse: [-6, 8],
+  // Per cent of GDP. The upper bound is above Japan and the lower is a
+  // government with no net debt, which are the two ends of the real range.
+  publicDebt: [0, 320],
+  // A surplus of 10 % of GDP is Norway; a primary deficit of 20 % is a war or
+  // a pandemic, and 2020 reached about 12 in the United States.
+  primaryBalance: [-20, 10],
+  debtService: [0, 30],
+  // The average coupon on the stock. The floor is negative because the euro
+  // area issued at negative yields for years and those bonds are still in
+  // the stock.
+  effectiveDebtRate: [-1, 25],
   debtPressure: [0, 100],
 
   credibility: [0, 100],

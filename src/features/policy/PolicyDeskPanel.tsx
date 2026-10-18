@@ -9,6 +9,7 @@ import {
   getInstrument,
   getInstrumentRange,
   goldFloorAt,
+  politicalDemand,
   goldLabel,
   rateInstrumentLabel,
   instrumentRangesFor,
@@ -20,6 +21,7 @@ import {
   projectPackage,
   type CommunicationCommitment,
   type CommunicationTone,
+  type DemandResponse,
   type InstrumentId,
   type MeetingResult,
   type OperatingProcedure,
@@ -30,6 +32,7 @@ import {
 } from '../../simulation/index.ts'
 import { BalanceSheetPanel } from './BalanceSheetPanel.tsx'
 import { DebatePanel } from './DebatePanel.tsx'
+import { DemandPanel } from './DemandPanel.tsx'
 import { ScoreboardPanel } from './ScoreboardPanel.tsx'
 import type { Scoreboard } from '../game/doctrineScoreboard.ts'
 import { InstrumentBrief } from './InstrumentBrief.tsx'
@@ -110,6 +113,9 @@ export function PolicyDeskPanel({
   // means it has not been taken; the package then says nothing about it and
   // the committee goes on voting a rate.
   const [procedure, setProcedure] = useState<OperatingProcedure | null>(null)
+  // The answer to a demand from the government, if one has been made. Null
+  // means unanswered, which the engine reads as a quiet refusal.
+  const [demandAnswer, setDemandAnswer] = useState<DemandResponse | null>(null)
   const [reviewing, setReviewing] = useState(false)
   const [validation, setValidation] = useState<PolicyValidation | null>(null)
 
@@ -128,6 +134,9 @@ export function PolicyDeskPanel({
     [instrument, difficulty, session.state.config],
   )
   // Offered once, by one scenario, at one meeting.
+  // A question put to the committee from outside it. Derived from the state,
+  // so the same economy always asks the same thing.
+  const demand = politicalDemand(session.state)
   const procedureOffered =
     scenario !== null &&
     scenario.procedureChoiceAt === session.state.meetingIndex
@@ -281,6 +290,9 @@ export function PolicyDeskPanel({
       channel: 'statement',
     },
     ...(procedureOffered && procedure !== null ? { procedure } : {}),
+    ...(demand !== null && demandAnswer !== null
+      ? { demandResponse: demandAnswer }
+      : {}),
   })
 
   const confirm = (): void => {
@@ -491,6 +503,14 @@ export function PolicyDeskPanel({
             ))}
           </ul>
         </div>
+      )}
+
+      {demand !== null && (
+        <DemandPanel
+          demand={demand}
+          chosen={demandAnswer}
+          onChoose={setDemandAnswer}
+        />
       )}
 
       {procedureOffered && (

@@ -23,6 +23,7 @@ import { StanceStrip } from '../policy/StanceStrip.tsx'
 import { ChangesPanel } from './panels/ChangesPanel.tsx'
 import { DiagnosisPanel } from './panels/DiagnosisPanel.tsx'
 import { DispersionPanel } from './panels/DispersionPanel.tsx'
+import { PublicFinancesPanel } from './panels/PublicFinancesPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MandateChartPanel } from './panels/MandateChartPanel.tsx'
@@ -56,7 +57,15 @@ import { IntervalPlayer } from './IntervalPlayer.tsx'
  * it never reaches this component.
  */
 
-type PanelId = 'press' | 'brief' | 'markets' | 'prices' | 'labor' | 'area' | 'desk'
+type PanelId =
+  | 'press'
+  | 'brief'
+  | 'markets'
+  | 'prices'
+  | 'labor'
+  | 'area'
+  | 'treasury'
+  | 'desk'
 
 // The press sits first because it is what a chair reads first, and because it
 // is now the only place the news is: the major-event banner and the flat wire
@@ -74,6 +83,7 @@ const TABS: readonly { readonly id: PanelId; readonly label: string }[] = [
   { id: 'labor', label: 'Labor' },
   // Only where there is an area to disperse. See `DispersionPanel`.
   { id: 'area', label: 'The Area' },
+  { id: 'treasury', label: 'The Treasury' },
   { id: 'desk', label: 'Policy Desk' },
 ]
 
@@ -392,6 +402,17 @@ export function MeetingScreen({
             )}
             {panel === 'area' && session.observation.area !== null && (
               <DispersionPanel area={session.observation.area} />
+            )}
+            {/* The public finances. Behind a tab, not above it, because they
+                are not in the mandate and a player who never opens this tab
+                has not missed anything they are graded on — they have missed
+                the reason a fiscal-dominance episode turns up later. */}
+            {panel === 'treasury' && (
+              <PublicFinancesPanel
+                config={config}
+                latent={session.state.latent}
+                history={session.state.history.map((entry) => entry.latent)}
+              />
             )}
             {panel === 'desk' && (
               <PolicyDeskPanel

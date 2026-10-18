@@ -151,3 +151,44 @@ of those meetings are a threshold compensating for a model miss and the
 document says so. **1929's depth**: 10 % unemployment against 25 %. The
 Depression is outside the range this engine was built on and I have said so
 rather than forcing it.
+
+## 4 — The public finances, and a government that finally asks for something
+
+**Did.** Two halves of chantier B. The **public finances** are now arithmetic
+rather than an index: the debt stock rolls over at the rate the market charges,
+at a speed set by the average maturity, and the interest bill follows — which
+is Sargent and Wallace's unpleasant arithmetic written as four lines of Euler
+integration. A new Treasury tab shows debt, deficit, debt service and average
+maturity, with exactly one row marked **yours**. Nothing on it is scored; it
+reaches the mandate through the event generator and the pressure gauge, and
+the panel says so in its first paragraph.
+
+The other half is the **dilemma**, which the game did not have. Pressure used
+to accumulate and be watched, and nothing was ever *asked*. Now, above a
+threshold, an office asks: the administration for a cut, the Treasury for a
+hold while it funds itself, a committee of the legislature for a policy
+adjusted before the hearing. Two answers and no third. Yielding collapses the
+pressure and spends credibility, the anchor and the priced path; resisting
+raises the pressure and earns a little back. Saying nothing is a refusal at a
+discount, because a demand that could be ignored for free would not be one.
+**Nobody living is named**, and a test enforces it.
+
+**Measured.** A demand reaches **35 % of hard mandates and 10 % of medium
+ones**, on 10-13 % of meetings in the modes that get them — a hard-mode
+mechanic that occasionally visits medium, which is the right gradient.
+Paired on one seed, a tightening that holds for three years raises debt
+service from 4.00 to 6.61 % of GDP against 4.13 for a chair who held, with the
+lag visible in the shape: +0.24 after one year, +0.62 after two, +2.48 after
+six. 1010 tests, no sweep warnings. The work also found and fixed a **crash**:
+the toolkit benchmark rule's dispersion tilt could propose a cut through the
+ECB's floor, and `playRun` throws on a rejected package — so the committed
+rule that the sweep, the doctrine mandates and the end-of-mandate standard all
+share could kill the process on the eighteenth meeting of some seeds.
+
+**Bothers me.** The demand catalogue is three entries. It is enough to prove
+the mechanic and it is not enough for a mandate that meets one four times —
+the same office will ask the same thing in the same words. That is chantier
+E's problem and I have left it there rather than padding it now. And the
+Nixon-Burns 1972 scenario, which the player named as the obvious seventh, is
+not built: it is recorded in docs/DIRECTION.md as the natural home for this
+mechanic rather than started and left half-done.

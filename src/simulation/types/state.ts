@@ -84,6 +84,49 @@ export interface LatentState {
   // ---- Fiscal -------------------------------------------------------------
   /** Fiscal impulse, % of GDP. Positive is expansionary. */
   fiscalImpulse: number
+  /**
+   * General government debt, per cent of GDP.
+   *
+   * A real quantity rather than an index, because the public finances panel
+   * shows it to the player as one and because the arithmetic that makes it
+   * move is the whole of the Sargent-Wallace mechanism: a debt stock rolls
+   * over at the rate the market charges, and the rate the market charges is
+   * the thing this game is about.
+   *
+   * It is **not in anybody's mandate**. Nothing in `calculateScore.ts` reads
+   * it. It reaches the player through two channels and only two: the event
+   * generator, which makes a fiscal-dominance episode more likely as it
+   * rises, and the pressure gauge. A central bank that was scored on the
+   * deficit would be a treasury.
+   */
+  publicDebt: number
+  /**
+   * The primary balance, per cent of GDP. Negative is a deficit.
+   *
+   * "Primary" means before interest: this is what the government decides, and
+   * `debtService` below is what the central bank's own decisions cost it. The
+   * separation is the point of the panel — one of those two lines is the
+   * player's doing and the other is not.
+   */
+  primaryBalance: number
+  /**
+   * Interest paid on the debt stock, per cent of GDP.
+   *
+   * The living link. It does not follow the policy rate; it follows the
+   * *average rate on the outstanding stock*, which converges on the market
+   * rate at a speed set by the average maturity. A chair who raises by two
+   * points sees this move by almost nothing in the first year and by a great
+   * deal in the fourth, which is the lag the whole mechanism is about.
+   */
+  debtService: number
+  /**
+   * The average rate the existing debt stock actually pays, per cent.
+   *
+   * Carried rather than derived because it has memory: it is the weighted
+   * average coupon of a stock issued over the past several years, and the
+   * only way to get the lag right is to integrate it.
+   */
+  effectiveDebtRate: number
   /** Sovereign debt sustainability pressure, 0..100. */
   debtPressure: number
 

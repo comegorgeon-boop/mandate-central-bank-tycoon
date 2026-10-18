@@ -497,11 +497,69 @@ export function advanceSubstep(
       (boundTarget('reserves', reservesTarget) - latent.reserves) *
       dt
 
-  // ---- 14. Fiscal ---------------------------------------------------------
+  // ---- 14. The public finances --------------------------------------------
+  //
+  // Sargent and Wallace's unpleasant arithmetic, integrated rather than
+  // indexed. See `FISCAL.publicFinances` for the whole argument; the short
+  // version is that a rate rise reaches the interest bill at a speed set by
+  // the average maturity of the debt, and that lag is the mechanism.
+  const pf = FISCAL.publicFinances
+  const maturity = pf.maturityYears[inst.id]
+
+  // The stock rolls over. A share 1/maturity of it reprices each year, at the
+  // long rate the market is charging — which is the policy rate plus the term
+  // premium plus whatever the sovereign's own credit is worth, and is
+  // therefore where the committee's decision actually enters.
+  const marketRate = latent.policyRate + latent.termPremium
+  next.effectiveDebtRate =
+    latent.effectiveDebtRate + (1 / maturity) * (marketRate - latent.effectiveDebtRate) * dt
+
+  next.debtService = (latent.publicDebt * next.effectiveDebtRate) / 100
+
+  // The primary balance: structural, plus the automatic stabilisers, plus
+  // whatever the government has decided to do. Not the player's doing in any
+  // of its three parts, which is the point of showing it separately from the
+  // interest bill, which is.
+  const balanceTarget =
+    pf.structuralBalance[inst.id] +
+    pf.cyclicalBalance * latent.outputGap -
+    pf.impulseBalance * latent.fiscalImpulse
+  next.primaryBalance =
+    latent.primaryBalance +
+    pf.balanceAdjustment * (balanceTarget - latent.primaryBalance) * dt
+
+  // And the ratio itself. The last term is the one people forget and it is
+  // why debt ratios fall in an inflation: the denominator grows in nominal
+  // terms, so a government that inflates its way through pays less of its
+  // income in interest even as the rate rises.
+  const nominalGrowth = latent.realGrowth + latent.inflationHeadline
+  const deficit = next.debtService - next.primaryBalance
+  next.publicDebt =
+    latent.publicDebt + (deficit - (latent.publicDebt * nominalGrowth) / 100) * dt
+
+  // And the index six other blocks read — the term premium, the
+  // fiscal-dominance adviser, the event weights — kept, and now fed by the
+  // ratio rather than replaced by it.
+  //
+  // **Additive, not substituted**, and that distinction is measured rather
+  // than aesthetic. `debtPressure` is not a debt ratio: it is how much the
+  // public finances constrain *this* central bank, and the engine opens the
+  // Fed at 38 and the ECB at 52 although the United States carries the
+  // larger debt — because the euro area's debt is a monetary problem in a way
+  // a sovereign borrowing in its own currency at depth is not. Deriving the
+  // index from the ratio inverted that ordering and moved the Fed's opening
+  // by twenty points, which shifted the tutorial's balance enough to flip a
+  // test that had been stable for sessions.
+  //
+  // So what the ratio contributes is its *rise above where the mandate
+  // started*. A government whose debt is going up because the central bank
+  // raised rates presses on the central bank; a government whose debt is
+  // merely large does not press any harder today than it did yesterday.
   const debtTarget =
     inst.initial.debtPressure +
     FISCAL.debtFromImpulse * latent.fiscalImpulse * 3 +
-    FISCAL.debtFromRealRate * Math.max(0, realPolicyRate(latent)) * 3
+    FISCAL.debtFromRealRate * Math.max(0, realPolicyRate(latent)) * 3 +
+    pf.pressurePerDebtPoint * Math.max(0, latent.publicDebt - inst.initial.publicDebt)
   next.debtPressure =
     latent.debtPressure +
     FISCAL.debtDecay *

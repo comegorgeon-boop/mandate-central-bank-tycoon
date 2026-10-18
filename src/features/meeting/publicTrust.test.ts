@@ -142,8 +142,15 @@ describe('on the seed that prompted this', () => {
     // at the peak, against a ceiling of 85.
     expect(session.state.guidance.brokenPromises).toBe(0)
     expect(worstInflationTerm).toBeGreaterThan(20)
-    // And the rate never rose far enough to be resented in its own right, so
-    // the player was not even being charged for the cure.
-    expect(worstRateTerm).toBe(0)
+    // And the rate is not what the public is unhappy about. This used to
+    // assert an exact zero — the rate never once crossed the tolerance on
+    // this seed — and the exact zero was incidental rather than the claim.
+    // Once the public finances became arithmetic rather than an index, the
+    // debt ratio began feeding the term premium, which moved this seed's path
+    // by enough for the rate to graze the tolerance at one meeting. The claim
+    // the test exists to make is comparative, so it is now stated
+    // comparatively: whatever the rate contributed, the inflation gap
+    // contributed more than twenty times as much.
+    expect(worstRateTerm).toBeLessThan(worstInflationTerm / 20)
   })
 })

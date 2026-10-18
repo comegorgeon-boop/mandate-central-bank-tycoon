@@ -52,6 +52,7 @@ export {
   YEARS_PER_MEETING,
 } from './config/time.ts'
 export { MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
+export { FISCAL } from './config/model.ts'
 export {
   GUIDANCE_DELIVERY_TOLERANCE,
   GUIDANCE_HORIZON_MEETINGS,
@@ -186,6 +187,12 @@ export {
 export { VOLCKER_1979 } from './scenarios/volcker.ts'
 export { goldFloorAt, goldLabel } from './scenarios/goldStandard.ts'
 export { isScheduledMajor } from './scenarios/scheduled.ts'
+export {
+  DEMAND_THRESHOLDS,
+  demandConsequences,
+  politicalDemand,
+} from './politics/demands.ts'
+export type { DemandResponse, PoliticalDemand } from './politics/demands.ts'
 export type {
   OperatingProcedure,
   Scenario,

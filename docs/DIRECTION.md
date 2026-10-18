@@ -401,3 +401,45 @@ is touched.
 
 The player **adopting** a doctrine, which was explicitly put off: later, not in
 that chantier.
+
+---
+
+# Political pressure, the public finances, and the scenario that is missing
+
+Built. What is recorded here is the design, because it constrains anything
+added later.
+
+## Political pressure changes three things, and none of them is the economy
+
+Not a tax on growth, not a term in the Phillips curve. It changes **what
+markets anticipate** (a bank suspected of being about to give in has its
+anchor discounted before it has done anything), **the chance of being
+removed**, and **credibility, if you give in** — which is the part that needed
+building, because until now there was no way to give in.
+
+A demand is therefore a question with two answers and no third, both of them
+priced on screen before either is chosen. A dilemma whose two sides are not
+both legible is a trap, and a trap teaches nothing except to reload.
+
+## The public finances are not in the mandate
+
+Nothing in `calculateScore.ts` reads the debt ratio, the deficit or the
+interest bill. They reach the mandate through the event generator — a
+fiscal-dominance episode is drawn more readily as the ratio climbs — and
+through the pressure gauge. A central bank graded on the deficit would be a
+treasury.
+
+What *is* the player's is one line: debt service, which follows the average
+coupon on the stock, which converges on the rate they set at a speed set by
+the average maturity. The panel marks that row and no other.
+
+## The seventh scenario, and why it is not built
+
+**Nixon and Burns, 1972.** The one nameable case of a central bank giving in,
+documented to the tape, and the obvious home for the mechanic above: a mandate
+whose whole subject is a demand that arrives every meeting and a chairman who
+answered it. It is not built, and if it is built the honesty rules apply
+unchanged — what the office did is in the game and what the man said is not,
+even where a recording exists, because a scenario that quoted one person and
+no other would be making an argument about him rather than about the
+institution.

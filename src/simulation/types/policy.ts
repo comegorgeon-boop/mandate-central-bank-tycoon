@@ -1,4 +1,5 @@
 import type { OperatingProcedure } from './scenario.ts'
+import type { DemandResponse } from '../politics/demands.ts'
 import type { Difficulty, Institution } from './core.ts'
 
 /**
@@ -98,6 +99,18 @@ export interface PolicyPackage {
    * it, and only at the meeting it names. See `types/scenario.ts`.
    */
   readonly procedure?: OperatingProcedure | null
+  /**
+   * The answer to a demand from the government, where one has been made.
+   *
+   * Not an instrument and not a communication: it is a question put to the
+   * committee from outside it, and the answer has consequences in the
+   * institution's standing rather than in the economy. Null or absent means
+   * the committee did not answer, which the engine treats as resisting
+   * quietly — a demand that could be ignored for free would not be a demand.
+   *
+   * See `politics/demands.ts`.
+   */
+  readonly demandResponse?: DemandResponse | null
 }
 
 /**

@@ -36,6 +36,18 @@ import { scenarioOf } from '../scenarios/scenarios.ts'
 import { effectivePolicyRate, runSeedString } from './initialState.ts'
 import { pricedPathFloor } from './indices.ts'
 import { repriceMembers } from './members.ts'
+import { demandConsequences, politicalDemand } from '../politics/demands.ts'
+
+/**
+ * How much of a stated refusal a silent one is worth.
+ *
+ * A committee that lets a public request go unanswered has refused it, and
+ * the engine prices that as resisting at a discount rather than as a third
+ * option. The pressure still rises in full — the government did not get what
+ * it asked for — and only the credit for holding is reduced, because standing
+ * up in public and saying no is the part that is worth something.
+ */
+const SILENCE_DISCOUNT = 0.35
 
 /**
  * Validating and applying a confirmed policy package.
@@ -730,6 +742,35 @@ export function applyPolicyPackage(
       latent.marketExpectedRate +
         jump * (guidance.impliedRatePath - latent.marketExpectedRate),
     )
+  }
+
+  // ---- Answering the government -------------------------------------------
+  //
+  // A demand is a question put to the committee from outside it, and the
+  // answer lands in the institution's standing rather than in the economy.
+  // See `politics/demands.ts` for the whole design and for why there is no
+  // third answer.
+  //
+  // **No answer is an answer.** A committee that leaves a public request
+  // unanswered has declined it, quietly, and the engine treats that as
+  // resisting at a discount: it earns less back than a committee that says no
+  // out loud, and it still raises the pressure. A demand that could be
+  // ignored for free would not be a demand.
+  const demand = politicalDemand(state)
+  if (demand !== null) {
+    const answered = pkg.demandResponse ?? null
+    const effect = demandConsequences(demand, answered ?? 'resist')
+    const quiet = answered === null ? SILENCE_DISCOUNT : 1
+    latent.politicalPressure += effect.politicalPressure
+    latent.credibility += effect.credibility * quiet
+    latent.anchoring = clamp(latent.anchoring + effect.anchoring * quiet, 0, 1)
+    latent.publicTrust += effect.publicTrust
+    if (effect.marketExpectedRate !== 0) {
+      latent.marketExpectedRate = Math.max(
+        pricedPathFloor(institution),
+        latent.marketExpectedRate + effect.marketExpectedRate,
+      )
+    }
   }
 
   // ---- Cost of an internally contradictory package ------------------------

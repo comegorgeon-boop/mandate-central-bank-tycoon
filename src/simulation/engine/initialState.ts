@@ -6,7 +6,7 @@ import { clamp } from '../config/bounds.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { MEETING_COUNT } from '../config/time.ts'
-import { BANKING, VOLATILITY } from '../config/model.ts'
+import { BANKING, FISCAL, VOLATILITY } from '../config/model.ts'
 import { INSTRUMENT_EFFECTS } from '../config/instruments.ts'
 import { applyOpeningCrisis } from '../events/openingCrisis.ts'
 import { fillLag } from './lags.ts'
@@ -302,6 +302,11 @@ export function createInitialState(
   // the area's structure, not of the seed.
   const members = createMembers(config.institution)
 
+  // Drawn once and read twice: the index the model has always used, and the
+  // debt ratio the public finances panel shows. Pulling a second draw for the
+  // ratio would reseed every opening in the game — see the note below.
+  const drawnDebtPressure = clamp(base.debtPressure + noise(6), 10, 90)
+
   const latent: LatentState = {
     inflationHeadline: headline,
     inflationCore: core,
@@ -339,7 +344,34 @@ export function createInitialState(
     fragmentation: clamp(base.fragmentation + noise(base.fragmentation * 0.2), 0, 400),
 
     fiscalImpulse: clamp(noise(0.7), -3, 3),
-    debtPressure: clamp(base.debtPressure + noise(6), 10, 90),
+    debtPressure: drawnDebtPressure,
+
+    // The public finances open consistent with themselves and **without
+    // consuming a single random draw**.
+    //
+    // Both halves matter. Consistent, because the interest bill *is* the
+    // stock times the average coupon and a starting state where it was not
+    // would take a year of simulated time to stop being wrong on the panel.
+    // And without a draw, because every subsequent draw in this function
+    // depends on the order of the ones before it: an earlier version pulled
+    // three numbers here and reseeded every fictional opening in the game,
+    // which flipped a tutorial balance test that had been stable for
+    // sessions. The debt ratio is derived from the fiscal pressure already
+    // drawn above, which is the same information read twice rather than
+    // twice as much randomness.
+    ...(() => {
+      const debt =
+        base.publicDebt * (1 + (drawnDebtPressure - base.debtPressure) / 100)
+      // The average coupon on a stock issued over the past several years sits
+      // a little above the policy rate of the day, because the curve slopes.
+      const effective = clamp(base.policyRate + 0.6, 0, 20)
+      return {
+        publicDebt: clamp(debt, 20, 260),
+        effectiveDebtRate: effective,
+        debtService: (debt * effective) / 100,
+        primaryBalance: FISCAL.publicFinances.structuralBalance[config.institution],
+      }
+    })(),
 
     credibility,
     publicTrust: clamp(70 + noise(8), 35, 90),

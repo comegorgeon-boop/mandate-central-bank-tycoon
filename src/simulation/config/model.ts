@@ -872,4 +872,80 @@ export const FISCAL = {
   debtFromImpulse: 2.2,
   debtFromRealRate: 1.8,
   debtDecay: 0.35,
+
+  /**
+   * The public finances, as arithmetic rather than as an index.
+   *
+   * ## Why this exists
+   *
+   * The unpleasant monetarist arithmetic (Sargent and Wallace, 1981). A
+   * central bank that raises rates raises the interest bill of the government
+   * it serves, and if that government will not or cannot close the gap, the
+   * bill is eventually paid by the central bank — which is to say by
+   * inflation. The whole argument turns on a *lag*: the rate rises today and
+   * the bill rises over the years it takes the debt stock to roll over.
+   *
+   * So the model integrates the stock rather than indexing it:
+   *
+   *     effectiveRate → longRate, at 1/maturity a year
+   *     debtService   = debt × effectiveRate / 100
+   *     deficit       = debtService − primaryBalance
+   *     debt          += deficit − debt × nominal growth / 100
+   *
+   * The last term is the one people forget and it is why debt ratios fall in
+   * an inflation: the denominator grows. It is also why this scenario's own
+   * 1979 chairman was accused of making the deficit worse and 1983's was not.
+   *
+   * ## What it is *not*
+   *
+   * Not in the score. Nothing in `calculateScore.ts` reads any of these. They
+   * reach the player through the event generator — a high debt ratio makes a
+   * fiscal-dominance episode more likely to be drawn — and through the panel
+   * that shows them. A central bank scored on the deficit would be a treasury.
+   */
+  publicFinances: {
+    /**
+     * Average maturity of the debt stock, in years, per institution.
+     *
+     * The United States Treasury's weighted average maturity has run near six
+     * years for most of the past two decades; the euro area's aggregate is
+     * longer, nearer eight, because its members issue further out. These are
+     * the real orders of magnitude and they are the single number that
+     * decides how long a rate rise takes to show up in the interest bill.
+     */
+    maturityYears: { fed: 6, ecb: 8 },
+    /**
+     * How far the primary balance moves with the cycle, per point of output
+     * gap.
+     *
+     * Automatic stabilisers: revenue falls and transfers rise in a recession
+     * without anybody deciding anything. Half a point of balance per point of
+     * gap is the standard estimate for an advanced economy.
+     */
+    cyclicalBalance: 0.5,
+    /** And how far it moves with a discretionary fiscal impulse. */
+    impulseBalance: 0.9,
+    /** The structural primary balance each institution reverts to. */
+    structuralBalance: { fed: -2.5, ecb: -1.0 },
+    /** Speed at which the primary balance returns to that. */
+    balanceAdjustment: 0.8,
+    /**
+     * Index points of fiscal pressure per point of debt ratio **above where
+     * the mandate opened**.
+     *
+     * The link between the two notions, and it is additive rather than a
+     * substitution. `debtPressure` is not a debt ratio: it is how much the
+     * public finances constrain *this* central bank, and the engine opens the
+     * Fed at 38 and the ECB at 52 although the United States carries the
+     * larger debt — because the euro area's debt is a monetary problem in a
+     * way a sovereign borrowing in its own currency at depth is not.
+     *
+     * What the ratio contributes is therefore its *rise*. At 0.45, a debt
+     * ratio twenty points higher than it opened adds nine points of pressure,
+     * which is about a quarter of the Fed's opening level: enough to move the
+     * term premium and to make a fiscal-dominance episode visibly likelier,
+     * and not enough to swamp everything else in the block.
+     */
+    pressurePerDebtPoint: 0.45,
+  },
 } as const
