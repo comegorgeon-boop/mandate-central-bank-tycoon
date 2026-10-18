@@ -61,9 +61,16 @@ export async function open({
   playTheInterval = true,
   reducedMotion = 'no-preference',
   settleAnimations = true,
+  /**
+   * Rendering scale. Below 1 downsamples, which the screenshot board uses to
+   * keep a committed set of several hundred full-page captures to a sane size.
+   * The contrast audit never touches it: a measurement taken at half scale
+   * would be measuring a different rasterisation than the player sees.
+   */
+  deviceScaleFactor = 1,
 } = {}) {
   const browser = await chromium.launch()
-  const context = await browser.newContext({ viewport, reducedMotion })
+  const context = await browser.newContext({ viewport, reducedMotion, deviceScaleFactor })
 
   /**
    * Run every animation and transition to its end immediately.

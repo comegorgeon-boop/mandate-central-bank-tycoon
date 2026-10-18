@@ -50,9 +50,23 @@ const MANDATES = [
 /** Every shot taken, in the order it was taken. */
 const shots = []
 
+/**
+ * JPEG, not PNG, and the quality is a deliberate number.
+ *
+ * The board is committed — it is the player's only review channel while this
+ * runs unattended, and a board that lives only on the machine that built it is
+ * no channel at all. Four hundred and ninety-two full-page PNGs came to
+ * **132 MB**, which is not a thing to put in a git history. The same shots as
+ * JPEG at this quality are an order of magnitude smaller and lose nothing that
+ * matters here: what the board is read for is layout, density, colour and
+ * whether a screen is blank, and none of those survive or fail on chroma
+ * subsampling. Anything that needs pixels can be re-shot in a second.
+ */
+const SHOT_QUALITY = 62
+
 async function shoot(page, { mandate, direction, size, screen }) {
   const name = `${mandate}--${screen}--${direction}--${size}`.replace(/[^a-z0-9.-]+/gi, '_')
-  const file = `${SHOTS}/${name}.png`
+  const file = `${SHOTS}/${name}.jpg`
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))))
 
   // What a photograph cannot show, measured instead.
@@ -79,8 +93,8 @@ async function shoot(page, { mandate, direction, size, screen }) {
     })(),
   }))
 
-  await page.screenshot({ path: file, fullPage: true })
-  shots.push({ mandate, direction, size, screen, file: `shots/${name}.png`, ...metrics })
+  await page.screenshot({ path: file, fullPage: true, type: 'jpeg', quality: SHOT_QUALITY })
+  shots.push({ mandate, direction, size, screen, file: `shots/${name}.jpg`, ...metrics })
   process.stderr.write(
     `  ${mandate} ${direction} ${size} ${screen}` +
       `${metrics.sideways ? `  SIDEWAYS SCROLL: ${metrics.overflowing}` : ''}\n`,
@@ -88,7 +102,16 @@ async function shoot(page, { mandate, direction, size, screen }) {
 }
 
 async function walk({ mandate, direction, size }) {
-  const { browser, page } = await open({ direction, viewport: VIEWPORTS[size] })
+  // Rendered at half scale. The board is committed and it is read for layout,
+  // density, colour and whether a screen is blank — none of which needs a
+  // retina pixel. At full scale the four hundred and ninety-two shots came to
+  // 132 MB as PNG and 69 MB as JPEG, which is not a thing to put in a git
+  // history that will be rewritten every time a screen changes.
+  const { browser, page } = await open({
+    direction,
+    viewport: VIEWPORTS[size],
+    deviceScaleFactor: 0.5,
+  })
   const base = { mandate: mandate.id, direction, size }
   const BASE_URL = process.env.MANDATE_URL ?? 'http://localhost:4173'
 
@@ -234,17 +257,54 @@ ${rows}
 `
 }
 
+/**
+ * How many browsers run at once.
+ *
+ * Sixteen walks, each of which plays a whole mandate to its end so the result
+ * screen can be photographed — easy runs to twenty-eight meetings. Serially
+ * that is over two hours, which is long enough that the board stops being
+ * rebuilt every time it should be, and a board that is not current is worse
+ * than no board because it is believed. Four at a time on an ordinary machine
+ * is about the point where the browsers start contending for CPU rather than
+ * for wall clock.
+ */
+const CONCURRENCY = 4
+
+/** Run `jobs` with at most `limit` in flight, preserving nothing but results. */
+async function inParallel(jobs, limit) {
+  const queue = [...jobs]
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    for (let job = queue.shift(); job !== undefined; job = queue.shift()) {
+      await job()
+    }
+  })
+  await Promise.all(workers)
+}
+
 async function main() {
   rmSync(SHOTS, { recursive: true, force: true })
   mkdirSync(SHOTS, { recursive: true })
 
+  const jobs = []
   for (const mandate of MANDATES) {
     for (const direction of DIRECTIONS) {
       for (const size of ['desktop', 'phone']) {
-        await walk({ mandate, direction, size })
+        jobs.push(() => walk({ mandate, direction, size }))
       }
     }
   }
+  await inParallel(jobs, CONCURRENCY)
+
+  // Deterministic order, because the walks no longer finish in the order they
+  // started and a board whose rows reshuffled between builds would be
+  // impossible to diff by eye.
+  shots.sort(
+    (a, b) =>
+      a.mandate.localeCompare(b.mandate) ||
+      a.screen.localeCompare(b.screen) ||
+      a.direction.localeCompare(b.direction) ||
+      a.size.localeCompare(b.size),
+  )
 
   writeFileSync(`${OUT}/index.html`, render())
   console.log('')
