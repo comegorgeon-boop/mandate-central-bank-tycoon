@@ -39,7 +39,7 @@ import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open
  * difference between "nothing failed" and "nothing was looked at" into an
  * error rather than a number nobody reads.
  */
-const MINIMUM_STATES = 320
+const MINIMUM_STATES = 500
 
 /**
  * Measure every text node in the page.
@@ -228,7 +228,27 @@ async function audit(page, label) {
 }
 
 /** One full mandate in one direction, measured at every screen it has. */
-async function walk({ direction, seed, scenario, institution, difficulty, meetings, move = 0, first = false }) {
+async function walk({
+  direction,
+  seed,
+  scenario,
+  institution,
+  difficulty,
+  meetings,
+  move = 0,
+  first = false,
+  /**
+   * Play to the end of the term, auditing only what is at the end of it.
+   *
+   * The result screen needs a *finished* mandate to exist, and every other
+   * walk here stops after three to five meetings — so for most of this
+   * project's life the report was the one screen every player reaches and the
+   * audit had never measured. This mode plays the term out without measuring
+   * each meeting, which costs a minute and buys the report, its disclosures
+   * and the achievements on it.
+   */
+  toTheEnd = false,
+}) {
   const tag = scenario ?? `${institution}/${difficulty}`
   const { browser, page, consoleMessages } = await open({ direction })
 
@@ -252,10 +272,27 @@ async function walk({ direction, seed, scenario, institution, difficulty, meetin
   await audit(page, `${direction}:${tag}:setup`)
   await audit(page, `${direction}:${tag}:briefing`)
 
-  await enterFirstMeeting(page)
+  // With the hook, so the first-meeting explanation is measured. It exists
+  // only on a fresh profile at this one moment, and every walk here runs on a
+  // fresh profile — so it is in front of the player on the most common path
+  // through the game and was, until this line, never audited at all.
+  await enterFirstMeeting(page, async (kind) => {
+    await audit(page, `${direction}:${tag}:${kind}`)
+  })
 
   for (let meeting = 1; meeting <= meetings; meeting += 1) {
     if (await isResult(page)) break
+
+    if (toTheEnd) {
+      // Straight through. The desk is measured by every other walk; what is
+      // not measured anywhere else is what comes after the last meeting.
+      await openPanel(page, 'desk')
+      await page.getByRole('button', { name: 'Review policy package' }).click()
+      await page.waitForSelector('text=Confirm the policy package')
+      await page.getByRole('button', { name: 'Confirm and advance' }).click()
+      if ((await settleMeeting(page)) === 'result') break
+      continue
+    }
 
     for (const panel of PANELS) {
       if (await openPanel(page, panel)) {
@@ -292,6 +329,11 @@ async function walk({ direction, seed, scenario, institution, difficulty, meetin
 
   if (await isResult(page)) {
     await audit(page, `${direction}:${tag}:result`)
+    if (toTheEnd) {
+      // The achievements panel in its earned state, which is a different set
+      // of tokens from the dimmed unearned rows the standing-page walk sees.
+      await audit(page, `${direction}:${tag}:result:earned`)
+    }
     // The result screen's own disclosures, which are a click each.
     const buttons = page.locator('summary')
     const count = await buttons.count()
@@ -299,6 +341,15 @@ async function walk({ direction, seed, scenario, institution, difficulty, meetin
       await buttons.nth(i).click().catch(() => {})
     }
     await audit(page, `${direction}:${tag}:result:open`)
+
+    if (toTheEnd) {
+      // And the records page with something on it: a finished mandate in a
+      // group, and earned achievements beside unearned ones. The standing-page
+      // pass above measures it empty, which is a different screen.
+      await page.goto(`${base}/records`)
+      await page.waitForSelector('main h1')
+      await audit(page, `${direction}:page:records:filled`)
+    }
   }
 
   await browser.close()
@@ -323,6 +374,17 @@ async function main() {
     // fourth meeting, because the demand panel is a screen that only exists
     // under pressure and nothing else in this walk creates any.
     { seed: 'DEMO-8', institution: 'fed', difficulty: 'hard', scenario: null, meetings: 5, move: 100 },
+    // And one mandate served to term, for the screens that only exist after
+    // the last meeting: the report, its disclosures, and the achievements
+    // panel on it. Nothing above ever reaches them.
+    {
+      seed: 'AUDIT-TERM',
+      institution: 'fed',
+      difficulty: 'easy',
+      scenario: null,
+      meetings: 40,
+      toTheEnd: true,
+    },
   ]
 
   const consoleProblems = []

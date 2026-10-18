@@ -7,6 +7,8 @@ import { Mascot } from '../components/Mascot.tsx'
 import { closingLine } from '../features/meeting/mascotLine.ts'
 import { DoctrineMandatesPanel } from '../features/result/DoctrineMandatesPanel.tsx'
 import { TheStandardPanel } from '../features/result/TheStandardPanel.tsx'
+import { AchievementsPanel } from '../features/result/AchievementsPanel.tsx'
+import { buildTheStandard } from '../features/result/theStandard.ts'
 
 /**
  * The post-mandate report.
@@ -293,6 +295,24 @@ export default function ResultPage() {
       <TheStandardPanel session={session} score={score} />
 
       <DoctrineMandatesPanel session={session} score={score} board={scoreboard} />
+
+      {/* Last, because it is the lightest thing on the page and the written
+          account is the point. Whether the mandate beat the path history took
+          is computed once, here, from the same comparison the standard panel
+          above builds — wrapped, because that replay is the one that blanked
+          this screen once already. */}
+      <AchievementsPanel
+        session={session}
+        score={score}
+        beatTheStandard={(() => {
+          try {
+            const standard = buildTheStandard(session, score)
+            return standard !== null && score.score > standard.replay.score.score
+          } catch {
+            return false
+          }
+        })()}
+      />
 
       </div>
 

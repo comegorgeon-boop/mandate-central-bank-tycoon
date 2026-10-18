@@ -5,7 +5,7 @@ import {
   type RunConfig,
   type SeriesId,
 } from '../../../simulation/index.ts'
-import { TrendChart } from '../../../components/TrendChart.tsx'
+import { TrendChart, readings } from '../../../components/TrendChart.tsx'
 
 /**
  * The mandate so far, as three lines.
@@ -108,6 +108,16 @@ export function MandateChartPanel({
       >
         The mandate so far
       </h2>
+
+      {/* Said once, above all three, and only while it is true of all three:
+          a per-series copy of this sentence turned the opening panel into a
+          column of identical apologies. */}
+      {plotted.every(({ reading }) => readings(reading.trend) < 2) && (
+        <p className="mt-1 text-xs text-ink-faint">
+          No trends yet — two published readings are needed before a line means
+          anything.
+        </p>
+      )}
 
       <div className="mt-3 grid gap-5 sm:grid-cols-3">
         {plotted.map(({ entry, reading }) => {

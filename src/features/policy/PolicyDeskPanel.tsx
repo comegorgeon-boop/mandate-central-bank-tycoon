@@ -798,6 +798,7 @@ export function PolicyDeskPanel({
       <button
         type="button"
         onClick={() => setReviewing(true)}
+        data-guide="review"
         className="mt-5 rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
       >
         Review policy package

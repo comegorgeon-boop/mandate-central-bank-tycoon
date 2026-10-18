@@ -180,10 +180,18 @@ export async function startMandate(
   await page.waitForSelector('button:has-text("Enter the first meeting")')
 }
 
-/** Leave the briefing and land in meeting one. */
-export async function enterFirstMeeting(page) {
+/**
+ * Leave the briefing and land in meeting one.
+ *
+ * `onTransient` is passed straight through, and that matters more here than
+ * anywhere else: the first-meeting explanation only ever appears at this exact
+ * moment, on a browser that has never played. A caller that dropped the hook
+ * would click through the one screen in the game that cannot be reached any
+ * other way — which is what both tools did until this took a parameter.
+ */
+export async function enterFirstMeeting(page, onTransient = null) {
   await page.getByRole('button', { name: 'Enter the first meeting' }).click()
-  await settleMeeting(page)
+  await settleMeeting(page, onTransient)
 }
 
 /**
@@ -203,7 +211,12 @@ export async function settleMeeting(page, onTransient = null) {
       'button:has-text("Skip to the meeting"), button:has-text("Open the meeting")',
     )
     const reaction = page.locator('button:has-text("Continue to the next meeting")')
-    const tablist = page.locator('[role="tablist"]')
+    // `first()`, and this is load-bearing. The desk panel has a tablist of its
+    // own, so any screen with the desk tab open has two — and a bare locator
+    // then throws for strict-mode ambiguity, which the `catch` below turns
+    // into "no meeting here", which is a lie. The first-meeting guide opens
+    // the desk tab, which is how this finally surfaced.
+    const tablist = page.locator('[role="tablist"]').first()
 
     // `first()` because the interval player's two labels are one button in two
     // states, and a selector listing both would otherwise be strict-mode
@@ -229,6 +242,29 @@ export async function settleMeeting(page, onTransient = null) {
     if (await reaction.isVisible().catch(() => false)) {
       if (onTransient) await onTransient('reaction')
       await reaction.click()
+      continue
+    }
+
+    // The first-meeting explanation, which is a modal overlay in front of the
+    // meeting. Checked *before* the tablist, deliberately: the tablist is
+    // visible underneath it, so a check in the other order would report
+    // "meeting" and then click tabs that the overlay was swallowing.
+    //
+    // Each step is its own screen and is handed to `onTransient` as one, so
+    // the board photographs all four and the audit measures all four. Then it
+    // is clicked through to the end rather than skipped, because skipping it
+    // would leave the last step — the only one that names the confirm button —
+    // permanently unphotographed.
+    const guide = page.locator('[data-guide-overlay]')
+    if (await guide.isVisible().catch(() => false)) {
+      for (let step = 1; step <= 6; step += 1) {
+        const next = page.locator('[data-guide-next]')
+        if (!(await next.isVisible().catch(() => false))) break
+        if (onTransient) await onTransient(`guide-${step}`)
+        await next.click()
+        await page.waitForTimeout(250)
+        if (!(await guide.isVisible().catch(() => false))) break
+      }
       continue
     }
 

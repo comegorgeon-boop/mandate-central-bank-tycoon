@@ -45,6 +45,8 @@ import {
 
 const SAVE_KEY = 'mandate.save.v1'
 const RECORDS_KEY = 'mandate.records.v1'
+const ACHIEVEMENTS_KEY = 'mandate.achievements.v1'
+const GUIDE_KEY = 'mandate.guide-seen.v1'
 
 /** The most finished mandates kept per bucket. */
 const PER_BUCKET = 5
@@ -185,6 +187,75 @@ export function clearRecords(): void {
   } catch {
     // As above.
   }
+}
+
+/**
+ * Achievements earned on this device, with the date each was first earned.
+ *
+ * Earned-ness is monotone: a later mandate that does not repeat a feat does
+ * not take it away. That is the one piece of state here that is *not* derived
+ * from a single run — the runs are, and this is the union of them — so it is
+ * stored rather than recomputed.
+ */
+export function readAchievements(): Readonly<Record<string, string>> {
+  const stored = read<Record<string, string>>(ACHIEVEMENTS_KEY, {})
+  return stored !== null && typeof stored === 'object' ? stored : {}
+}
+
+/** Record newly earned achievements. Returns the ones that are new. */
+export function recordAchievements(ids: readonly string[]): readonly string[] {
+  const existing = readAchievements()
+  const fresh = ids.filter((id) => existing[id] === undefined)
+  if (fresh.length === 0) return []
+  const now = new Date().toISOString()
+  write(ACHIEVEMENTS_KEY, {
+    ...existing,
+    ...Object.fromEntries(fresh.map((id) => [id, now])),
+  })
+  return fresh
+}
+
+/**
+ * Whether this browser has been shown what a meeting is.
+ *
+ * One flag, set the moment the explanation opens rather than when it is
+ * dismissed: a player who reloads halfway through it has already seen it, and
+ * an explanation that comes back after a refresh is a bug the player cannot
+ * report in any way that sounds like one.
+ */
+export function hasSeenGuide(): boolean {
+  return read<boolean>(GUIDE_KEY, false) === true
+}
+
+export function markGuideSeen(): void {
+  write(GUIDE_KEY, true)
+}
+
+export function clearGuideSeen(): void {
+  try {
+    globalThis.localStorage?.removeItem(GUIDE_KEY)
+  } catch {
+    // As above.
+  }
+}
+
+export function clearAchievements(): void {
+  try {
+    globalThis.localStorage?.removeItem(ACHIEVEMENTS_KEY)
+  } catch {
+    // As above.
+  }
+}
+
+/** Which historical scenarios have been served to term on this device. */
+export function scenariosCompleted(): ReadonlySet<string> {
+  const done = new Set<string>()
+  for (const entry of readRecords()) {
+    if (entry.scenario !== null && entry.outcome === 'mandate_completed') {
+      done.add(entry.scenario)
+    }
+  }
+  return done
 }
 
 /** The best score in each bucket, keyed by bucket. */

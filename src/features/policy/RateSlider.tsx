@@ -167,7 +167,12 @@ export function RateSlider({
           is transparent-tracked, so the handle sits over them rather than
           beside them — a reference the handle cannot reach is a reference the
           player cannot read a distance against. */}
-      <div className="relative mt-9 px-0.5 pb-1">
+      {/* `data-guide` anchors the first-meeting explanation. It rings the
+          track and nothing else: an earlier version wrapped the whole slider
+          block — label, projection fans, the paragraph that explains the marks
+          — and on a phone the "spotlight" came out taller than the viewport,
+          which is a dimmed screen rather than a thing being pointed at. */}
+      <div className="relative mt-9 px-0.5 pb-1" data-guide="rate">
         {drawn.map((marker) => (
           <div
             key={marker.id}
