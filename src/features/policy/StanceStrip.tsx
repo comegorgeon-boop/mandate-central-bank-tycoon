@@ -114,6 +114,21 @@ export function StanceStrip({
   const stance = readStance(observation)
   const change = readStanceChange(observation, previousObservation)
   const showsApproval = difficulty !== 'easy'
+  /**
+   * Whether each figure carries its own definition.
+   *
+   * The learning mandate only. A chair on medium has met the real rate; a
+   * definition repeated at the top of every screen of every meeting of their
+   * forty-eighth mandate is not teaching anything, it is four lines of prose
+   * standing between five numbers and the charts underneath them. The *change*
+   * since the last meeting is kept at every difficulty, because that is a
+   * reading rather than a gloss.
+   *
+   * This is the density rule applied where it bites: less text on the screen,
+   * never more, and nothing removed from the game — the definitions are still
+   * on the indicator panels, under every series, at every difficulty.
+   */
+  const explains = difficulty === 'easy'
   const trust = readPublicTrust(observation, institution, objective, sustainable)
   const credibility = observation.indicators.credibility_index?.value ?? null
   const previousCredibility =
@@ -156,7 +171,9 @@ export function StanceStrip({
             </span>
             <span className="mt-0.5 block text-xs text-onwood-soft">
               {change === null
-                ? 'The rate you set. On its own it says nothing about tight or loose.'
+                ? explains
+                  ? 'The rate you set. On its own it says nothing about tight or loose.'
+                  : 'The rate you set.'
                 : `${signed(change.nominal)} since the last meeting.`}
             </span>
           </dd>
@@ -172,7 +189,7 @@ export function StanceStrip({
               Policy rate minus expected inflation
               {stance.expectedInflation !== null &&
                 ` (${stance.expectedInflation.toFixed(2)} %)`}
-              . This is the rate the economy responds to.
+              {explains ? '. This is the rate the economy responds to.' : '.'}
             </span>
           </dd>
         </div>
@@ -192,7 +209,9 @@ export function StanceStrip({
                 ? `${credibilityMove > 0 ? '+' : '−'}${Math.abs(credibilityMove)} since ` +
                   'the last meeting. '
                 : ''}
-              How far your statements are believed — it scales everything they do.
+              {explains
+                ? 'How far your statements are believed — it scales everything they do.'
+                : ''}
             </span>
           </dd>
         </div>
@@ -219,7 +238,9 @@ export function StanceStrip({
                 ? `${approvalMove > 0 ? '+' : '−'}${Math.abs(approvalMove)} since the ` +
                   'last meeting. '
                 : ''}
-              What the public makes of the prices and the jobs they live with.
+              {explains
+                ? 'What the public makes of the prices and the jobs they live with.'
+                : ''}
             </span>
             {/* Decomposed, because the number alone was read as a verdict on
                 conduct and it has no conduct term at all. See
@@ -234,7 +255,7 @@ export function StanceStrip({
         )}
       </dl>
 
-      {stance.label !== null && (
+      {stance.label !== null && explains && (
         <p className="mt-3 text-sm text-onwood-soft">{LABEL_MEANING[stance.label]}</p>
       )}
 

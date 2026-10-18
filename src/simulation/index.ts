@@ -53,6 +53,8 @@ export {
 } from './config/time.ts'
 export { MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
 export { FISCAL } from './config/model.ts'
+export { fanReference, livingFan } from './policy/livingFan.ts'
+export type { LivingBand, LivingFan } from './policy/livingFan.ts'
 export {
   GUIDANCE_DELIVERY_TOLERANCE,
   GUIDANCE_HORIZON_MEETINGS,

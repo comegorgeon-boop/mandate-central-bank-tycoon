@@ -23,11 +23,22 @@ export function InstrumentBrief({
   instrument,
   range,
   value,
+  explains = true,
 }: {
   readonly instrument: InstrumentDefinition
   readonly range: InstrumentRange
   /** The magnitude currently selected, for the beyond-precedent warning. */
   readonly value: number
+  /**
+   * Whether the purpose sentence is shown above the disclosure.
+   *
+   * False where the screen already shows what it says — the policy rate's own
+   * control now draws the consequence as a chart that redraws while the dial
+   * moves, and a paragraph underneath restating "raising it cools spending
+   * and, some quarters later, inflation" is the same fact told twice, in the
+   * slower of the two ways. The sentence is still one click away.
+   */
+  readonly explains?: boolean
 }) {
   const { plausibleMax } = instrument
   const beyondPrecedent =
@@ -35,7 +46,7 @@ export function InstrumentBrief({
 
   return (
     <div className="mt-1">
-      <p className="text-sm text-ink">{instrument.purpose}</p>
+      {explains && <p className="text-sm text-ink">{instrument.purpose}</p>}
 
       {beyondPrecedent && (
         <p className="mt-1.5 text-sm font-medium text-accent-strong">
@@ -48,10 +59,22 @@ export function InstrumentBrief({
 
       <details className="group mt-1.5">
         <summary className="cursor-pointer list-none text-xs text-accent-strong underline decoration-dotted underline-offset-2 marker:content-none">
-          <span className="group-open:hidden">How much is a lot, and what can go wrong</span>
+          <span className="group-open:hidden">
+            {explains
+              ? 'How much is a lot, and what can go wrong'
+              : 'What this does, how much is a lot, and what can go wrong'}
+          </span>
           <span className="hidden group-open:inline">Close</span>
         </summary>
         <dl className="mt-2 space-y-2 border-l-2 border-edge-accent pl-3 text-sm">
+          {!explains && (
+            <div>
+              <dt className="text-2xs font-semibold uppercase tracking-[0.12em] text-ink-soft">
+                What it is for
+              </dt>
+              <dd className="text-ink-soft">{instrument.purpose}</dd>
+            </div>
+          )}
           <div>
             <dt className="text-2xs font-semibold uppercase tracking-[0.12em] text-ink-soft">
               The dial

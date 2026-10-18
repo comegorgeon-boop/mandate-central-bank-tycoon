@@ -185,9 +185,16 @@ function seriesChanges(current: ObservationSet, previous: ObservationSet): Candi
       weight,
       headline:
         `${indicator.label} ${direction} to ${now.toFixed(decimals)} ${indicator.unit}`,
+      // The move, and nothing else. This used to append the series' own
+      // `meaning` — "a rise means prices are running further from the
+      // objective and the public is feeling it; a fall means the pressure is
+      // easing" — for every changed series, so a meeting in which five things
+      // moved printed five paragraphs of generic definition into the panel
+      // whose whole subject is *what changed*. The same sentence is one click
+      // away under the series itself, on the tab where it belongs.
       detail:
         `A move of ${Math.abs(change).toFixed(decimals)} ${indicator.unit} since the ` +
-        `last meeting. ${indicator.meaning}`,
+        'last meeting.',
     })
   }
 

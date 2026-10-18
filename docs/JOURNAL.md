@@ -192,3 +192,64 @@ E's problem and I have left it there rather than padding it now. And the
 Nixon-Burns 1972 scenario, which the player named as the obvious seventh, is
 not built: it is recorded in docs/DIRECTION.md as the natural home for this
 mechanic rather than started and left half-done.
+
+## 5 — A dial you can see through, and a fifth of the prose gone
+
+**Did.** The two halves of chantier C, to the two rules the player set: less
+text on the screen and never more, and every animation carries information or
+it is wallpaper.
+
+The **living projection**. The published forecast fan is redrawn while the
+slider moves: two paths on one chart, where the economy goes if you hold and
+where it goes under the move currently on the dial, with the objective dashed
+across both. Drag the slider and the gold line bends away from the grey one
+while you watch. There is no transition, no easing and no entrance animation —
+what moves is the line, and it moves because the number moved.
+
+It is available at **every difficulty**, which took the most thought. The
+engine-run projection beside it is an oracle — it advances the true latent
+state twice and differences the arms — and the information ladder rightly
+withdraws it above the learning mandate. This is a different object: it takes
+the fan the staff have already published and shifts it by the arithmetic the
+desk already states in prose, through the documented lag kernel, the IS
+curve's own sensitivity and the Phillips slope. Every input is on the player's
+screen or is a structural constant the game documents. It is the player's own
+arithmetic, drawn. The band never narrows with the move, because deciding
+something does not make the world more predictable.
+
+The **density pass**. Every indicator carried three paragraphs — the reading,
+the provenance, the dictionary entry — so a panel of six numbers was about
+eighteen hundred characters of prose. The reading and the definition now fold;
+the provenance does not, because how late a number is and how wide its error
+bar is are properties of *this reading* rather than of the series. The stance
+strip's five definitions appear on the learning mandate and nowhere else. The
+changes panel stopped repeating each series' generic meaning for every series
+that moved.
+
+**Measured**, as rendered characters per tab on an ECB-free fed/medium mandate
+at meeting three:
+
+| tab | before | after |
+| --- | --- | --- |
+| prices | 4965 | 2826 |
+| labor | 3455 | 2362 |
+| brief | 5302 | 4392 |
+| desk | 4272 | 3676 |
+| markets | 3219 | 2939 |
+| press | 2457 | 2177 |
+| treasury | — | 2244 |
+
+A fifth less prose on average, 43 % less on the worst tab, and the Policy Desk
+is shorter than it was *while having gained a chart*. Nothing was deleted: all
+of it is one click away, keyboard included and findable by the browser's own
+search, which a tooltip is not.
+
+**Bothers me.** Folding text behind `<details>` hides it from the contrast
+audit, because a closed disclosure is not rendered — which is precisely the
+shape of this tool's three historical blind spots, arriving as a *consequence
+of my own change*. The audit now opens every disclosure on every state before
+measuring, and it costs about three times the runtime. I caught it because I
+was looking for it; I would not bet on catching the fifth one the same way.
+And the Meeting Brief is still the heaviest tab at 4392 characters, because
+what is on it is content rather than gloss — that one needs editing, not
+folding, and I have not done it.

@@ -103,11 +103,6 @@ export function IndicatorRow({
         referenceLabel={referenceLabel}
       />
 
-      {/* What a move means is a reading, and hard reads nothing for you. */}
-      {register !== 'technical' && (
-        <p className="mt-2 text-sm text-ink-soft">{observation.meaning}</p>
-      )}
-
       <p className="mt-2 text-xs text-ink-faint">
         {observation.missing ? (
           <span className="text-accent-strong">
@@ -136,7 +131,42 @@ export function IndicatorRow({
         </p>
       )}
 
-      <p className="mt-1 text-xs text-ink-faint">{observation.definition}</p>
+      {/* What a move means, and what the series is.
+       *
+       * Both fold, and this is the single largest density change in the
+       * interface. Each row used to carry three paragraphs — the reading, the
+       * provenance, and the dictionary entry — so a panel of six indicators
+       * was about eighteen hundred characters of prose wrapped around six
+       * numbers, at every meeting, on four of the seven tabs. The player's
+       * standing complaint is that the game reads like an accounting
+       * document, and this is most of where that came from.
+       *
+       * Nothing is removed. What a move means is a *reading*, needed when a
+       * number surprises you; what a series is is a *definition*, needed once.
+       * Neither is needed in the two seconds it takes to check that core
+       * inflation is where you left it, and both are one click away — keyboard
+       * included, and findable by the browser's own search, which a tooltip is
+       * not.
+       *
+       * The provenance line above does *not* fold: how late a number is and
+       * how wide its error bar is are properties of this reading rather than
+       * of the series, and the whole game is about not trusting a number more
+       * than it deserves.
+       */}
+      <details className="group mt-1">
+        <summary className="cursor-pointer list-none text-2xs text-ink-faint underline decoration-dotted underline-offset-2 marker:content-none">
+          <span className="group-open:hidden">
+            {register === 'technical' ? 'What this series is' : 'What it means, and what it is'}
+          </span>
+          <span className="hidden group-open:inline">Close</span>
+        </summary>
+        {/* Hard reads nothing for you: the technical register keeps the
+            definition and drops the reading, exactly as before. */}
+        {register !== 'technical' && (
+          <p className="mt-1.5 text-sm text-ink-soft">{observation.meaning}</p>
+        )}
+        <p className="mt-1 text-xs text-ink-faint">{observation.definition}</p>
+      </details>
     </li>
   )
 }

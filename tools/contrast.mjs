@@ -88,7 +88,7 @@ const MEASURE = () => {
     let stack = []
     let node = element
     while (node && node !== document.documentElement.parentNode) {
-      const style = getComputedStyle(node)
+      const style = styleOf(node)
       const colour = parseColor(style.backgroundColor)
       if (colour && colour.a > 0) {
         stack.push(colour)
@@ -106,6 +106,24 @@ const MEASURE = () => {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
   const seen = new Set()
 
+  /**
+   * `getComputedStyle` is not free and this walk calls it for every ancestor
+   * of every text node, twice over: once up the tree for opacity and once up
+   * the tree for the painted background. On a page with every disclosure open
+   * that is tens of thousands of calls and it took the audit from about a
+   * second a state to six. Memoised per element for the duration of one
+   * measurement, which is correct because nothing is mutated in between.
+   */
+  const styleCache = new Map()
+  const styleOf = (element) => {
+    let style = styleCache.get(element)
+    if (style === undefined) {
+      style = getComputedStyle(element)
+      styleCache.set(element, style)
+    }
+    return style
+  }
+
   while (walker.nextNode()) {
     const node = walker.currentNode
     const text = (node.textContent ?? '').trim()
@@ -115,7 +133,7 @@ const MEASURE = () => {
     if (!element || seen.has(element)) continue
     seen.add(element)
 
-    const style = getComputedStyle(element)
+    const style = styleOf(element)
     if (style.visibility === 'hidden' || style.display === 'none') continue
 
     // Element opacity, accumulated up the tree. A `.opacity-60` wrapper or a
@@ -126,8 +144,11 @@ const MEASURE = () => {
     // is deliberate transparency, which is exactly what should be measured.
     let stackOpacity = 1
     for (let node = element; node; node = node.parentElement) {
-      const value = Number.parseFloat(getComputedStyle(node).opacity)
+      const value = Number.parseFloat(styleOf(node).opacity)
       if (Number.isFinite(value)) stackOpacity *= value
+      // An opaque ancestor's opacity cannot be undone further up, and once the
+      // product is zero nothing above changes it.
+      if (stackOpacity === 0) break
     }
     if (stackOpacity <= 0.01) continue
 
@@ -175,8 +196,24 @@ const itinerary = []
 const failures = []
 
 async function audit(page, label) {
-  // One animation frame, so a panel that has just been mounted has been
-  // painted before it is measured.
+  // **Open every disclosure first.**
+  //
+  // Blind spot number four, pre-empted. The density pass moved a great deal of
+  // prose behind `<details>` — the reading and the definition under every
+  // indicator, the stance decomposition, the instrument brief — and text
+  // inside a closed `<details>` is not rendered, so a walk that measured the
+  // page as it arrives would have reported clean over several hundred
+  // characters it had simply never drawn. Folding text is a legitimate answer
+  // to density and it is not an answer to contrast.
+  //
+  // Opened by setting the property rather than by clicking, because clicking
+  // three dozen summaries per state is slow and a summary inside a closed
+  // parent is not clickable at all.
+  await page.evaluate(() => {
+    for (const element of document.querySelectorAll('details')) element.open = true
+  })
+  // One animation frame, so a panel that has just been mounted — or just been
+  // opened — has been painted before it is measured.
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))))
   const findings = await page.evaluate(MEASURE)
   itinerary.push(`${label} (${findings.length === 0 ? 'clean' : `${findings.length} FAIL`})`)

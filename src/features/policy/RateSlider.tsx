@@ -86,6 +86,7 @@ export function RateSlider({
   step,
   markers,
   forbidden = null,
+  explains = true,
   onChange,
 }: {
   readonly label: string
@@ -97,6 +98,8 @@ export function RateSlider({
   readonly step: number
   readonly markers: readonly GhostMarker[]
   readonly forbidden?: ForbiddenZone | null
+  /** Whether the control explains its own marks. See the note at the bottom. */
+  readonly explains?: boolean
   readonly onChange: (basisPoints: number) => void
 }) {
   const id = useId()
@@ -272,11 +275,19 @@ export function RateSlider({
         )}
       </p>
 
+      {/* The gloss on the marks is a thing a reader needs once, and it sat
+          under the dial at every meeting of every mandate. On the learning
+          mandate it stays; above it, the step note alone — which is a fact
+          about the control rather than a lesson about the references. */}
       <p className="mt-0.5 text-2xs text-ink-faint">
-        Moves in {step} bp steps — arrow keys work. The marks are references,
-        not instructions: the rule of thumb accounts for nothing beyond
-        inflation and the gap, and the priced path is what others believe
-        rather than what is right.
+        Moves in {step} bp steps — arrow keys work.
+        {explains && (
+          <>
+            {' '}The marks are references, not instructions: the rule of thumb
+            accounts for nothing beyond inflation and the gap, and the priced
+            path is what others believe rather than what is right.
+          </>
+        )}
       </p>
     </div>
   )

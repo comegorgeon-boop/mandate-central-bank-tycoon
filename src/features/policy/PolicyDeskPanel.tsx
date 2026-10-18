@@ -8,7 +8,10 @@ import {
   getInstitution,
   getInstrument,
   getInstrumentRange,
+  fanReference,
   goldFloorAt,
+  inflationTargetFor,
+  livingFan,
   politicalDemand,
   goldLabel,
   rateInstrumentLabel,
@@ -33,6 +36,7 @@ import {
 import { BalanceSheetPanel } from './BalanceSheetPanel.tsx'
 import { DebatePanel } from './DebatePanel.tsx'
 import { DemandPanel } from './DemandPanel.tsx'
+import { LivingFanChart } from './LivingFanChart.tsx'
 import { ScoreboardPanel } from './ScoreboardPanel.tsx'
 import type { Scoreboard } from '../game/doctrineScoreboard.ts'
 import { InstrumentBrief } from './InstrumentBrief.tsx'
@@ -239,6 +243,35 @@ export function PolicyDeskPanel({
   // The gold standard's floor, where the year has one. Not a reference and not
   // a limit: the band marks the part of the track that costs reserves to stand
   // in, and the player may cut through it and pay. See `scenarios/goldStandard.ts`.
+  // The published forecast, redrawn for the move currently selected. Built
+  // from what the player can see — the staff's own fan, the documented lag
+  // kernel, the IS curve's own sensitivity — so it is not privileged
+  // information and is not gated by the information ladder.
+  const fans = useMemo(() => {
+    const objective = inflationTargetFor(session.state.config)
+    return (['headline_inflation', 'unemployment'] as const)
+      .map((seriesId) => {
+        const published = session.observation.forecasts.find(
+          (entry) => entry.seriesId === seriesId,
+        )
+        // A missing release means no fan: the chart is built on what was
+        // published, and a mode that published nothing this meeting has
+        // nothing to redraw.
+        const now = session.observation.indicators[seriesId]?.value ?? null
+        if (published === undefined) return null
+        const reference = fanReference(seriesId, institution, objective)
+        return livingFan(published, {
+          basisPoints: move,
+          difficulty,
+          institution,
+          now,
+          reference: reference.value,
+          referenceLabel: reference.label,
+        })
+      })
+      .filter((fan): fan is NonNullable<typeof fan> => fan !== null)
+  }, [session.observation, session.state.config, move, difficulty, institution])
+
   const goldFloor = goldFloorAt(session.state.config, session.state.meetingIndex)
   const goldLabelText = goldLabel(session.state.config)
   const forbidden =
@@ -599,9 +632,32 @@ export function PolicyDeskPanel({
           step={range.increment}
           markers={markers}
           forbidden={forbidden}
+          explains={showsHints}
           onChange={setMove}
         />
-        <InstrumentBrief instrument={instrument} range={range} value={move} />
+        {/* The consequence, before the decision. Two paths on one chart: the
+            forecast the staff published, and where the move currently on the
+            dial takes it. It redraws while the slider moves, which is the
+            whole point — see `simulation/policy/livingFan.ts` for why this is
+            available at every difficulty and the engine-run projection below
+            is not. */}
+        {fans.length > 0 && (
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            {fans.map((fan) => (
+              <LivingFanChart key={fan.seriesId} fan={fan} />
+            ))}
+          </div>
+        )}
+
+        {/* The purpose sentence is what the fan above now draws, so above the
+            learning mandate the brief opens at its disclosure rather than at a
+            paragraph restating the chart. */}
+        <InstrumentBrief
+          instrument={instrument}
+          range={range}
+          value={move}
+          explains={showsHints}
+        />
         {forbidden !== null && move < forbidden.belowBasisPoints && (
           <p className="mt-1.5 text-xs text-bad">
             Below {(currentRate + forbidden.belowBasisPoints / 100).toFixed(2)} %
