@@ -64,7 +64,18 @@ const shots = []
  */
 const SHOT_QUALITY = 62
 
-async function shoot(page, { mandate, direction, size, screen }) {
+/**
+ * `overlay: true` photographs the viewport rather than the whole document.
+ *
+ * For a screen that *is* a viewport-fixed overlay — the first-meeting guide —
+ * a full-page shot is actively misleading: the scrim covers one screenful and
+ * the rest of the page sits below it unscrimmed, so the board shows a floating
+ * card in the middle of a long document, which is nothing like what the player
+ * is looking at. The height metrics are suppressed with it, since "4.3
+ * screenfuls" is a fact about the page behind the overlay, not about the
+ * overlay.
+ */
+async function shoot(page, { mandate, direction, size, screen, overlay = false }) {
   const name = `${mandate}--${screen}--${direction}--${size}`.replace(/[^a-z0-9.-]+/gi, '_')
   const file = `${SHOTS}/${name}.jpg`
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))))
@@ -93,8 +104,21 @@ async function shoot(page, { mandate, direction, size, screen }) {
     })(),
   }))
 
-  await page.screenshot({ path: file, fullPage: true, type: 'jpeg', quality: SHOT_QUALITY })
-  shots.push({ mandate, direction, size, screen, file: `shots/${name}.jpg`, ...metrics })
+  await page.screenshot({
+    path: file,
+    fullPage: !overlay,
+    type: 'jpeg',
+    quality: SHOT_QUALITY,
+  })
+  shots.push({
+    mandate,
+    direction,
+    size,
+    screen,
+    file: `shots/${name}.jpg`,
+    ...metrics,
+    ...(overlay ? { scrollHeight: metrics.clientHeight } : {}),
+  })
   process.stderr.write(
     `  ${mandate} ${direction} ${size} ${screen}` +
       `${metrics.sideways ? `  SIDEWAYS SCROLL: ${metrics.overflowing}` : ''}\n`,
@@ -125,7 +149,7 @@ async function walk({ mandate, direction, size, standingPages = false }) {
   // The first-meeting explanation goes on the board: four steps, each its own
   // screen, and none of them reachable once the browser has played once.
   await enterFirstMeeting(page, async (kind) => {
-    await shoot(page, { ...base, screen: `03-${kind}` })
+    await shoot(page, { ...base, screen: `03-${kind}`, overlay: kind.startsWith('guide') })
   })
 
   for (let meeting = 1; meeting <= mandate.meetings; meeting += 1) {

@@ -1,4 +1,4 @@
-import type { GameEvent } from '../types/events.ts'
+import type { EventContext, GameEvent } from '../types/events.ts'
 import { BANKING, VOLATILITY } from '../config/model.ts'
 
 /**
@@ -24,6 +24,62 @@ const ONE_MEETING = 4
 const TWO_MEETINGS = 8
 const THREE_MEETINGS = 12
 const FOUR_MEETINGS = 16
+
+/**
+ * How much likelier a crisis is once its first act has already happened.
+ *
+ * The six `tier: 'major'` events are also drawn as **opening crises**, before
+ * the first meeting and therefore before any predecessor can exist — so they
+ * cannot carry `requires`, which would make them unreachable mid-mandate
+ * rather than merely rarer. The chain is expressed in the weight instead: a
+ * systemic bank failure out of a clear sky stays possible, because it is, and
+ * becomes several times likelier as the third act of a run that was not
+ * contained.
+ *
+ * Multiplicative rather than additive, so it scales whatever state-dependence
+ * the event already had instead of swamping it.
+ */
+function afterOnset(ctx: EventContext, onset: string, factor = 2.5): number {
+  return (ctx.occurrences[onset] ?? 0) > 0 ? factor : 1
+}
+
+/**
+ * How much likelier the relief is when the episode was actually contained.
+ *
+ * The mirror of `afterOnset`, and the half of a chain that is easy to forget.
+ * An escalation that fires when the player failed makes failure cost
+ * something; on its own it makes success merely *less bad*, which is not the
+ * same as a reward and does not feel like one. So the same onset that opens
+ * the escalation also weights the relief — but only while the variable the
+ * episode is about has come back.
+ *
+ * The escalation id is part of the test, and it is the part that was missing
+ * first time round. Without it the condition reduces to "the variable is fine
+ * *right now*", which is true on most meetings for most players — including
+ * the passive ones — so the reward went to everybody and measured out as the
+ * euro-area passive completion rate rising three points. A player who let the
+ * episode escalate has not contained it, whatever the reading says today.
+ *
+ * It is also what keeps the draw honest. At hard an event fires most
+ * meetings, so the probability is fixed and the catalogue is a *mix*: three
+ * adverse second acts added to the pool do not add events, they displace
+ * them, and the mix shifts adverse for everybody including the player who
+ * contained the shock. Weighting the relief restores the balance where it was
+ * earned instead of flattening it everywhere.
+ */
+function whenContained(
+  ctx: EventContext,
+  onset: string,
+  escalation: string,
+  contained: boolean,
+  factor = 1.4,
+): number {
+  return (ctx.occurrences[onset] ?? 0) > 0 &&
+    (ctx.occurrences[escalation] ?? 0) === 0 &&
+    contained
+    ? factor
+    : 1
+}
 
 export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Energy and commodities --------------------------------------------
@@ -59,7 +115,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         ],
       },
     ],
-    followUps: [],
+    followUps: ['second_round_effects', 'energy_price_relief'],
     requires: [],
   },
   {
@@ -86,7 +142,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // Still likelier after a run-up — new supply follows high prices — but the
     // floor matches the spike's own likelihood, because a counterpart that
     // fires four times for the spike's five is quietly a smaller event.
-    weight: (ctx) => 0.75 + Math.max(0, ctx.latent.supplyShock) / 2,
+    weight: (ctx) =>
+      (0.75 + Math.max(0, ctx.latent.supplyShock) / 2) *
+      whenContained(
+    ctx,
+    'energy_price_spike',
+    'second_round_effects',
+    ctx.latent.expectedInflationShort <= 4.0,
+  ),
     // Paired with the spike by MAGNITUDE, not just by name. The spike delivers
     // +1.7 of supplyShock over its life no matter the state; a relief whose
     // floor gave back only 0.7 in the calm economy it usually fires in
@@ -185,7 +248,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       },
       { delaySteps: THREE_MEETINGS, effects: [{ variable: 'supplyShock', delta: -0.8 }] },
     ],
-    followUps: [],
+    followUps: ['supply_rupture', 'supply_chain_normalisation'],
     requires: [],
   },
   {
@@ -209,7 +272,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // was what unbalanced the realised counts: escalations keep risk elevated
     // for whole mandates, so the normalisation rarely outweighed a disruption
     // whose own weight rises with that same risk.
-    weight: (ctx) => 0.9 + Math.max(0, ctx.latent.supplyShock) / 2,
+    weight: (ctx) =>
+      (0.9 + Math.max(0, ctx.latent.supplyShock) / 2) *
+      whenContained(
+    ctx,
+    'supply_chain_disruption',
+    'supply_rupture',
+    ctx.latent.supplyShock < 1.0,
+  ),
     immediate: (ctx) => [
       { variable: 'supplyShock', delta: -1.1 },
       {
@@ -265,7 +335,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         ],
       },
     ],
-    followUps: [],
+    followUps: ['sovereign_repricing', 'fiscal_consolidation'],
     requires: [],
   },
   {
@@ -286,7 +356,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     isEligible: () => true,
     // Politically easier when the debt burden is the salient problem, which is
     // the mirror of expansion being easier when unemployment is.
-    weight: (ctx) => 0.6 + Math.max(0, ctx.latent.debtPressure - 35) / 30,
+    weight: (ctx) =>
+      (0.6 + Math.max(0, ctx.latent.debtPressure - 35) / 30) *
+      whenContained(
+    ctx,
+    'fiscal_expansion',
+    'sovereign_repricing',
+    ctx.latent.publicDebt < 110,
+  ),
     immediate: () => [
       { variable: 'fiscalImpulse', delta: -1.4 },
       { variable: 'debtPressure', delta: -5 },
@@ -376,7 +453,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         ],
       },
     ],
-    followUps: [],
+    followUps: ['banking_failure'],
     requires: ['bank_funding_scare'],
   },
 
@@ -412,7 +489,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         ],
       },
     ],
-    followUps: [],
+    followUps: ['housing_market_crash'],
     requires: [],
   },
 
@@ -448,7 +525,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         ],
       },
     ],
-    followUps: [],
+    followUps: ['geopolitical_crisis_outbreak', 'geopolitical_dealescalation'],
     requires: [],
   },
   {
@@ -470,7 +547,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // soft precondition rather than the kind of gate that silenced the energy
     // relief event.
     isEligible: (ctx) => ctx.latent.geopoliticalRisk > 15,
-    weight: (ctx) => 0.6 + ctx.latent.geopoliticalRisk / 70,
+    weight: (ctx) =>
+      (0.6 + ctx.latent.geopoliticalRisk / 70) *
+      whenContained(
+        ctx,
+        'geopolitical_escalation',
+        'geopolitical_crisis_outbreak',
+        ctx.latent.geopoliticalRisk < 45,
+      ),
     // Level-symmetric with the escalation: each escalation nets +14 of risk
     // over its life, so a settlement that nets only -12 leaves the risk index
     // ratcheting upward run after run — and since the energy spike and the
@@ -550,7 +634,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         ],
       },
     ],
-    followUps: [],
+    followUps: ['capital_flight', 'currency_appreciation'],
     requires: [],
   },
   {
@@ -576,8 +660,15 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // Inflows favour the currency of a calm, credible bloc — the mirror of
     // pressure building when volatility runs above its base.
     weight: (ctx) =>
-      (ctx.institution === 'ecb' ? 1.4 : 0.9) +
-      Math.max(0, VOLATILITY.base - ctx.latent.marketVolatility) / 40,
+      ((ctx.institution === 'ecb' ? 1.4 : 0.9) +
+      Math.max(0, VOLATILITY.base - ctx.latent.marketVolatility) / 40) *
+      whenContained(
+    ctx,
+    'currency_pressure',
+    'capital_flight',
+    ctx.latent.exchangeRate >= 85,
+    1.6,
+  ),
     immediate: (ctx) => [
       { variable: 'exchangeRate', delta: 7 },
       { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? -6 : -3.5 },
@@ -644,7 +735,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { delaySteps: TWO_MEETINGS, effects: [{ variable: 'inflationCore', delta: 0.3 }] },
       { delaySteps: THREE_MEETINGS, effects: [{ variable: 'wageGrowth', delta: 0.4 }] },
     ],
-    followUps: [],
+    followUps: ['wage_price_spiral'],
     requires: [],
   },
 
@@ -810,7 +901,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         ],
       },
     ],
-    followUps: [],
+    followUps: ['market_panic'],
     requires: ['market_melt_up'],
   },
 
@@ -852,6 +943,177 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     ],
     followUps: [],
     requires: [],
+  },
+
+  /*
+   * ---- Second acts ------------------------------------------------------
+   *
+   * Each of these `requires` an onset that happened earlier and is `isEligible`
+   * only when the variable that onset was about is *still out of hand*. A
+   * committee that brought expectations back, or the currency back, or wage
+   * growth back, never meets them — which is the point. They are the
+   * consequence of a shock that was allowed to settle in, and the only part of
+   * this catalogue where what the player did between two meetings decides what
+   * arrives at the third.
+   *
+   * The test is always a threshold on the state, never a check for a
+   * particular policy. A player who anchored expectations by raising, by
+   * talking, or by inheriting a credible institution is spared equally: the
+   * game is reading the economy, not marking an answer.
+   *
+   * They are deliberately not `tier: 'major'`. A major is also drawn as an
+   * opening crisis, before any predecessor can exist.
+   */
+  {
+    id: 'second_round_effects',
+    shockCharacter: 'supply',
+    family: 'energy_commodity',
+    title: 'The energy shock reaches the rest of the basket',
+    newswire:
+      'Firms across services and food processing have begun passing energy costs ' +
+      'into list prices rather than absorbing them. Core measures, which had been ' +
+      'quiet through the spike, turn up.',
+    clue: 'Pricing surveys show the share of firms planning increases at its widest in years.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.7,
+    cooldownMeetings: 6,
+    maxOccurrences: 2,
+    // Only reachable if short expectations drifted badly during the spike.
+    //
+    // The threshold is measured, not chosen. At 3.2 this gate stood open on
+    // 22.8 % of competently played meetings against 25.4 % of passive ones —
+    // which is not a containment test, it is a tax. At 4.0 it is 9.5 %
+    // against 14.4 %: rare under either, and half again as likely when
+    // nothing was done. See `dev/gateProbe.ts`.
+    isEligible: (ctx) => ctx.latent.expectedInflationShort > 4.0,
+    weight: (ctx) => 0.4 + Math.max(0, ctx.latent.expectedInflationShort - 4) * 1.2,
+    immediate: () => [
+      { variable: 'inflationCore', delta: 0.5 },
+      { variable: 'supplyShock', delta: 0.8 },
+      { variable: 'expectedInflationShort', delta: 0.25 },
+    ],
+    // Partly unwound, and the partly is the point. A second-round effect that
+    // vanished would not be one; a second-round effect that never unwound
+    // would be a permanent increase in the price level for every firing, which
+    // is the one-sided inflation tax `natural_disaster` was rewritten to stop
+    // being. Half of the core impulse comes back out over a year, and what is
+    // left is the thing the committee has to deal with.
+    delayed: () => [
+      { delaySteps: ONE_MEETING, effects: [{ variable: 'inflationCore', delta: 0.3 }] },
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'supplyShock', delta: -0.8 },
+          { variable: 'outputGap', delta: -0.3 },
+        ],
+      },
+      { delaySteps: FOUR_MEETINGS, effects: [{ variable: 'inflationCore', delta: -0.4 }] },
+    ],
+    followUps: ['wage_price_spiral'],
+    requires: ['energy_price_spike'],
+  },
+  {
+    id: 'wage_price_spiral',
+    shockCharacter: 'supply',
+    family: 'wages',
+    title: 'Settlements begin indexing to the last print',
+    newswire:
+      'Three large agreements now contain explicit price-indexation clauses, ' +
+      'the first since the last inflationary era. Employers describe them as ' +
+      'the price of settling at all.',
+    clue: 'Indexation clauses have reappeared in the largest bargaining rounds.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.65,
+    cooldownMeetings: 6,
+    maxOccurrences: 2,
+    // The anchor has to have slipped. This is the mechanism the whole game is
+    // about, so its gate is the long expectation.
+    //
+    // 2.5, not 3.0. The first version used 3.0 and could never fire at all:
+    // long expectations reach 2.46 at the ninetieth percentile of competent
+    // play and 2.57 of passive play, so the event was unreachable content
+    // dressed as a consequence. At 2.5 it is open on 7.7 % of competent
+    // meetings against 12.7 % of passive ones.
+    isEligible: (ctx) =>
+      ctx.latent.expectedInflationLong > 2.5 && ctx.latent.wageGrowth > 5.0,
+    weight: (ctx) =>
+      (0.5 + Math.max(0, ctx.latent.expectedInflationLong - 2.5) * 3) *
+      // A spiral is likelier once the energy shock has already reached core:
+      // that is what bargaining rounds are looking at when they ask for
+      // indexation. The breakout is the onset; this is a second push on it.
+      afterOnset(ctx, 'second_round_effects', 1.6),
+    immediate: () => [
+      { variable: 'wageGrowth', delta: 1.0 },
+      { variable: 'expectedInflationLong', delta: 0.2 },
+      { variable: 'inflationCore', delta: 0.3 },
+    ],
+    delayed: () => [
+      { delaySteps: TWO_MEETINGS, effects: [{ variable: 'inflationCore', delta: 0.35 }] },
+      { delaySteps: FOUR_MEETINGS, effects: [{ variable: 'wageGrowth', delta: 0.4 }] },
+      {
+        delaySteps: FOUR_MEETINGS + TWO_MEETINGS,
+        effects: [
+          { variable: 'inflationCore', delta: -0.45 },
+          { variable: 'wageGrowth', delta: -0.7 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: ['wage_round_breakout'],
+  },
+  {
+    id: 'capital_flight',
+    shockCharacter: 'financial',
+    family: 'exchange_rate',
+    title: 'Portfolio outflows accelerate',
+    newswire:
+      'Weekly fund data show the largest outflow from domestic assets on record ' +
+      'for the series. Dealers report thin two-way interest at the long end.',
+    clue: 'Foreign holdings of government paper have fallen for four consecutive weeks.',
+    institutions: ['fed', 'ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.7,
+    cooldownMeetings: 6,
+    maxOccurrences: 2,
+    // The slide has to still be running. A committee that stabilised the
+    // currency — by moving, or by being believed — does not meet this.
+    //
+    // `exchangeRate` is an **index around 100**, not a percentage deviation.
+    // The first version tested `< -6` and so could never be true: the whole
+    // event was unreachable. Below 85 is a genuinely weak currency, and it is
+    // the best separator in the catalogue — open on 12.9 % of competently
+    // played meetings against 26.2 % of passive ones.
+    isEligible: (ctx) => ctx.latent.exchangeRate < 85,
+    weight: (ctx) => 0.4 + Math.max(0, 90 - ctx.latent.exchangeRate) / 12,
+    immediate: () => [
+      { variable: 'exchangeRate', delta: -5 },
+      { variable: 'termPremium', delta: 0.35 },
+      { variable: 'marketVolatility', delta: 9 },
+      { variable: 'creditSpread', delta: 0.3 },
+    ],
+    delayed: (ctx) => [
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          // Closer to the Fed's than the open-economy asymmetry would suggest,
+          // deliberately. `currency_pressure` already carries that asymmetry,
+          // and stacking a second euro-area multiplier on its own second act
+          // made the ECB's hard mandate turn on the exchange rate alone.
+          { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? 2.9 : 2.4 },
+        ],
+      },
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'outputGap', delta: -0.35 },
+          { variable: 'marketVolatility', delta: -9 },
+        ],
+      },
+    ],
+    followUps: [],
+    requires: ['currency_pressure'],
   },
 
   // ---- Innovation and confidence ------------------------------------------
@@ -946,7 +1208,9 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     cooldownMeetings: 8,
     maxOccurrences: 1,
     isEligible: () => true,
-    weight: (ctx) => 0.5 + ctx.latent.geopoliticalRisk / 60,
+    weight: (ctx) =>
+      (0.5 + ctx.latent.geopoliticalRisk / 60) *
+      afterOnset(ctx, 'geopolitical_escalation', 2.5),
     immediate: (ctx) => [
       { variable: 'geopoliticalRisk', delta: 55 },
       { variable: 'marketVolatility', delta: 22 },
@@ -1088,7 +1352,9 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // Unlike `bank_funding_scare`, this does not require prior fragility: a
     // single failure can strike a genuinely healthy system without warning.
     isEligible: () => true,
-    weight: (ctx) => 0.8 + Math.max(0, ctx.latent.bankingStress - BANKING.base) / 40,
+    weight: (ctx) =>
+      (0.8 + Math.max(0, ctx.latent.bankingStress - BANKING.base) / 40) *
+      afterOnset(ctx, 'deposit_flight', 3),
     immediate: () => [
       { variable: 'bankingStress', delta: 50 },
       { variable: 'creditSpread', delta: 1.6 },
@@ -1147,7 +1413,9 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // Unlike `housing_correction`, this does not require a prior run-up: the
     // floor below is large enough to strike a fairly valued market too.
     isEligible: () => true,
-    weight: (ctx) => 0.7 + Math.max(0, ctx.latent.assetPricePressure) / 40,
+    weight: (ctx) =>
+      (0.7 + Math.max(0, ctx.latent.assetPricePressure) / 40) *
+      afterOnset(ctx, 'housing_correction', 2.5),
     immediate: (ctx) => [
       {
         variable: 'assetPricePressure',
@@ -1202,7 +1470,9 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     cooldownMeetings: 8,
     maxOccurrences: 1,
     isEligible: () => true,
-    weight: (ctx) => 0.6 + ctx.latent.geopoliticalRisk / 70,
+    weight: (ctx) =>
+      (0.6 + ctx.latent.geopoliticalRisk / 70) *
+      afterOnset(ctx, 'supply_chain_disruption', 2.5),
     immediate: (ctx) => [
       { variable: 'supplyShock', delta: 4.0 },
       { variable: 'importPriceInflation', delta: 10 * (ctx.institution === 'ecb' ? 1.3 : 1) },
@@ -1250,7 +1520,9 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     cooldownMeetings: 8,
     maxOccurrences: 1,
     isEligible: () => true,
-    weight: (ctx) => 0.5 + Math.max(0, ctx.latent.marketVolatility - VOLATILITY.base) / 40,
+    weight: (ctx) =>
+      (0.5 + Math.max(0, ctx.latent.marketVolatility - VOLATILITY.base) / 40) *
+      afterOnset(ctx, 'market_crash', 3),
     immediate: (ctx) => [
       { variable: 'marketVolatility', delta: 44 },
       { variable: 'creditSpread', delta: 1.6 },
@@ -1315,9 +1587,8 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // More likely when the common rate is already high and risk appetite thin,
     // which is when a debt burden stops being a background fact.
     weight: (ctx) =>
-      0.5 +
-      Math.max(0, ctx.latent.policyRate) / 4 +
-      Math.max(0, ctx.latent.marketVolatility - VOLATILITY.base) / 30,
+      (0.5 + Math.max(0, ctx.latent.policyRate) / 4 + Math.max(0, ctx.latent.marketVolatility - VOLATILITY.base) / 30) *
+      afterOnset(ctx, 'fiscal_expansion', 2),
     immediate: () => [
       { variable: 'fragmentation', delta: 60 },
       { variable: 'marketVolatility', delta: 8 },
@@ -1377,7 +1648,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         effects: [{ variable: 'supplyShock', delta: -0.5 }],
       },
     ],
-    followUps: [],
+    followUps: ['industrial_export_slump', 'gas_supply_restored'],
     requires: [],
   },
   {
@@ -1408,7 +1679,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // the same mistake once left `energy_price_relief` landing six times
     // against the spike's sixty-two.
     isEligible: () => true,
-    weight: (ctx) => 0.7 + Math.max(0, 50 - ctx.latent.geopoliticalRisk) / 60,
+    weight: (ctx) =>
+      (0.7 + Math.max(0, 50 - ctx.latent.geopoliticalRisk) / 60) *
+      whenContained(
+    ctx,
+    'gas_supply_interruption',
+    'industrial_export_slump',
+    ctx.latent.outputGap >= -0.5,
+  ),
     immediate: () => [{ variable: 'supplyShock', delta: -0.5 }],
     memberEffects: () => [
       { member: 'most_energy_exposed', field: 'inflationOffset', magnitude: -2.4 },
@@ -1467,7 +1745,11 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     baseWeight: 0.8,
     cooldownMeetings: 5,
     maxOccurrences: 2,
-    isEligible: () => true,
+    // The second act of a gas interruption that was not absorbed. The
+    // industrial core ran on that gas, so this is reachable only while the
+    // area is actually contracting: a committee that held output up does
+    // not meet it.
+    isEligible: (ctx) => ctx.latent.outputGap < -0.5,
     weight: (ctx) => 0.7 + Math.max(0, -ctx.latent.outputGap) / 3,
     immediate: () => [{ variable: 'confidenceShock', delta: -0.4 }],
     memberEffects: () => [
@@ -1482,7 +1764,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       },
     ],
     followUps: [],
-    requires: [],
+    requires: ['gas_supply_interruption'],
   },
   {
     id: 'convergence_upswing',

@@ -2597,3 +2597,58 @@ run in 150, where the baseline had none. It is the same tail this document has
 carried for several sessions, reshuffled: runs that used to end by dismissal
 now last long enough to reach it. Not a new instability, and recorded here
 rather than chased.
+
+---
+
+# Event chains, and what they cost the skill gradient
+
+The catalogue was given second acts — escalations that fire only when the
+state the onset was about is still out of hand, and reliefs weighted up when
+the episode was contained. The design and the gate measurements are in
+**docs/EVENTS.md**; this is the balance consequence, which is the part that
+belongs here.
+
+Paired survival, 240 seeds, competent play against doing nothing on the *same*
+seed. Only discordant pairs are counted — the seeds where one survived and the
+other did not — because that is the only question worth asking and it removes
+seed variance entirely. Reproduce with `npx tsx src/simulation/dev/skillCheck.ts`.
+
+| | Before | After |
+| --- | --- | --- |
+| fed/hard completion, skill vs passive | 63.7 % / 50.0 % | 64.6 % / 49.2 % |
+| fed/hard paired | 43 / 10 | **46 / 9** |
+| ecb/hard completion, skill vs passive | 63.7 % / 51.7 % | 60.4 % / 48.3 % |
+| ecb/hard paired | 60 / 31 | **55 / 26** |
+
+Both ended with a larger skill edge. The euro-area mandate is about three
+points harder for competent play than it was, which is the intended direction
+for a mode whose premise is problems with no right answer.
+
+## The two intermediate results worth keeping
+
+They are the whole argument for the design, and both are counter-intuitive
+enough to be worth writing down before someone simplifies it back.
+
+**Escalations alone narrowed the gradient.** With the second acts in and no
+relief weighting, fed/hard paired fell to 35 / 15 and competent completion
+fell seven points. At hard an event fires most meetings, so the probability is
+fixed and the catalogue is a *mix*: three adverse events added to a fixed-size
+draw do not add events, they **displace** them, and the mix shifts adverse for
+everyone — including the player who contained the shock. An escalation makes
+failure cost something; on its own it makes success merely less bad.
+
+**A reward keyed to the current reading goes to everybody.** The first relief
+weighting fired when the onset had happened and the variable was fine *now*.
+That is true on most meetings for most players, so euro-area **passive**
+completion *rose* three points. Keying it to "the escalation never fired"
+instead — the episode was survived, not merely quiet today — is what turned it
+into a reward for containment.
+
+## Why `winnability.test.ts` nearly missed all of this
+
+It failed on `3 skill / 4 idle` at 40 seeds. Those are the *discordant* pairs:
+five of them. The underlying effect at the time was 31 / 18 and the test had
+no power to see it. The file already documents this hazard for its completion
+assertions and resolves it with a band; the paired assertion inherits the same
+fragility and is worth remembering before anyone reads a single run of it as a
+verdict either way.
