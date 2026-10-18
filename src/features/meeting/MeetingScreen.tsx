@@ -27,6 +27,8 @@ import { PublicFinancesPanel } from './panels/PublicFinancesPanel.tsx'
 import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MandateChartPanel } from './panels/MandateChartPanel.tsx'
+import { FirstMeetingGuide } from './FirstMeetingGuide.tsx'
+import { hasSeenGuide, markGuideSeen } from '../records/storage.ts'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { PressPanel } from './panels/PressPanel.tsx'
 import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
@@ -117,6 +119,14 @@ export function MeetingScreen({
   const [showReaction, setShowReaction] = useState(
     session.onTheDay !== null && session.previousObservation !== null,
   )
+  // What a meeting is, shown once per browser, on the first one. The flag is
+  // written here rather than on dismissal so a reload mid-explanation does not
+  // start it again — see `hasSeenGuide`.
+  const [showGuide, setShowGuide] = useState(() => {
+    if (session.state.meetingIndex !== 0 || hasSeenGuide()) return false
+    markGuideSeen()
+    return true
+  })
 
   const { config } = session.state
   const institution = getInstitution(config.institution)
@@ -259,6 +269,21 @@ export function MeetingScreen({
         </div>
       ) : (
         <>
+          {showGuide && (
+            <FirstMeetingGuide
+              onPanel={(next) => setPanel(next as PanelId)}
+              onDone={() => {
+                setShowGuide(false)
+                // Back to the newspaper, which is where a meeting opens. The
+                // guide ends on the desk because that is what its last step
+                // points at, and leaving a first-time player there would skip
+                // them past every screen that tells them why they are moving
+                // anything.
+                setPanel('press')
+              }}
+            />
+          )}
+
           <StandingPanel
             standing={standing}
             previousTone={previousStanding?.tone ?? null}
@@ -287,7 +312,9 @@ export function MeetingScreen({
               looking only at these — which is the correct instinct about what
               a macroeconomic series is for, and an indictment of a layout that
               had them nowhere. */}
-          <MandateChartPanel observation={session.observation} config={config} />
+          <div data-guide="charts">
+            <MandateChartPanel observation={session.observation} config={config} />
+          </div>
 
           <StanceStrip
             objective={mandateObjective}
@@ -301,6 +328,7 @@ export function MeetingScreen({
           <div
             role="tablist"
             aria-label="Meeting panels"
+            data-guide="tabs"
             className="mt-6 flex flex-wrap gap-1"
           >
             {TABS.filter(

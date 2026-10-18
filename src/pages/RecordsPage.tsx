@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SCENARIOS, getInstitution } from '../simulation/index.ts'
-import { clearRecords, readRecords, type RecordEntry } from '../features/records/storage.ts'
+import {
+  clearAchievements,
+  clearRecords,
+  readAchievements,
+  readRecords,
+  type RecordEntry,
+} from '../features/records/storage.ts'
+import { ACHIEVEMENTS } from '../features/records/achievements.ts'
 
 /**
  * Every finished mandate this browser remembers.
@@ -38,6 +45,7 @@ function when(iso: string): string {
 
 export default function RecordsPage() {
   const [records, setRecords] = useState(() => readRecords())
+  const [earned, setEarned] = useState(() => readAchievements())
 
   const groups = new Map<string, RecordEntry[]>()
   for (const entry of records) {
@@ -96,6 +104,49 @@ export default function RecordsPage() {
         </div>
       )}
 
+      <section aria-labelledby="achievements-heading" className="mt-12">
+        <h2
+          id="achievements-heading"
+          className="text-sm font-semibold uppercase tracking-wide text-onwood-soft"
+        >
+          Achievements
+        </h2>
+        <p className="mt-1 text-sm text-onwood-soft">
+          {Object.keys(earned).length} of {ACHIEVEMENTS.length}. None of
+          these is scored —
+          the score is the score — and one of them is not a virtue.
+        </p>
+        <ul className="mt-3 space-y-2">
+          {ACHIEVEMENTS.map((achievement) => {
+            const got = earned[achievement.id] !== undefined
+            return (
+              <li
+                key={achievement.id}
+                className="border-t border-edge-room pt-2 text-sm"
+              >
+                <span
+                  className={got ? 'font-medium text-onwood' : 'text-onwood-faint'}
+                >
+                  {achievement.name}
+                </span>
+                {got && (
+                  <span className="ml-2 text-2xs uppercase tracking-wide text-accent-onwood">
+                    {when(earned[achievement.id])}
+                  </span>
+                )}
+                <span
+                  className={`mt-0.5 block text-xs ${
+                    got ? 'text-onwood-soft' : 'text-onwood-faint'
+                  }`}
+                >
+                  {achievement.note}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+
       <p className="mt-10 text-xs text-onwood-faint">
         Kept in this browser only. Clearing your site data clears them, and
         they are not sent anywhere — this build makes no network call once it
@@ -106,16 +157,18 @@ export default function RecordsPage() {
         <Link to="/" className="text-onwood-soft underline hover:text-onwood">
           Back
         </Link>
-        {records.length > 0 && (
+        {(records.length > 0 || Object.keys(earned).length > 0) && (
           <button
             type="button"
             onClick={() => {
               clearRecords()
+              clearAchievements()
               setRecords([])
+              setEarned({})
             }}
             className="text-onwood-faint underline hover:text-onwood"
           >
-            Forget all of them
+            Forget all of this
           </button>
         )}
       </div>

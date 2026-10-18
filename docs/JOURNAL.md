@@ -315,3 +315,71 @@ first-time explanation of what a meeting is before the first one starts. And
 I took the setup screen's old warning down ("reloading the page during a
 mandate ends it") because it is no longer true, which is the sort of stale
 sentence that was probably not the only one.
+
+---
+
+## 7 — What it is remembered for, and what a meeting is
+
+**Did.** Finished chantier D's last two items. **Fourteen achievements**, each
+a pure predicate over a finished run rather than a counter kept during one —
+including `gave_in`, for answering a government by doing what it asked, which
+is not a virtue and not a failure but the game noticing, which is the point of
+having the choice at all. None is scored. The report shows what this run
+earned; the records page shows all fourteen, earned and not. And **what a
+meeting is**: shown once per browser, on the first meeting ever played. Not a
+page of instructions — a spotlight, four steps, one sentence each, ringing the
+real control it names. A page of text in front of the first meeting would have
+made the first thing in the game a document, which is the complaint this
+project has had about itself from the start.
+
+**Measured.** 1038 tests. Contrast clean across **524 states**, up from 462 —
+and the 62 new ones are the point: the four guide steps, a mandate *served to
+term*, the report, and the records page with something on it. The report had
+never been measured in this project's life, because every walk stopped after
+three to five meetings and a report needs a finished mandate to exist. The
+board now carries the guide, the glossary, the records and the about pages.
+
+**Bothers me.** Four bugs in one chantier that the suite was blind to and a
+screenshot caught in a second: a spotlight pointing off the bottom of the
+screen, a ring drawn around a panel that had not finished fading in, a dialog
+that never took focus, and achievements that could never be marked "first
+time" because the provider had already recorded them. Three of the four are
+*timing* — something measured before it had arrived — which is the same root
+cause as the invisible interface and the board photographing panels at a third
+opacity. I keep rediscovering it. The fourth was a `[role=tablist]` locator
+without `first()` in my own tool, latent for weeks, which turned a strict-mode
+throw into "there is no meeting here" via a `catch`. Swallowing errors to be
+robust is how an audit reports clean over a screen it never saw.
+
+---
+
+## 8 — Events that remember what came before
+
+**Did.** Chantier E. The catalogue had 33 events and the number was never the
+problem: **two of them had a follow-up**, so a mandate was a sequence of
+unrelated accidents and nothing the player did between two meetings changed
+what arrived at the third. It now has 36, of which 13 declare a follow-up and
+5 require a predecessor, built on the one pair that had been done properly —
+an escalation fires *only if the state the onset was about is still out of
+hand*. Three new second acts (energy reaching core, wage indexation, portfolio
+outflows), the euro-area gas family turned into a real chain, and the reliefs
+re-weighted so that containing an episode is rewarded rather than merely
+survived.
+
+**Measured.** 1056 tests. Contrast clean across 524 states. Paired survival at
+240 seeds, competent play against doing nothing on the same seed: fed/hard
+**46 / 9**, up from 43 / 10 before the chains; ecb/hard **55 / 26**, where the
+ratio rose from 1.9 to 2.1. Both institutions ended with a *larger* skill edge
+than they started with, which is not where this went first: see below.
+
+**Bothers me.** All three gates I wrote by hand were wrong, and in three
+different ways — one stood open on 22.8 % of competent meetings against 25.4 %
+of passive ones (a tax, not a test), and two could never fire at all, one of
+them because I read an index that sits near 100 as though it were a percentage
+deviation. The suite did not catch any of it: the balance tests passed, the
+"is not decoration" test passed, and the only reason I found out is that
+`winnability` failed on a 3-versus-4 draw and I measured instead of
+re-rolling. Content that cannot fire is invisible to every test that checks
+what content *does*. I have written `dev/gateProbe.ts` so the next gate is set
+from a measurement, and a test that forbids declaring a follow-up nothing acts
+on — half the links I added were decoration until it existed.

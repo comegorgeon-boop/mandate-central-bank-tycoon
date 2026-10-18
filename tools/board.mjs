@@ -64,7 +64,18 @@ const shots = []
  */
 const SHOT_QUALITY = 62
 
-async function shoot(page, { mandate, direction, size, screen }) {
+/**
+ * `overlay: true` photographs the viewport rather than the whole document.
+ *
+ * For a screen that *is* a viewport-fixed overlay — the first-meeting guide —
+ * a full-page shot is actively misleading: the scrim covers one screenful and
+ * the rest of the page sits below it unscrimmed, so the board shows a floating
+ * card in the middle of a long document, which is nothing like what the player
+ * is looking at. The height metrics are suppressed with it, since "4.3
+ * screenfuls" is a fact about the page behind the overlay, not about the
+ * overlay.
+ */
+async function shoot(page, { mandate, direction, size, screen, overlay = false }) {
   const name = `${mandate}--${screen}--${direction}--${size}`.replace(/[^a-z0-9.-]+/gi, '_')
   const file = `${SHOTS}/${name}.jpg`
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))))
@@ -93,15 +104,28 @@ async function shoot(page, { mandate, direction, size, screen }) {
     })(),
   }))
 
-  await page.screenshot({ path: file, fullPage: true, type: 'jpeg', quality: SHOT_QUALITY })
-  shots.push({ mandate, direction, size, screen, file: `shots/${name}.jpg`, ...metrics })
+  await page.screenshot({
+    path: file,
+    fullPage: !overlay,
+    type: 'jpeg',
+    quality: SHOT_QUALITY,
+  })
+  shots.push({
+    mandate,
+    direction,
+    size,
+    screen,
+    file: `shots/${name}.jpg`,
+    ...metrics,
+    ...(overlay ? { scrollHeight: metrics.clientHeight } : {}),
+  })
   process.stderr.write(
     `  ${mandate} ${direction} ${size} ${screen}` +
       `${metrics.sideways ? `  SIDEWAYS SCROLL: ${metrics.overflowing}` : ''}\n`,
   )
 }
 
-async function walk({ mandate, direction, size }) {
+async function walk({ mandate, direction, size, standingPages = false }) {
   // Rendered at half scale. The board is committed and it is read for layout,
   // density, colour and whether a screen is blank — none of which needs a
   // retina pixel. At full scale the four hundred and ninety-two shots came to
@@ -122,7 +146,11 @@ async function walk({ mandate, direction, size }) {
   await shoot(page, { ...base, screen: '01-setup' })
   await shoot(page, { ...base, screen: '02-briefing' })
 
-  await enterFirstMeeting(page)
+  // The first-meeting explanation goes on the board: four steps, each its own
+  // screen, and none of them reachable once the browser has played once.
+  await enterFirstMeeting(page, async (kind) => {
+    await shoot(page, { ...base, screen: `03-${kind}`, overlay: kind.startsWith('guide') })
+  })
 
   for (let meeting = 1; meeting <= mandate.meetings; meeting += 1) {
     if (await isResult(page)) break
@@ -161,6 +189,23 @@ async function walk({ mandate, direction, size }) {
     const count = await disclosures.count()
     for (let i = 0; i < count; i += 1) await disclosures.nth(i).click().catch(() => {})
     await shoot(page, { ...base, screen: '91-result-open' })
+  }
+
+  // The standing pages last, and only on one mandate, because they do not
+  // depend on which one was played — but *after* it, deliberately: the
+  // records page empty and the records page with a finished mandate and
+  // earned achievements on it are two different screens, and the one worth
+  // looking at is the one a player who has played will see.
+  if (standingPages) {
+    for (const [path, screen] of [
+      ['glossary', '95-page-glossary'],
+      ['records', '96-page-records'],
+      ['about', '97-page-about'],
+    ]) {
+      await page.goto(`${BASE_URL}/${path}`)
+      await page.waitForSelector('main h1')
+      await shoot(page, { ...base, screen })
+    }
   }
 
   await browser.close()
@@ -286,10 +331,14 @@ async function main() {
   mkdirSync(SHOTS, { recursive: true })
 
   const jobs = []
-  for (const mandate of MANDATES) {
+  for (const [index, mandate] of MANDATES.entries()) {
     for (const direction of DIRECTIONS) {
       for (const size of ['desktop', 'phone']) {
-        jobs.push(() => walk({ mandate, direction, size }))
+        // The glossary, records and about pages go on the board once per
+        // direction and size rather than once per mandate: they are the same
+        // three screens whichever mandate was played, and sixteen copies of
+        // each would bury the mandates they sit beside.
+        jobs.push(() => walk({ mandate, direction, size, standingPages: index === 0 }))
       }
     }
   }

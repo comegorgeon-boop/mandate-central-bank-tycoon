@@ -42,6 +42,20 @@ function fromFirstReading(
   return first <= 0 ? values : values.slice(first)
 }
 
+/**
+ * How many plottable readings a series has.
+ *
+ * Exported because the panel above a row of these needs the *same* rule to
+ * decide whether to say "no trends yet" — and a caller that counted
+ * differently from the chart would put that sentence over a drawn line, or
+ * leave three empty tracks with nothing explaining them.
+ */
+export function readings(values: readonly (number | null)[]): number {
+  return fromFirstReading(values).filter(
+    (value) => value !== null && Number.isFinite(value),
+  ).length
+}
+
 function describe(
   label: string,
   values: readonly (number | null)[],
@@ -111,10 +125,19 @@ export function TrendChart({
     )
 
   if (points.length < 2) {
+    // Nothing to draw yet, and deliberately *nothing said* either. This used
+    // to print "Not enough published readings yet to show a trend." — once per
+    // series, so the opening meeting of every mandate carried three identical
+    // sentences in one panel, which is the accountancy-document register this
+    // interface is trying to leave. The caller says it once, above all three.
+    //
+    // An empty track rather than nothing at all: the columns keep their
+    // heights, so the panel does not jump the first time a chart appears.
     return (
-      <p className="mt-2 text-xs text-ink-faint">
-        Not enough published readings yet to show a trend.
-      </p>
+      <div
+        aria-hidden="true"
+        className="mt-2 h-10 rounded-sm border border-dashed border-edge-room"
+      />
     )
   }
 

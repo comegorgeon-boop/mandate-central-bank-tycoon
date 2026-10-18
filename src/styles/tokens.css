@@ -261,6 +261,20 @@
   --on-accent-surface: var(--color-brass-300);
   --on-accent-surface-soft: var(--color-paper-300);
 
+  /*
+   * The scrim: what covers the room while one control is being pointed at.
+   *
+   * Opaque rather than translucent, and the room's own darkest wood rather
+   * than black. Two reasons, both learned here. A translucent scrim composites
+   * with whatever is under it, so the text it covers lands at an unpredictable
+   * ratio against an unpredictable ground — the audit would have to measure
+   * every pairing the page can produce, and the one it missed would be the one
+   * a player met. And a black wash reads as a modal dialog borrowed from
+   * another application; this room is made of wood, and the lights going down
+   * in it should look like the lights going down in it.
+   */
+  --scrim: var(--color-walnut-900);
+
   /* The focus ring. One ring everywhere, bright enough to find on both
    * grounds, because a keyboard player who loses the caret has lost the
    * screen. */
@@ -308,6 +322,9 @@
   /* Cream, so the pair is dark: brass-700 runs 6.6:1 on it and ink-700 8.2:1. */
   --on-accent-surface: var(--color-brass-700);
   --on-accent-surface-soft: var(--color-ink-700);
+
+  /* Papers-on-the-table is lit; its scrim is the table, not the dark. */
+  --scrim: var(--color-walnut-700);
 }
 
 /*
@@ -364,6 +381,7 @@
   --color-on-accent-surface: var(--on-accent-surface);
   --color-on-accent-surface-soft: var(--on-accent-surface-soft);
 
+  --color-scrim: var(--scrim);
   --color-focus: var(--focus);
 }
 

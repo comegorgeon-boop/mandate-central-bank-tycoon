@@ -30,7 +30,12 @@ import { settledPromise } from '../policy/settledPromise.ts'
 import { advanceArms, openArms } from './counterfactualRun.ts'
 import { advanceScoreboard, openScoreboard } from './doctrineScoreboard.ts'
 import { makeRunId } from './seed.ts'
-import { clearSave, loadSave, recordResult, saveRun } from '../records/storage.ts'
+import {
+  clearSave,
+  loadSave,
+  recordResult,
+  saveRun,
+} from '../records/storage.ts'
 
 /** The largest move the desk allows, which caps every school's advice. */
 function maxMoveFor(config: RunConfig): number {
@@ -215,6 +220,18 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
           difficulty: session.state.config.difficulty,
           scenario: session.state.config.scenario,
         })
+        // Achievements are *not* recorded here, deliberately. The report
+        // screen records them, for two reasons that both only hold there: it
+        // is where the historical standard is built, so it is the only place
+        // that knows whether this mandate beat it; and recording here first
+        // would mean the report, reading what was earned "before", found
+        // everything already present and could never mark anything as earned
+        // for the first time. Which is exactly what it did.
+        //
+        // Nothing is lost by waiting: finishing a mandate goes to the report.
+        // `recordResult` above has already run, so the scenario count the
+        // report reads includes this mandate — "all six periods" is earned by
+        // the sixth one rather than by the one after it.
       } else {
         // Saved after every confirmed decision, because a mandate is forty
         // minutes long and the project's own setup screen used to warn that
