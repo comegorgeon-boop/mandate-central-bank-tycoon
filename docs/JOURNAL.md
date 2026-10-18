@@ -559,3 +559,27 @@ week's silent failures also had going for it.
 
 Worth adding to the list in CLAUDE.md beside `npm run build` and `npm test` —
 but that file is your instructions to me, so it is your line to write.
+
+---
+
+## 13 — Online
+
+**Did.** Deployed. The game is at
+**https://mandate-central-bank-tycoon.comegorgeon.workers.dev** and has been
+played there, end to end, on a fresh browser. `npm run check:offline` is on
+the finish line in CLAUDE.md now, in your words and at your instruction.
+
+**Measured, against the deployed site rather than the preview** — which is the
+version that counts, because the rule is about what the player's browser does
+and a deployment can acquire a third-party request a local preview never
+shows. Twelve requests in a whole mandate, **all of them to this origin**;
+with the network cut after load, a full term played to its report and **zero
+requests were even attempted**. Then a real mandate on the live URL: ten
+meetings, the report, three achievements, the records page.
+
+**Bothers me.** Nothing about the deployment. One thing about the week: the
+first `wrangler login` timed out while I waited for it, and I only got it on
+the second attempt by holding the process open in the background. A small
+thing, but it is the same shape as everything else this week — the step that
+fails is the one nobody has a check for, and the fix is always to make the
+waiting explicit instead of assuming it will have happened.
