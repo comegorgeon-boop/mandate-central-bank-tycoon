@@ -8,9 +8,8 @@ import type {
 } from '../types/scoring.ts'
 import { SCORING_VERSION } from '../version.ts'
 import { clamp } from '../config/bounds.ts'
-import { scenarioOf } from '../scenarios/scenarios.ts'
+import { inflationTargetFor, scenarioOf } from '../scenarios/scenarios.ts'
 import { getDifficulty } from '../config/difficulty.ts'
-import { getInstitution } from '../config/institutions.ts'
 import { SPREADS, VOLATILITY } from '../config/model.ts'
 import { YEARS_PER_MEETING } from '../config/time.ts'
 import {
@@ -210,9 +209,8 @@ export function calculateScore(
   state: SimulationState,
   outcome: EndConditionResult,
 ): ScoreBreakdown {
-  const institution = getInstitution(state.config.institution)
   const difficulty = getDifficulty(state.config.difficulty)
-  const target = institution.inflationTarget
+  const target = inflationTargetFor(state.config)
   const history = state.history
   // What the mandate is judged on, which is not fixed: under a cost-push
   // regime the objective itself moves. See `SUPPLY_REGIME`.

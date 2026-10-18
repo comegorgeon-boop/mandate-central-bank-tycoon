@@ -1,7 +1,8 @@
 import {
-  getInstitution,
-  type Institution,
+  inflationTargetFor,
+  sustainableRateFor,
   type ObservationSet,
+  type RunConfig,
   type SeriesId,
 } from '../../../simulation/index.ts'
 import { TrendChart } from '../../../components/TrendChart.tsx'
@@ -38,21 +39,24 @@ interface Series {
 }
 
 function seriesFor(
-  institution: Institution,
+  config: RunConfig,
   observation: ObservationSet,
 ): readonly Series[] {
-  const config = getInstitution(institution)
   return [
     {
       id: 'headline_inflation',
       label: 'Inflation',
-      reference: config.inflationTarget,
+      // The mandate's own objective, not the institution's. A historical
+      // mandate may have been run to a different one — 1929-33 to a stable
+      // price level — and a dashed line at 2 % would be the chart arguing with
+      // the scenario.
+      reference: inflationTargetFor(config),
       referenceLabel: 'objective',
     },
     {
       id: 'unemployment',
       label: 'Unemployment',
-      reference: config.initial.naturalUnemployment,
+      reference: sustainableRateFor(config),
       referenceLabel: 'sustainable rate',
     },
     {
@@ -71,12 +75,19 @@ function seriesFor(
 
 export function MandateChartPanel({
   observation,
-  institution,
+  config,
 }: {
   readonly observation: ObservationSet
-  readonly institution: Institution
+  /**
+   * The run's own configuration, not just its institution.
+   *
+   * The two reference lines this panel draws — the objective and the
+   * sustainable rate — are properties of the *mandate* rather than of the
+   * institution, and a historical one may have been run to different ones.
+   */
+  readonly config: RunConfig
 }) {
-  const series = seriesFor(institution, observation)
+  const series = seriesFor(config, observation)
   const plotted = series
     .map((entry) => ({ entry, reading: observation.indicators[entry.id] }))
     .filter(

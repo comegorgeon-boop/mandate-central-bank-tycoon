@@ -56,8 +56,10 @@ function basisPoints(percentagePoints: number): number {
 function dataDevelopments(
   observation: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly BriefItem[] {
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
   const items: BriefItem[] = []
 
   const headline = value(observation, 'headline_inflation')
@@ -143,9 +145,11 @@ function dataDevelopments(
 function openQuestions(
   observation: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly string[] {
   const questions: string[] = []
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
 
   const forecast = observation.forecasts.find(
     (fan) => fan.seriesId === 'headline_inflation',
@@ -187,6 +191,8 @@ export function buildMeetingBrief(
   observation: ObservationSet,
   outcome: EndConditionResult,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): MeetingBrief {
   // Priority order: things that could end the run, then what actually
   // happened, then what might happen, then what the data says.
@@ -219,8 +225,8 @@ export function buildMeetingBrief(
     ...warnings,
     ...news,
     ...clues,
-    ...dataDevelopments(observation, institution),
+    ...dataDevelopments(observation, institution, objective),
   ].slice(0, MAX_DEVELOPMENTS)
 
-  return { developments, questions: openQuestions(observation, institution) }
+  return { developments, questions: openQuestions(observation, institution, objective) }
 }

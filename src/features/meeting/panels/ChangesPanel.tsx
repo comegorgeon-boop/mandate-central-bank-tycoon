@@ -48,12 +48,15 @@ export function ChangesPanel({
   observation,
   previousObservation,
   institution,
+  objective,
   counterfactual,
   newSeries,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
   readonly institution: Institution
+  /** The mandate's own objective. See `standing.ts`. */
+  readonly objective: number
   /**
    * What the policy has actually delivered, exactly.
    *
@@ -68,7 +71,7 @@ export function ChangesPanel({
   readonly newSeries: readonly string[]
 }) {
   const changes = useMemo(
-    () => buildChanges(observation, previousObservation, institution),
+    () => buildChanges(observation, previousObservation, institution, objective),
     [observation, previousObservation, institution],
   ).filter((item) => counterfactual === null || item.source !== 'decision')
 

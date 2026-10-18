@@ -30,6 +30,21 @@ import { useId } from 'react'
  * Both are references and neither is an instruction. The Taylor rule is a
  * rule of thumb that accounts for nothing beyond inflation and the gap, and
  * the priced path is what others believe, not what is right. The copy says so.
+ *
+ * ## And one thing that is not a reference
+ *
+ * `forbidden` shades the part of the track that *costs something to stand in*.
+ * It exists for the gold standard of 1929-33, where there is a floor under the
+ * rate that the player did not choose and crossing it drains the gold stock —
+ * and the whole point of that mechanic is that the constraint is visible
+ * before it is crossed rather than explained afterwards. A band, not a tick,
+ * because everything below the floor is the danger and not just the floor
+ * itself.
+ *
+ * Deliberately **not** a limit on the input. The player may cut through it;
+ * they simply pay. A control that refused would be a different game, and a
+ * duller one: the Federal Reserve of 1931 could have held the rate down and
+ * chose not to.
  */
 
 export interface GhostMarker {
@@ -39,6 +54,14 @@ export interface GhostMarker {
   readonly basisPoints: number
   /** The rate it corresponds to, for the readout. */
   readonly rate: number
+}
+
+/** A region of the track that is reachable and costly. See the note above. */
+export interface ForbiddenZone {
+  /** Everything strictly below this move, in basis points, is in the zone. */
+  readonly belowBasisPoints: number
+  /** What the edge is called, in the player's words. */
+  readonly label: string
 }
 
 /** Track width, in percent, inside which two labels would collide. */
@@ -62,6 +85,7 @@ export function RateSlider({
   max,
   step,
   markers,
+  forbidden = null,
   onChange,
 }: {
   readonly label: string
@@ -72,6 +96,7 @@ export function RateSlider({
   readonly max: number
   readonly step: number
   readonly markers: readonly GhostMarker[]
+  readonly forbidden?: ForbiddenZone | null
   readonly onChange: (basisPoints: number) => void
 }) {
   const id = useId()
@@ -105,6 +130,21 @@ export function RateSlider({
   const market = markers.find((marker) => marker.id === 'market') ?? null
   const surprise = market === null ? null : value - market.basisPoints
 
+  // The costly region, as a share of the track. Clamped to it: a floor above
+  // the top of the range shades the whole track, which is the honest picture
+  // of a meeting where every move available is one that drains reserves.
+  const zone =
+    forbidden === null
+      ? null
+      : {
+          ...forbidden,
+          width: Math.max(
+            0,
+            Math.min(100, percent(forbidden.belowBasisPoints, min, max)),
+          ),
+          inside: value < forbidden.belowBasisPoints,
+        }
+
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
@@ -124,7 +164,7 @@ export function RateSlider({
           is transparent-tracked, so the handle sits over them rather than
           beside them — a reference the handle cannot reach is a reference the
           player cannot read a distance against. */}
-      <div className="relative mt-6 px-0.5 pb-1">
+      <div className="relative mt-9 px-0.5 pb-1">
         {drawn.map((marker) => (
           <div
             key={marker.id}
@@ -173,13 +213,42 @@ export function RateSlider({
           step={step}
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
-          aria-valuetext={`${signedBp(value)}, taking the rate to ${resulting.toFixed(2)} per cent`}
+          aria-valuetext={
+            `${signedBp(value)}, taking the rate to ${resulting.toFixed(2)} per cent` +
+            // Said in the value text, not only drawn: a keyboard player
+            // arrowing down through the floor has to be told they have
+            // crossed it, and a shaded band tells them nothing.
+            (zone?.inside === true ? `. Below the floor: ${zone.label}` : '')
+          }
           className="w-full accent-[var(--accent)]"
         />
 
-        <div className="flex justify-between text-2xs tabular-nums text-ink-faint">
+        {/* The costly region, drawn as a strip *under* the dial rather than
+            over it.
+            The first version painted a tinted band across the groove itself,
+            and on the meeting that matters — the rate already at its floor,
+            so that every move on the track is below the gold floor — it
+            covered the whole control and hid the handle. A dial you cannot
+            read is worse than a constraint you cannot see. Underneath, it is
+            a rule along the bottom of the track saying how much of the dial
+            costs something, which is the same information and does not take
+            the instrument with it. */}
+        {zone !== null && zone.width > 0 && (
+          <div aria-hidden="true" className="relative h-1">
+            <div
+              className="absolute left-0 top-0 h-0.5 rounded-full bg-bad"
+              style={{ width: `${zone.width}%` }}
+            />
+          </div>
+        )}
+
+        <div className="flex justify-between gap-2 text-2xs tabular-nums text-ink-faint">
           <span>{signedBp(min)}</span>
-          <span>hold</span>
+          {zone === null || zone.width <= 0 ? (
+            <span>hold</span>
+          ) : (
+            <span className="text-bad">{zone.label} ◂</span>
+          )}
           <span>{signedBp(max)}</span>
         </div>
       </div>

@@ -86,6 +86,31 @@ export interface SubstepContext {
   readonly phillipsGapSlope: number
   /** How fast the output gap closes on its own, for this mandate. */
   readonly gapMeanReversion: number
+  /**
+   * How much unemployment an output gap produces, for this mandate.
+   *
+   * The engine's 0.42 everywhere but in the two deepest historical scenarios,
+   * whose recessions it understates by two points and twelve respectively.
+   * See `Scenario.okun`.
+   */
+  readonly okun: number
+  /**
+   * The objective this mandate is run to.
+   *
+   * On the context rather than read off the institution, because 1929-33 was
+   * not run to 2 % and the expectations block pulls inflation toward whatever
+   * this says. See `inflationTargetFor`.
+   */
+  readonly inflationTarget: number
+  /**
+   * How far the inflation this mandate inherited sat from its objective, in
+   * points, and how much of the mandate has elapsed.
+   *
+   * Together they are the glide path the institution's standing is judged
+   * against. See `INSTITUTIONAL.credibility.inheritedForgivenessCap`.
+   */
+  readonly inheritedMiss: number
+  readonly mandateElapsed: number
   readonly dt: number
 }
 
@@ -112,7 +137,7 @@ export function advanceSubstep(
   prng: Prng,
 ): SubstepResult {
   const { dt, institution: inst, difficulty: diff, stance } = ctx
-  const target = inst.inflationTarget
+  const target = ctx.inflationTarget
   const sqrtDt = Math.sqrt(dt)
   const next: LatentState = { ...latent }
 
@@ -447,7 +472,7 @@ export function advanceSubstep(
   next.outputGap = latent.outputGap + gapDelta
 
   // ---- 12. Okun: unemployment and employment momentum ---------------------
-  const unemploymentTarget = latent.naturalUnemployment - LABOR.okun * latent.outputGap
+  const unemploymentTarget = latent.naturalUnemployment - ctx.okun * latent.outputGap
   const unemploymentDelta =
     LABOR.adjustment * (unemploymentTarget - latent.unemployment) * dt
   next.unemployment = latent.unemployment + unemploymentDelta
@@ -513,7 +538,16 @@ export function advanceSubstep(
   // Linear up to the knee and compressed beyond it: see `missKnee`. The
   // fictional modes never reach the knee, so this is the identity function
   // everywhere except in a historical scenario.
-  const rawMiss = Math.abs(latent.inflationHeadline - target)
+  // The glide path. What was inherited is forgiven at the first meeting and
+  // not at the last; what is charged is the distance above the glide. See
+  // `INSTITUTIONAL.credibility.inheritedForgivenessCap`.
+  const forgiven =
+    Math.min(
+      cred.inheritedForgivenessCap,
+      Math.max(0, ctx.inheritedMiss - cred.inheritedDeductible),
+    ) *
+    (1 - ctx.mandateElapsed)
+  const rawMiss = Math.max(0, Math.abs(latent.inflationHeadline - target) - forgiven)
   const chargedMiss =
     rawMiss <= cred.missKnee
       ? rawMiss
@@ -598,7 +632,7 @@ export function advanceSubstep(
       dt
 
   // ---- 16. Market-implied policy path -------------------------------------
-  const benchmark = taylorBenchmark(latent, inst.id)
+  const benchmark = taylorBenchmark(latent, inst.id, target)
   const guided = ctx.guidance.impliedRatePath
   const commitmentShare =
     guided === null ? 0 : COMMUNICATION.commitmentWeight[ctx.guidance.commitment]

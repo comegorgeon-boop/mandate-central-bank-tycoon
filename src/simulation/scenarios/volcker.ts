@@ -390,7 +390,7 @@ export const VOLCKER_1979: Scenario = {
   // table in docs/SCENARIOS.md. At 1.0 the model runs the funds rate to 19 %
   // and produces an output gap of +0.4, which is not a recession and makes the
   // sacrifice ratio invisible.
-  rateTransmission: 2.2,
+  rateTransmission: 3.0,
   // Below the engine's 0.45, which its own comment calls above the modern
   // empirical range and defends as the price of a twelve-meeting mandate. A
   // four-year mandate does not need the discount, and at 0.45 an output gap of
@@ -398,7 +398,31 @@ export const VOLCKER_1979: Scenario = {
   // actually printed. The sacrifice ratio is what this scenario teaches and a
   // steep curve makes it cheap.
   phillipsGapSlope: 0.35,
-  gapMeanReversion: 0.83,
+  gapMeanReversion: 0.45,
+  // Hard's event dials as they stood when this scenario was calibrated. Stated
+  // rather than inherited, because hard's own were later raised to compensate
+  // for its term being cut to 24 meetings and a scenario sets its own length.
+  // See `Scenario.eventSeverityScale`.
+  // Below hard's 1.45. The same argument that suppresses the energy family
+  // here: the oil story of 1979-83 is scripted on its own dates, and hard's
+  // ambient supply process adds a second one on top of it. Measured, the
+  // modelled inflation peak ran to 19.7 % against the 14.59 % of March 1980,
+  // almost all of it the ambient process wandering up through a mandate that
+  // already had the second oil shock written into it.
+  shockScale: 0.75,
+  eventProbability: 0.7,
+  eventSeverityScale: 1.35,
+  // There was no metallic standard to defend in 1979; the dollar had been off
+  // gold since 1971 and the constraint of this period is the anchor in
+  // people's heads, not one in a vault.
+  goldStandard: null,
+  // **Left at the engine's own 0.42, deliberately, now that the parameter
+  // exists.** 1929-33 needed it and this scenario was raised to 0.55 with it;
+  // measured, that made the mandate fail in ten of twelve replays of the
+  // historical path against six before, for a deeper recession nobody asked
+  // for. The miss stays in the fit table where it has always been: worst
+  // modelled unemployment of about 8 % against the 10.8 % of November 1982.
+  // A parameter that is available is not a parameter that should be used.
 
   // 6 October 1979, the unscheduled Saturday meeting.
   procedureChoiceAt: 1,
@@ -461,14 +485,53 @@ export const VOLCKER_1979: Scenario = {
       failCredibility: 0,
       watchCredibility: 22,
     },
+    currencyDysfunction: {
+      // The dollar of this period moved more than in any other span in the
+      // file: the trade-weighted index rose by about a half between 1980 and
+      // 1985 on the real rate differential this policy created, and the whole
+      // point is that the exchange rate is one of the channels through which
+      // a disinflation of this violence is transmitted. The engine's 25 %
+      // move bar describes a currency in trouble; here it describes the
+      // policy working.
+      failExchangeRateMove: 45,
+      watchVolatility: 78,
+      failVolatility: 95,
+    },
+    depression: {
+      // Needed once the transmission and the gap's own persistence were
+      // recalibrated to produce the recession this period actually had. The
+      // 1982 output gap was -7.3 % and unemployment reached 10.8 %, and the
+      // engine's bar — a gap of -8 held four meetings — ends the mandate on
+      // precisely the cost the scenario exists to make the player feel. The
+      // bar sits below the recession that happened, and the watch tier stays
+      // where it is so the warning is live for the whole of 1982.
+      failOutputGap: -14,
+      failUnemploymentGap: 9,
+      meetingsToFail: 6,
+    },
     capitulation: {
+      // **Eight, not five, re-measured on this build, and the extra three are
+      // partly paying for a miss in the model rather than for anything about
+      // 1980.** The note below is the original argument and it still holds.
+      // What changed is that the model's own inflation path does not come all
+      // the way down on every seed — it ends at a median 4.8 % against the
+      // 2.36 % that printed — so the real cuts of late 1982 and 1983, which
+      // were a normalisation, read to the condition as a capitulation with
+      // inflation still four points above target. At five, the historical rate
+      // path gave in on eight of twelve seeds. Eight restores the property the
+      // bar exists for: the policy that actually happened survives it.
+      //
+      // That is a threshold compensating for a fit problem and it is written
+      // down as one. If the disinflation ever tracks properly, bring this back
+      // toward five.
+      //
       // Five, not four, and the extra meeting is the whole of 1980 in it.
       // Real short rates were negative from May to September of that year —
       // four meetings on this calendar — and the Federal Reserve came back.
       // At four the scenario would end on the episode that history survived;
       // at five, a player who repeats 1980 comes within one meeting of losing
       // the mandate, which is the right amount of frightening.
-      meetingsToFail: 5,
+      meetingsToFail: 8,
     },
   },
 
@@ -481,38 +544,38 @@ export const VOLCKER_1979: Scenario = {
     'decided.',
 
   calendar: [
-  { date: '1979-08-14', label: 'August 14, 1979', benchmarkRate: 10.94 },
-  { date: '1979-10-06', label: 'October 6, 1979', benchmarkRate: 13.77 },
-  { date: '1979-11-20', label: 'November 20, 1979', benchmarkRate: 13.18 },
-  { date: '1980-01-08', label: 'January 8, 1980', benchmarkRate: 13.82 },
-  { date: '1980-02-04', label: 'February 4, 1980', benchmarkRate: 14.13 },
-  { date: '1980-03-18', label: 'March 18, 1980', benchmarkRate: 17.19 },
-  { date: '1980-05-20', label: 'May 20, 1980', benchmarkRate: 10.98 },
-  { date: '1980-07-09', label: 'July 9, 1980', benchmarkRate: 9.03 },
-  { date: '1980-08-12', label: 'August 12, 1980', benchmarkRate: 9.61 },
-  { date: '1980-09-16', label: 'September 16, 1980', benchmarkRate: 10.87 },
-  { date: '1980-11-18', label: 'November 18, 1980', benchmarkRate: 15.85 },
-  { date: '1980-12-18', label: 'December 18, 1980', benchmarkRate: 18.90 },
-  { date: '1981-02-02', label: 'February 2, 1981', benchmarkRate: 15.93 },
-  { date: '1981-03-31', label: 'March 31, 1981', benchmarkRate: 14.70 },
-  { date: '1981-05-18', label: 'May 18, 1981', benchmarkRate: 18.52 },
-  { date: '1981-07-06', label: 'July 6, 1981', benchmarkRate: 19.04 },
-  { date: '1981-08-18', label: 'August 18, 1981', benchmarkRate: 17.82 },
-  { date: '1981-10-05', label: 'October 5, 1981', benchmarkRate: 15.08 },
-  { date: '1981-11-17', label: 'November 17, 1981', benchmarkRate: 13.31 },
-  { date: '1981-12-21', label: 'December 21, 1981', benchmarkRate: 12.37 },
-  { date: '1982-02-01', label: 'February 1, 1982', benchmarkRate: 14.78 },
-  { date: '1982-03-29', label: 'March 29, 1982', benchmarkRate: 14.68 },
-  { date: '1982-05-18', label: 'May 18, 1982', benchmarkRate: 14.45 },
-  { date: '1982-06-30', label: 'June 30, 1982', benchmarkRate: 14.15 },
-  { date: '1982-08-24', label: 'August 24, 1982', benchmarkRate: 10.12 },
-  { date: '1982-10-05', label: 'October 5, 1982', benchmarkRate: 9.71 },
-  { date: '1982-11-16', label: 'November 16, 1982', benchmarkRate: 9.20 },
-  { date: '1982-12-20', label: 'December 20, 1982', benchmarkRate: 8.95 },
-  { date: '1983-02-08', label: 'February 8, 1983', benchmarkRate: 8.51 },
-  { date: '1983-03-28', label: 'March 28, 1983', benchmarkRate: 8.77 },
-  { date: '1983-05-24', label: 'May 24, 1983', benchmarkRate: 8.63 },
-  { date: '1983-07-12', label: 'July 12, 1983', benchmarkRate: 9.37 },
+    { date: '1979-08-14', label: 'August 14, 1979', benchmarkRate: 10.94, actualInflation: 11.84, actualCore: 9.98, actualUnemployment: 6.0 },
+    { date: '1979-10-06', label: 'October 6, 1979', benchmarkRate: 13.77, actualInflation: 12.07, actualCore: 10.12, actualUnemployment: 6.0 },
+    { date: '1979-11-20', label: 'November 20, 1979', benchmarkRate: 13.18, actualInflation: 12.59, actualCore: 10.65, actualUnemployment: 5.9 },
+    { date: '1980-01-08', label: 'January 8, 1980', benchmarkRate: 13.82, actualInflation: 13.87, actualCore: 11.97, actualUnemployment: 6.3 },
+    { date: '1980-02-04', label: 'February 4, 1980', benchmarkRate: 14.13, actualInflation: 14.16, actualCore: 11.99, actualUnemployment: 6.3 },
+    { date: '1980-03-18', label: 'March 18, 1980', benchmarkRate: 17.19, actualInflation: 14.59, actualCore: 12.61, actualUnemployment: 6.3 },
+    { date: '1980-05-20', label: 'May 20, 1980', benchmarkRate: 10.98, actualInflation: 14.43, actualCore: 13.14, actualUnemployment: 7.5 },
+    { date: '1980-07-09', label: 'July 9, 1980', benchmarkRate: 9.03, actualInflation: 13.15, actualCore: 12.38, actualUnemployment: 7.8 },
+    { date: '1980-08-12', label: 'August 12, 1980', benchmarkRate: 9.61, actualInflation: 12.89, actualCore: 11.83, actualUnemployment: 7.7 },
+    { date: '1980-09-16', label: 'September 16, 1980', benchmarkRate: 10.87, actualInflation: 12.77, actualCore: 12.01, actualUnemployment: 7.5 },
+    { date: '1980-11-18', label: 'November 18, 1980', benchmarkRate: 15.85, actualInflation: 12.63, actualCore: 12.17, actualUnemployment: 7.5 },
+    { date: '1980-12-18', label: 'December 18, 1980', benchmarkRate: 18.90, actualInflation: 12.35, actualCore: 12.15, actualUnemployment: 7.2 },
+    { date: '1981-02-02', label: 'February 2, 1981', benchmarkRate: 15.93, actualInflation: 11.39, actualCore: 10.84, actualUnemployment: 7.4 },
+    { date: '1981-03-31', label: 'March 31, 1981', benchmarkRate: 14.70, actualInflation: 10.61, actualCore: 9.92, actualUnemployment: 7.4 },
+    { date: '1981-05-18', label: 'May 18, 1981', benchmarkRate: 18.52, actualInflation: 9.79, actualCore: 9.61, actualUnemployment: 7.5 },
+    { date: '1981-07-06', label: 'July 6, 1981', benchmarkRate: 19.04, actualInflation: 10.77, actualCore: 11.14, actualUnemployment: 7.2 },
+    { date: '1981-08-18', label: 'August 18, 1981', benchmarkRate: 17.82, actualInflation: 10.82, actualCore: 11.56, actualUnemployment: 7.4 },
+    { date: '1981-10-05', label: 'October 5, 1981', benchmarkRate: 15.08, actualInflation: 10.27, actualCore: 10.96, actualUnemployment: 7.9 },
+    { date: '1981-11-17', label: 'November 17, 1981', benchmarkRate: 13.31, actualInflation: 9.58, actualCore: 10.25, actualUnemployment: 8.3 },
+    { date: '1981-12-21', label: 'December 21, 1981', benchmarkRate: 12.37, actualInflation: 8.91, actualCore: 9.54, actualUnemployment: 8.5 },
+    { date: '1982-02-01', label: 'February 1, 1982', benchmarkRate: 14.78, actualInflation: 7.61, actualCore: 9.20, actualUnemployment: 8.9 },
+    { date: '1982-03-29', label: 'March 29, 1982', benchmarkRate: 14.68, actualInflation: 6.88, actualCore: 8.68, actualUnemployment: 9.0 },
+    { date: '1982-05-18', label: 'May 18, 1982', benchmarkRate: 14.45, actualInflation: 6.91, actualCore: 8.66, actualUnemployment: 9.4 },
+    { date: '1982-06-30', label: 'June 30, 1982', benchmarkRate: 14.15, actualInflation: 7.18, actualCore: 8.47, actualUnemployment: 9.6 },
+    { date: '1982-08-24', label: 'August 24, 1982', benchmarkRate: 10.12, actualInflation: 5.97, actualCore: 7.06, actualUnemployment: 9.8 },
+    { date: '1982-10-05', label: 'October 5, 1982', benchmarkRate: 9.71, actualInflation: 5.03, actualCore: 5.86, actualUnemployment: 10.4 },
+    { date: '1982-11-16', label: 'November 16, 1982', benchmarkRate: 9.20, actualInflation: 4.48, actualCore: 5.19, actualUnemployment: 10.8 },
+    { date: '1982-12-20', label: 'December 20, 1982', benchmarkRate: 8.95, actualInflation: 3.83, actualCore: 4.52, actualUnemployment: 10.8 },
+    { date: '1983-02-08', label: 'February 8, 1983', benchmarkRate: 8.51, actualInflation: 3.48, actualCore: 4.48, actualUnemployment: 10.4 },
+    { date: '1983-03-28', label: 'March 28, 1983', benchmarkRate: 8.77, actualInflation: 3.59, actualCore: 4.58, actualUnemployment: 10.3 },
+    { date: '1983-05-24', label: 'May 24, 1983', benchmarkRate: 8.63, actualInflation: 3.44, actualCore: 3.67, actualUnemployment: 10.1 },
+    { date: '1983-07-12', label: 'July 12, 1983', benchmarkRate: 9.37, actualInflation: 2.36, actualCore: 3.21, actualUnemployment: 9.4 },
   ],
 
   events: SCENARIO_EVENTS,

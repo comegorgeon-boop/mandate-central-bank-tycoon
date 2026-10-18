@@ -1,5 +1,6 @@
 import {
   SIMULATION_VERSION,
+  availableInstruments,
   calculateScore,
   createRunConfig,
   getInstrument,
@@ -102,6 +103,18 @@ export function buildTheStandard(
     scenario: scenario.id,
   })
 
+  // The window is not universal. The ECB has none, and 1929's Federal Reserve
+  // has one but no `asset_purchases`; a replay that proposed an instrument the
+  // institution does not hold throws out of `playRun` — and this runs inside a
+  // `useMemo` on the result screen, so the throw took the **entire result
+  // page** down to a blank white screen. Found by playing a euro-area scenario
+  // to the end and looking at it; 952 tests were green at the time.
+  const lendsAtWindow =
+    !scenario.withheldInstruments.includes('discount_window') &&
+    availableInstruments(config.institution, config.difficulty).some(
+      (entry) => entry.id === 'discount_window',
+    )
+
   const instrument = getInstrument('policy_rate')
   const range =
     instrument === undefined
@@ -122,7 +135,7 @@ export function buildTheStandard(
     const window = stress > 40 ? 3 : stress > 28 ? 2 : stress > 20 ? 1 : 0
     const actions: PolicyPackage['actions'] = [
       ...(move === 0 ? [] : [{ instrument: 'policy_rate' as const, magnitude: move }]),
-      ...(window === current.state.stance.discountWindowLevel
+      ...(window === current.state.stance.discountWindowLevel || !lendsAtWindow
         ? []
         : [{ instrument: 'discount_window' as const, magnitude: window }]),
     ]

@@ -7,10 +7,9 @@ import type {
 } from '../types/scoring.ts'
 import type { LatentState, SimulationState } from '../types/state.ts'
 import { getDifficulty } from '../config/difficulty.ts'
-import { getInstitution } from '../config/institutions.ts'
 import { EXCHANGE, VOLATILITY } from '../config/model.ts'
 import type { ThresholdSet } from '../config/thresholds.ts'
-import { thresholdsFor } from '../scenarios/scenarios.ts'
+import { inflationTargetFor, thresholdsFor } from '../scenarios/scenarios.ts'
 import { tutorialExhausted, tutorialProgress } from './tutorialGoal.ts'
 import { realRateGap, unemploymentGap } from '../engine/indices.ts'
 
@@ -301,7 +300,7 @@ interface RawFactor {
 
 function contributors(state: SimulationState, id: EndConditionId): RawFactor[] {
   const latent = state.latent
-  const target = getInstitution(state.config.institution).inflationTarget
+  const target = inflationTargetFor(state.config)
   const gap = realRateGap(latent)
   const broken = state.guidance.brokenPromises
 
@@ -525,7 +524,7 @@ export function evaluateEndConditions(
 ): EndConditionResult {
   const difficulty = getDifficulty(state.config.difficulty)
   const leniency = difficulty.thresholdLeniency
-  const target = getInstitution(state.config.institution).inflationTarget
+  const target = inflationTargetFor(state.config)
   const latent = state.latent
   const thresholds = thresholdsFor(state.config)
 

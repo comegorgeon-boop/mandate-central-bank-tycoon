@@ -106,6 +106,13 @@
   --color-claret-600: #8e2f3f;
   --color-claret-500: #a83d4e;
   --color-claret-400: #d17d8a;
+  /* Added because claret-400 was *almost* light enough. It runs 4.77:1 on
+   * walnut-850 and 4.22:1 on walnut-800 — so a danger marker inside a raised
+   * element failed AA while the identical marker on a panel passed, which is
+   * not a distinction any reader could be expected to care about. This value
+   * clears 4.98:1 on the lightest wood in the file and 6.18:1 on the ground
+   * the standing panel actually uses. */
+  --color-claret-350: #d98e99;
   --color-claret-200: #e8bcc3;
 
   /* ---- Type ---------------------------------------------------------- */
@@ -218,10 +225,10 @@
   --good-surface: var(--color-viridian-900);
   --good-on-dark: var(--color-viridian-400);
 
-  --bad: var(--color-claret-400);
+  --bad: var(--color-claret-350);
   --bad-strong: var(--color-claret-200);
   --bad-surface: var(--color-claret-900);
-  --bad-on-dark: var(--color-claret-400);
+  --bad-on-dark: var(--color-claret-350);
 
   /*
    * Brass comes in three, and which one you want depends entirely on what is
@@ -240,6 +247,19 @@
   /* Brass as text on the room itself. */
   --accent-on-dark: var(--color-brass-300);
   --accent-surface: var(--color-walnut-800);
+  /*
+   * And the text that goes on `--accent-surface`, as a declared pair.
+   *
+   * This exists because `--accent-surface` is the one surface in the file that
+   * changes *material* between the two directions — walnut here, cream paper
+   * in papers-on-the-table — so no single text token is right on both. The
+   * objective banner picked `--accent-on-dark`, which is correct here and runs
+   * at 1.43:1 on cream. A surface whose colour flips has to carry its own
+   * foreground, or every component that uses it gets to make the same mistake
+   * independently.
+   */
+  --on-accent-surface: var(--color-brass-300);
+  --on-accent-surface-soft: var(--color-paper-300);
 
   /* The focus ring. One ring everywhere, bright enough to find on both
    * grounds, because a keyboard player who loses the caret has lost the
@@ -285,6 +305,9 @@
 
   --accent-strong: var(--color-brass-700);
   --accent-surface: #efe4c9;
+  /* Cream, so the pair is dark: brass-700 runs 6.6:1 on it and ink-700 8.2:1. */
+  --on-accent-surface: var(--color-brass-700);
+  --on-accent-surface-soft: var(--color-ink-700);
 }
 
 /*
@@ -338,6 +361,8 @@
   --color-accent-strong: var(--accent-strong);
   --color-accent-onwood: var(--accent-on-dark);
   --color-accent-surface: var(--accent-surface);
+  --color-on-accent-surface: var(--on-accent-surface);
+  --color-on-accent-surface-soft: var(--on-accent-surface-soft);
 
   --color-focus: var(--focus);
 }

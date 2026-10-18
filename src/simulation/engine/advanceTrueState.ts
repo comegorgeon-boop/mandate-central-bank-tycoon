@@ -3,12 +3,15 @@ import type { EventEffect, PendingEventEffect } from '../types/events.ts'
 import type { LatentState, SimulationState } from '../types/state.ts'
 import { restorePrng } from '../rng/prng.ts'
 import { LATENT_BOUNDS, clamp, clampLatentState } from '../config/bounds.ts'
-import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { DT, SUBSTEPS_PER_MEETING, YEARS_PER_MEETING } from '../config/time.ts'
 import { advanceSubstep } from './dynamics.ts'
-import { IS_CURVE, PHILLIPS } from '../config/model.ts'
-import { scenarioOf } from '../scenarios/scenarios.ts'
+import { IS_CURVE, LABOR, PHILLIPS } from '../config/model.ts'
+import {
+  inflationTargetFor,
+  measurementRegime,
+  scenarioOf,
+} from '../scenarios/scenarios.ts'
 import { realRateGap } from './indices.ts'
 import { buildLagKernel } from './lags.ts'
 import { advanceMembers } from './members.ts'
@@ -106,7 +109,10 @@ export function advanceTrueState(state: SimulationState): SimulationState {
  */
 export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
   const institution = getInstitution(state.config.institution)
-  const difficulty = getDifficulty(state.config.difficulty)
+  // `measurementRegime`, not `getDifficulty`: a scenario may carry its own
+  // ambient shock scale, and the substep reads `difficulty.shockScale` for
+  // every stochastic draw. Everything else in the profile is identical.
+  const difficulty = measurementRegime(state.config)
   const kernel = buildLagKernel(state.config.difficulty)
   // 1 in an ordinary mandate; a historical scenario says how hard its own
   // economy was to move. See `Scenario.rateTransmission`.
@@ -114,6 +120,17 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
   const rateTransmission = scenario?.rateTransmission ?? 1
   const phillipsGapSlope = scenario?.phillipsGapSlope ?? PHILLIPS.gapSlope
   const gapMeanReversion = scenario?.gapMeanReversion ?? IS_CURVE.meanReversion
+  const okun = scenario?.okun ?? LABOR.okun
+  const inflationTarget = inflationTargetFor(state.config)
+  // The economy this mandate opened on, read off its own first snapshot — so
+  // a replay, a counterfactual arm and a doctrine trial all judge the
+  // institution against the same inheritance the player was handed.
+  const opening = state.history[0]?.latent ?? state.latent
+  const inheritedMiss = Math.abs(opening.inflationHeadline - inflationTarget)
+  const mandateElapsed = Math.min(
+    1,
+    state.meetingIndex / Math.max(1, state.config.meetingCount),
+  )
   const prng = restorePrng(state.rng)
 
   const diagnostics: DiagnosticEvent[] = []
@@ -147,6 +164,10 @@ export function advanceTrueStateTraced(state: SimulationState): AdvanceResult {
         rateTransmission,
         phillipsGapSlope,
         gapMeanReversion,
+        okun,
+        inflationTarget,
+        inheritedMiss,
+        mandateElapsed,
         dt: DT,
       },
       prng,

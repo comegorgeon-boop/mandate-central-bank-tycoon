@@ -3,8 +3,13 @@ import type { ThresholdSet } from '../config/thresholds.ts'
 import type { RunConfig } from '../types/core.ts'
 import type { Scenario, ScenarioId } from '../types/scenario.ts'
 import { getDifficulty } from '../config/difficulty.ts'
+import { getInstitution } from '../config/institutions.ts'
 import { THRESHOLDS } from '../config/thresholds.ts'
+import { GREAT_CONTRACTION_1929 } from './greatContraction.ts'
 import { VOLCKER_1979 } from './volcker.ts'
+import { LEHMAN_2008 } from './lehman.ts'
+import { EURO_CRISIS_2010 } from './euroCrisis.ts'
+import { TRANSITORY_ECB_2021, TRANSITORY_FED_2021 } from './transitory.ts'
 
 /**
  * The scenario registry, and the two places a scenario reaches the engine.
@@ -17,7 +22,22 @@ import { VOLCKER_1979 } from './volcker.ts'
  * the balance sheet of constants.
  */
 
-export const SCENARIOS: readonly Scenario[] = [VOLCKER_1979]
+/**
+ * In chronological order, which is also the order they appear on the setup
+ * screen.
+ *
+ * Not in order of difficulty, deliberately — these are not rungs. 1929 is the
+ * hardest of them and comes first because it happened first, and a player who
+ * opens it and loses has learned the thing it teaches.
+ */
+export const SCENARIOS: readonly Scenario[] = [
+  GREAT_CONTRACTION_1929,
+  VOLCKER_1979,
+  LEHMAN_2008,
+  EURO_CRISIS_2010,
+  TRANSITORY_FED_2021,
+  TRANSITORY_ECB_2021,
+]
 
 export function getScenario(id: ScenarioId): Scenario {
   const scenario = SCENARIOS.find((entry) => entry.id === id)
@@ -53,6 +73,13 @@ export function measurementRegime(config: RunConfig): DifficultyConfig {
     missingObservationProbability: measurement.missingObservationProbability,
     publicationLagRelief: measurement.publicationLagRelief,
     forecastUncertaintyScale: measurement.forecastUncertaintyScale,
+    // Not a measurement scale, but it travels with them: a scenario whose
+    // weather the modern processes get wrong says so here. See
+    // `Scenario.shockScale`.
+    shockScale: scenario.shockScale ?? difficulty.shockScale,
+    eventProbability: scenario.eventProbability ?? difficulty.eventProbability,
+    eventSeverityScale:
+      scenario.eventSeverityScale ?? difficulty.eventSeverityScale,
   }
 }
 
@@ -77,6 +104,68 @@ export function thresholdsFor(config: RunConfig): ThresholdSet {
     merged[family] = { ...values, ...override }
   }
   return merged as unknown as ThresholdSet
+}
+
+/**
+ * The objective in force: the institution's, or the year's.
+ *
+ * Added for 1929-33, which needs it more than any other scenario needs
+ * anything. **The Federal Reserve of 1929 had no inflation target**, and the
+ * objective it did have was the opposite shape: a dollar convertible into a
+ * fixed weight of gold, which is a commitment to a stable *price level* rather
+ * than to a rate of change. Running that mandate against a 2 % target is not a
+ * small anachronism — it is the difference between a policy that was
+ * catastrophically tight and one that looks mildly loose, because every
+ * expectations block in this engine pulls inflation toward the objective and a
+ * 2 % objective in 1931 pulls it *up* out of a 10 % deflation.
+ *
+ * Measured before it existed: the 1929 scenario's model inflation ended the
+ * mandate at +2.7 % against the -9.35 % that printed, and its peak was +4.0 %
+ * against a historical maximum of 1.17 %. The sign was wrong, not the
+ * magnitude.
+ *
+ * Every other scenario inherits its institution's 2 %, which is the right
+ * answer for all five of them — the Federal Reserve of 1979 had no numerical
+ * target either, but it had an unambiguous direction and 2 % is where the
+ * disinflation was aimed.
+ */
+export function inflationTargetFor(config: RunConfig): number {
+  const scenario = scenarioOf(config)
+  if (scenario?.inflationTarget !== undefined) return scenario.inflationTarget
+  return getInstitution(config.institution).inflationTarget
+}
+
+/**
+ * The sustainable rate of unemployment this mandate is read against.
+ *
+ * The institution's, or — in a historical mandate — the one the scenario
+ * opened on. Needed for the same reason `inflationTargetFor` is: half a dozen
+ * screens quote "the sustainable rate" and every one of them was reading the
+ * institution's own base value, so the 1929 mandate, which opens at a natural
+ * rate of 3.2 %, told the player its sustainable rate was 4.2 % and drew the
+ * dashed line there.
+ *
+ * It is the *opening* value rather than the live latent one on purpose: the
+ * natural rate drifts with hysteresis during a long slump, and a reference
+ * line that moved with it would quietly redefine success as the recession
+ * deepened.
+ */
+export function sustainableRateFor(config: RunConfig): number {
+  const scenario = scenarioOf(config)
+  if (scenario !== null) return scenario.opening.naturalUnemployment
+  return getInstitution(config.institution).initial.naturalUnemployment
+}
+
+/**
+ * How the rate instrument is named in this mandate.
+ *
+ * Null outside a scenario. The Federal Reserve of 1929 did not have a federal
+ * funds target range — the funds market barely existed and the rate it
+ * announced was the discount rate — and the desk called it one, which is the
+ * kind of error this whole document exists to stop.
+ */
+export function rateInstrumentLabel(config: RunConfig): string | null {
+  return scenarioOf(config)?.rateLabel ?? null
 }
 
 /** Per-meeting move limits in force, if the year needs its own. */

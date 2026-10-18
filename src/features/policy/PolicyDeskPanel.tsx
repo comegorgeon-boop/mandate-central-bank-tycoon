@@ -8,6 +8,9 @@ import {
   getInstitution,
   getInstrument,
   getInstrumentRange,
+  goldFloorAt,
+  goldLabel,
+  rateInstrumentLabel,
   instrumentRangesFor,
   scenarioOf,
   availableInstruments,
@@ -223,6 +226,19 @@ export function PolicyDeskPanel({
       ) * range.increment,
     rate: session.observation.taylorBenchmark,
   })
+
+  // The gold standard's floor, where the year has one. Not a reference and not
+  // a limit: the band marks the part of the track that costs reserves to stand
+  // in, and the player may cut through it and pay. See `scenarios/goldStandard.ts`.
+  const goldFloor = goldFloorAt(session.state.config, session.state.meetingIndex)
+  const goldLabelText = goldLabel(session.state.config)
+  const forbidden =
+    goldFloor === null || goldLabelText === null
+      ? null
+      : {
+          belowBasisPoints: Math.round((goldFloor - currentRate) * 100),
+          label: `${goldLabelText} ${goldFloor.toFixed(2)} %`,
+        }
 
 
   // Only instruments the player actually moved reach the package. An
@@ -482,13 +498,19 @@ export function PolicyDeskPanel({
           aria-labelledby="procedure-heading"
           className="mt-4 rounded border-l-4 border-edge-accent bg-inset p-3"
         >
+          {/* `onwood`, not `ink`. `bg-inset` is a recess into the room and is
+              walnut in *both* directions, so near-black ink on it measured
+              1.09:1 — the signature mechanic of the Volcker scenario,
+              invisible, under a passing test suite. Everything else in the
+              codebase that uses `bg-inset` already pairs it with `onwood`;
+              this panel was the one that did not. */}
           <h3
             id="procedure-heading"
-            className="text-sm font-semibold text-ink"
+            className="text-sm font-semibold text-onwood"
           >
             One decision, once: what the dial means
           </h3>
-          <p className="mt-1 text-sm text-ink-soft">
+          <p className="mt-1 text-sm text-onwood-soft">
             The Committee can go on voting a rate and defending it, or vote a
             path for bank reserves and let the market find the rate. Taken
             today, it stands for the rest of the mandate.
@@ -518,19 +540,24 @@ export function PolicyDeskPanel({
                 type="button"
                 aria-pressed={procedure === id}
                 onClick={() => setProcedure(id)}
+                // `bg-page`, not `bg-raised`: `raised` is cream paper in the
+                // papers-on-the-table direction and this sits inside a walnut
+                // recess, so the choice reads as a well pressed into the room
+                // rather than as a sheet laid on it. `page` is walnut in both
+                // directions, which is the property that matters here.
                 className={`rounded border p-2.5 text-left ${
                   procedure === id
-                    ? 'border-edge-accent bg-panel'
-                    : 'border-edge hover:bg-panel'
+                    ? 'border-edge-accent bg-page'
+                    : 'border-edge-room hover:bg-page'
                 }`}
               >
-                <span className="text-sm font-medium text-ink">{name}</span>
-                <span className="mt-0.5 block text-xs text-ink-soft">{detail}</span>
+                <span className="text-sm font-medium text-onwood">{name}</span>
+                <span className="mt-0.5 block text-xs text-onwood-soft">{detail}</span>
               </button>
             ))}
           </div>
           {procedure === null && (
-            <p className="mt-2 text-xs text-ink-faint">
+            <p className="mt-2 text-xs text-onwood-faint">
               Choose nothing and the Committee goes on voting a rate, which is
               also a decision.
             </p>
@@ -540,16 +567,29 @@ export function PolicyDeskPanel({
 
       <div className="mt-4">
         <RateSlider
-          label={instrument.label[institution]}
+          // The name this period's institution gave the rate it set. The
+          // Federal Reserve of 1929 announced a discount rate and had no funds
+          // target of any kind; the desk called it a "federal funds target
+          // range", which is the interface inventing an instrument.
+          label={rateInstrumentLabel(session.state.config) ?? instrument.label[institution]}
           currentRate={currentRate}
           value={move}
           min={sliderMin}
           max={range.max}
           step={range.increment}
           markers={markers}
+          forbidden={forbidden}
           onChange={setMove}
         />
         <InstrumentBrief instrument={instrument} range={range} value={move} />
+        {forbidden !== null && move < forbidden.belowBasisPoints && (
+          <p className="mt-1.5 text-xs text-bad">
+            Below {(currentRate + forbidden.belowBasisPoints / 100).toFixed(2)} %
+            the exchanges pay more than you do, and gold is withdrawn for
+            shipment. Banks call loans to replace the reserves it leaves with.
+            You may do this. It is not free.
+          </p>
+        )}
         {reserveTargeting && (
           <p className="mt-1.5 text-xs text-ink-faint">
             You are targeting reserves, so this dial sets a midpoint: the rate

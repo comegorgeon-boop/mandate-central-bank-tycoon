@@ -3,13 +3,15 @@ import {
   decisionFrontPages,
   getInstitution,
   getSeries,
+  inflationTargetFor,
   isMajorEvent,
   meetingLabel,
-  unlockedAt,
+  sustainableRateFor,
   tutorialProgress,
   type MeetingResult,
   type PolicyPackage,
   type RunSession,
+  unlockedAt,
 } from '../../simulation/index.ts'
 import { realiseDue, type LedgerEntry } from '../policy/instrumentLedger.ts'
 import type { SettledPromise } from '../policy/settledPromise.ts'
@@ -113,17 +115,38 @@ export function MeetingScreen({
   const register = registerFor(config.difficulty)
   // What winning looks like *now*. Under a cost-push shock this is not the
   // standing objective, and the score follows it — see `objective.ts`.
-  const objective = regimeObjective(session.observation, institution.inflationTarget)
+  // `inflationTargetFor`, not the institution's: 1929-33 was run to a stable
+  // price level and telling that player to bring inflation back to 2 % is the
+  // game being wrong about the thing it is teaching.
+  const objective = regimeObjective(
+    session.observation,
+    inflationTargetFor(session.state.config),
+  )
   // How the mandate is going, in both directions. The interface used to
   // signal only danger; a mandate going well now says so, and names why.
-  const standing = readStanding(session.observation, session.outcome, config.institution)
+  // The mandate's own objective and sustainable rate, not the institution's.
+  const mandateObjective = inflationTargetFor(config)
+  const sustainable = sustainableRateFor(config)
+  const standing = readStanding(
+    session.observation,
+    session.outcome,
+    config.institution,
+    mandateObjective,
+    sustainable,
+  )
   // The same reading a meeting ago, so the panel can tell "it is going well"
   // from "it has *started* going well" — the second is a moment and the first
   // is a state, and only one of them is worth marking.
   const previousStanding =
     session.previousObservation === null
       ? null
-      : readStanding(session.previousObservation, session.outcome, config.institution)
+      : readStanding(
+          session.previousObservation,
+          session.outcome,
+          config.institution,
+          mandateObjective,
+          sustainable,
+        )
   // Easy ends on a goal rather than a clock, so the goal is on screen at every
   // meeting. Null at every other difficulty.
   const tutorial = tutorialProgress(session.state)
@@ -254,12 +277,11 @@ export function MeetingScreen({
               looking only at these — which is the correct instinct about what
               a macroeconomic series is for, and an indictment of a layout that
               had them nowhere. */}
-          <MandateChartPanel
-            observation={session.observation}
-            institution={config.institution}
-          />
+          <MandateChartPanel observation={session.observation} config={config} />
 
           <StanceStrip
+            objective={mandateObjective}
+            sustainable={sustainable}
             observation={session.observation}
             previousObservation={session.previousObservation}
             difficulty={config.difficulty}
@@ -331,6 +353,7 @@ export function MeetingScreen({
                     panel a player must scroll past to reach the interface is
                     a panel that has stopped being read. */}
                 <ChangesPanel
+                  objective={mandateObjective}
                   observation={session.observation}
                   previousObservation={session.previousObservation}
                   institution={config.institution}
@@ -338,6 +361,7 @@ export function MeetingScreen({
                   newSeries={newSeries}
                 />
                 <MeetingBriefPanel
+                  objective={mandateObjective}
                   observation={session.observation}
                   outcome={session.outcome}
                   institution={config.institution}
@@ -354,7 +378,7 @@ export function MeetingScreen({
             {panel === 'prices' && (
               <PricesPanel
                 observation={session.observation}
-                inflationTarget={institution.inflationTarget}
+                inflationTarget={inflationTargetFor(config)}
                 register={register}
                 difficulty={config.difficulty}
               />

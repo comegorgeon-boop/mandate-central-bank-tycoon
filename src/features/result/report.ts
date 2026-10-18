@@ -1,6 +1,7 @@
 import {
   getInstitution,
   isMajorEvent,
+  isScheduledMajor,
   type EndConditionResult,
   type Institution,
   type ResolvedEventRecord,
@@ -39,8 +40,23 @@ function meetingLabel(meetingIndex: number): string {
   return `meeting ${meetingIndex + 1}`
 }
 
-function majorEventsIn(eventLog: readonly ResolvedEventRecord[]): ResolvedEventRecord[] {
-  return eventLog.filter((record) => isMajorEvent(record.eventId)).slice()
+/**
+ * The majors a mandate had to answer, procedural and scripted alike.
+ *
+ * `isMajorEvent` only knows the procedural catalogue, so a historical mandate
+ * — whose crises are *all* scripted — came out of this with none. The written
+ * report of the euro-area scenario opened with "served 24 of 24 scheduled
+ * meetings without a single major crisis to answer", over a mandate containing
+ * the Greek programme, the Irish banking collapse, the Italian spread, the
+ * three-year refinancing operations and the announcement of September 2012.
+ */
+function majorEventsIn(state: SimulationState): ResolvedEventRecord[] {
+  return state.eventLog
+    .filter(
+      (record) =>
+        isMajorEvent(record.eventId) || isScheduledMajor(state, record.eventId),
+    )
+    .slice()
 }
 
 function describeWhatHappened(
@@ -50,7 +66,7 @@ function describeWhatHappened(
 ): readonly string[] {
   const paragraphs: string[] = []
   const name = getInstitution(institution).name
-  const majors = majorEventsIn(state.eventLog)
+  const majors = majorEventsIn(state)
   const minorCount = state.eventLog.length - majors.length
   const meetingsServed = state.meetingIndex
 

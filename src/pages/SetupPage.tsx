@@ -97,6 +97,7 @@ export default function SetupPage() {
         <div className="mt-2 flex flex-col gap-2">
           <button
             type="button"
+            data-scenario="fictional"
             aria-pressed={scenario === null}
             onClick={() => setScenario(null)}
             className={`rounded border p-3 text-left ${
@@ -115,6 +116,10 @@ export default function SetupPage() {
             <button
               key={entry.id}
               type="button"
+              // The id, for the tools in `tools/` to select a scenario by.
+              // Matching on the title would be matching on copy, and the
+              // screenshot board exists precisely to catch copy changing.
+              data-scenario={entry.id}
               aria-pressed={scenario === entry.id}
               onClick={() => setScenario(entry.id)}
               className={`rounded border p-3 text-left ${
@@ -171,6 +176,7 @@ export default function SetupPage() {
               <button
                 key={id}
                 type="button"
+                data-institution={id}
                 aria-pressed={selected}
                 onClick={() => setInstitution(id)}
                 className={`rounded border p-3 text-left ${
@@ -210,6 +216,7 @@ export default function SetupPage() {
               <button
                 key={id}
                 type="button"
+                data-difficulty={id}
                 aria-pressed={selected}
                 onClick={() => setDifficulty(id)}
                 className={`rounded border p-3 text-left ${

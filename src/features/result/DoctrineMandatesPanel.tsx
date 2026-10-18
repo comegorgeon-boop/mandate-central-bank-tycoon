@@ -76,10 +76,18 @@ export function DoctrineMandatesPanel({
   /** The meeting-by-meeting record kept while the mandate was played. */
   readonly board: Scoreboard
 }) {
-  const comparison = useMemo(
-    () => compareMandates(session, score),
-    [session, score],
-  )
+  // Ten complete alternative mandates, computed on the result screen. Same
+  // hazard and same answer as `TheStandardPanel`: a panel that cannot build
+  // itself is a missing panel, never a missing screen.
+  const comparison = useMemo(() => {
+    try {
+      return compareMandates(session, score)
+    } catch (error) {
+      console.error('The doctrine comparison could not be built', error)
+      return null
+    }
+  }, [session, score])
+  if (comparison === null) return null
 
   const beaten =
     comparison.beatenBy === 0

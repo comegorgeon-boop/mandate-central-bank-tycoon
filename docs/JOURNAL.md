@@ -78,3 +78,76 @@ and its catalogue really does deliver more impulse per meeting. See
 docs/QUESTIONS.md 1 and 2.
 
 ---
+
+## 2 — The tooling I will live or die by this week
+
+**Did.** Three committed tools in `tools/`. `drive.mjs` knows how to play this
+game in a browser, once, with the three navigation rules the contrast audit's
+three historical blind spots taught it. `contrast.mjs` walks every painted text
+node on every screen in both directions and **prints the list of states it
+visited**, with a floor under that count, because the only thing separating a
+pass from an absence is the itinerary. `board.mjs` builds the screenshot board
+at `docs/board/index.html` — every screen, two directions, phone and desktop,
+with the two things a photograph cannot show measured beside each shot: how
+many screenfuls tall it is and whether the page scrolled sideways.
+
+**Measured.** The audit found **198 real contrast failures across 71 states** on
+its first complete run, five root causes. The worst: the Volcker scenario's
+operating-procedure panel, the signature mechanic of the only historical
+mandate that shipped, rendering near-black ink on dark walnut at **1.09:1** in
+the papers-on-the-table direction. Invisible, under a green suite. Also a
+danger marker at 1.96:1 on the one tone where danger is the subject, and the
+objective banner at 1.43:1 whenever the objective had moved. All five fixed at
+the token layer where possible — a new `--on-accent-surface` pair, because
+`--accent-surface` is the one surface that changes *material* between the two
+directions and no single foreground is right on both. Now clean across **312
+states**.
+
+**Bothers me.** Looking at the board found a defect the audit could not: text
+photographed mid-entrance-animation, which the audit was measuring at its
+declared colour rather than the one being painted. Both tools now settle
+animations first and the audit composites ancestor opacity. That is two passes
+of a tool that exists to be trusted, and I would not bet it has no third.
+
+## 3 — The five remaining scenarios
+
+**Did.** 1929-33, 2008-10, 2010-12, and 2021-23 twice — six mandates across
+five periods, all six on the Volcker pattern and all six locked to
+`docs/SCENARIOS.md` by a test that parses it. Three committed tools make the
+honesty checkable rather than claimed: `tools/scenario-data.mjs` fetches every
+series from FRED and the ECB's own press index, computes the year-on-year rates
+from the index levels and **generates the calendars as TypeScript**, so not one
+of the 145 calendar rows was typed by hand; `dev/scenarioFit.ts` replays each
+benchmark path and prints the fit table the document carries;
+`dev/hardLength.ts` and `dev/cohesion.ts` from the previous chantier. New
+mechanics: the **gold standard** as a floor drawn on the rate dial that steps up
+when Britain leaves gold in September 1931, and a per-scenario inflation
+objective — 1929's is **zero**, because the Federal Reserve of 1929 had no
+inflation target and every expectations block in this engine pulls inflation
+toward whatever the objective says.
+
+**Measured.** Fits, as inflation RMSE against the published series over twelve
+seeds: 2021 Fed 2.4, euro 2010 3.0, 2021 ECB 3.2, 2008 4.0, 1979 4.8, 1929 5.9.
+Full terms served on the historical path: 10, 12, 10, 12, 8, 11 of twelve. Two
+model changes were needed and both are general: credibility could not be
+*earned* by a chairman who inherited a disaster (the 1979 path fell from 45 to
+0 over three years of a +3 real rate, which made inflation rise, which fell
+credibility further — a doom loop that disinflated on two seeds in twelve), so
+the inflation miss is now charged against a **glide path** from what was
+inherited, above a four-point deductible. The fictional sweep moved by almost
+nothing and still reports no balance warnings.
+
+**Bothers me.** Three things, in order. **A blank white screen**: every
+euro-area scenario's result page rendered *nothing*, because the historical
+replay reached for a discount window the ECB does not have and threw inside a
+`useMemo`. 952 tests were green. There is now a test that plays all six to the
+end and builds all three expensive result-screen computations, and both panels
+degrade to absent rather than taking the screen with them. **The Volcker fit**:
+the mandate ends at a modelled 9.4 % against the 2.36 % that printed — the
+model gets the peak and the recession and does not get the last four points of
+the disinflation — and I raised that scenario's capitulation bar from five
+meetings to eight to stop the historical path being read as a surrender. Three
+of those meetings are a threshold compensating for a model miss and the
+document says so. **1929's depth**: 10 % unemployment against 25 %. The
+Depression is outside the range this engine was built on and I have said so
+rather than forcing it.

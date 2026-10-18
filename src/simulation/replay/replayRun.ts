@@ -11,6 +11,7 @@ import { createInitialState } from '../engine/initialState.ts'
 import { isMajorEvent } from '../events/catalog.ts'
 import { resolveEvent } from '../events/resolveEvent.ts'
 import { applyScheduledEvents, isScheduledMajor } from '../scenarios/scheduled.ts'
+import { applyGoldDrain } from '../scenarios/goldStandard.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
@@ -194,10 +195,14 @@ export function submitMeeting(
   const onTheDay = observe(withRestatedSnapshot(applied.state), [], [])
 
   // Events happen between meetings, on top of the confirmed decision. The
-  // dated ones first, and without a draw: they are history, not chance.
+  // dated ones first, and without a draw: they are history, not chance. Then
+  // the gold drain, which is not an event at all but the standing price of
+  // holding the rate under the floor — charged after the decision, so what it
+  // charges for is the rate the committee actually voted.
   const scheduled = applyScheduledEvents(applied.state)
-  const resolution = resolveEvent(scheduled.state)
-  const allResolved = [...scheduled.resolved, ...resolution.resolved]
+  const gold = applyGoldDrain(scheduled.state)
+  const resolution = resolveEvent(gold.state)
+  const allResolved = [...scheduled.resolved, ...gold.resolved, ...resolution.resolved]
   const { state: advanced, steps } = advanceTrueStateTraced(resolution.state)
   const outcome = evaluateEndConditions(advanced, session.outcome.breachCounters)
 

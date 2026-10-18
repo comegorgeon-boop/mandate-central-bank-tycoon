@@ -50,6 +50,36 @@ const TONE_BODY: Readonly<Record<StandingTone, string>> = {
   critical: 'text-ink',
 }
 
+/**
+ * The ✓ and ! markers, paired to the surface for the same reason.
+ *
+ * A fourth record rather than a hard-coded `text-good`, because the markers
+ * were hard-coded and the audit found them at 1.96:1 and 2.28:1 — a danger
+ * marker that could not be read on the one tone where danger is the subject.
+ * Changing them to the `-onwood` pair fixed three tones and broke the other
+ * three in the other direction, at 2.0:1, which is the lesson this file's
+ * comment above already states: the surface flips material and the foreground
+ * has to flip with it.
+ *
+ * `-strong` on the three light plaques (8.5:1 to 12.7:1 across both
+ * directions), the `-onwood` pair on the one tone that sits on walnut in both
+ * (6.1:1). `steady` is the exception here exactly as it is above, and the four
+ * records are kept adjacent and in the same order so that it stays visible.
+ */
+const TONE_MARK_GOOD: Readonly<Record<StandingTone, string>> = {
+  thriving: 'text-good-strong',
+  steady: 'text-good-onwood',
+  strained: 'text-good-strong',
+  critical: 'text-good-strong',
+}
+
+const TONE_MARK_BAD: Readonly<Record<StandingTone, string>> = {
+  thriving: 'text-bad-strong',
+  steady: 'text-bad-onwood',
+  strained: 'text-bad-strong',
+  critical: 'text-bad-strong',
+}
+
 export function StandingPanel({
   standing,
   previousTone,
@@ -130,7 +160,10 @@ export function StandingPanel({
             <ul className={`mt-1.5 space-y-0.5 text-sm ${TONE_BODY[standing.tone]}`}>
               {standing.achievements.map((line) => (
                 <li key={line} className="flex gap-2">
-                  <span aria-hidden="true" className="text-good">
+                  <span
+                    aria-hidden="true"
+                    className={TONE_MARK_GOOD[standing.tone]}
+                  >
                     ✓
                   </span>
                   <span>{line}</span>
@@ -142,7 +175,10 @@ export function StandingPanel({
             <ul className={`mt-1 space-y-0.5 text-sm ${TONE_BODY[standing.tone]}`}>
               {standing.concerns.map((line) => (
                 <li key={line} className="flex gap-2">
-                  <span aria-hidden="true" className="text-bad">
+                  <span
+                    aria-hidden="true"
+                    className={TONE_MARK_BAD[standing.tone]}
+                  >
                     !
                   </span>
                   <span>{line}</span>

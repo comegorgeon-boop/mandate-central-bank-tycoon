@@ -10,7 +10,12 @@ import { BANKING, VOLATILITY } from '../config/model.ts'
 import { INSTRUMENT_EFFECTS } from '../config/instruments.ts'
 import { applyOpeningCrisis } from '../events/openingCrisis.ts'
 import { fillLag } from './lags.ts'
-import { financialConditionsIndex, realRateGap, taylorBenchmark } from './indices.ts'
+import {
+  financialConditionsIndex,
+  pricedPathFloor,
+  realRateGap,
+  taylorBenchmark,
+} from './indices.ts'
 import { createMembers } from './members.ts'
 import { getScenario, scenarioOf } from '../scenarios/scenarios.ts'
 
@@ -359,6 +364,21 @@ export function createInitialState(
   // asset pressure, spreads — has no 1979 counterpart that can be sourced to a
   // number on this scale, so it stays at the engine's neutral values rather
   // than being invented to look authoritative.
+  /**
+   * Drop the keys a scenario left undefined.
+   *
+   * Spreading an object with `undefined` values over a `LatentState` would
+   * overwrite real numbers with nothing, so the absent fields have to be
+   * absent rather than undefined. This is the one place that distinction
+   * matters and it is worth four lines to make it impossible to get wrong.
+   */
+  const optional = (
+    fields: Readonly<Record<string, number | undefined>>,
+  ): Partial<LatentState> =>
+    Object.fromEntries(
+      Object.entries(fields).filter(([, value]) => value !== undefined),
+    ) as Partial<LatentState>
+
   const opened: LatentState =
     scenario === null
       ? latent
@@ -383,6 +403,25 @@ export function createInitialState(
             -1,
             scenario.opening.longRate - scenario.opening.expectedInflationLong - 2,
           ),
+          // The financial side, only where the period has one worth sourcing.
+          // `??` and not a default: a scenario that says nothing here gets the
+          // engine's neutral value, which is the honest answer for a year with
+          // no banking-stress statistic. September 2008 is the opposite case —
+          // the TED spread was a published price on the day and the whole
+          // subject of the meeting — and it says so.
+          ...optional({
+            bankingStress: scenario.opening.bankingStress,
+            creditSpread: scenario.opening.creditSpread,
+            marketVolatility: scenario.opening.marketVolatility,
+            creditGrowth: scenario.opening.creditGrowth,
+            assetPricePressure: scenario.opening.assetPricePressure,
+            geopoliticalRisk: scenario.opening.geopoliticalRisk,
+            neutralRealRate: scenario.opening.neutralRealRate,
+            debtPressure: scenario.opening.debtPressure,
+            fragmentation: scenario.opening.fragmentation,
+            balanceSheet: scenario.opening.balanceSheet,
+            exchangeRate: scenario.opening.exchangeRate,
+          }),
         }
   const latentAtOpen = opened
 
@@ -393,7 +432,11 @@ export function createInitialState(
   // market pricing a policy nobody could be running.
   latentAtOpen.marketExpectedRate = clamp(
     0.5 * policyRate + 0.5 * taylorBenchmark(latentAtOpen, config.institution),
-    -2,
+    // The same modelled floor the dynamics and the statement use, rather than
+    // the safety rail: markets do not open pricing a rate the bank cannot set,
+    // and a deflationary opening — 1929-33 opens with prices falling — would
+    // otherwise price the Taylor rule's -11 % straight into the first meeting.
+    pricedPathFloor(config.institution),
     scenario === null ? 15 : 30,
   )
 

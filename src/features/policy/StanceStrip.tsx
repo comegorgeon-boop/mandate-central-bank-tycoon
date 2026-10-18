@@ -89,11 +89,16 @@ export function StanceStrip({
   previousObservation,
   difficulty,
   institution,
+  objective,
+  sustainable,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
   /** Sets the objective and the sustainable rate the trust terms read against. */
   readonly institution: Institution
+  /** The mandate's own objective and sustainable rate. See `standing.ts`. */
+  readonly objective: number
+  readonly sustainable: number
   /**
    * Decides how many figures stand permanently on screen.
    *
@@ -109,7 +114,7 @@ export function StanceStrip({
   const stance = readStance(observation)
   const change = readStanceChange(observation, previousObservation)
   const showsApproval = difficulty !== 'easy'
-  const trust = readPublicTrust(observation, institution)
+  const trust = readPublicTrust(observation, institution, objective, sustainable)
   const credibility = observation.indicators.credibility_index?.value ?? null
   const previousCredibility =
     previousObservation?.indicators.credibility_index?.value ?? null

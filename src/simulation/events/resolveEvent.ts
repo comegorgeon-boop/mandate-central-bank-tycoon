@@ -15,7 +15,7 @@ import { applyEffects } from '../engine/advanceTrueState.ts'
 import { EVENT_CATALOG } from './catalog.ts'
 import { applyMemberShocks } from './memberShocks.ts'
 import { NEUTRAL_BAND, immediateInflationImpulse } from './inflationImpulse.ts'
-import { scenarioOf } from '../scenarios/scenarios.ts'
+import { measurementRegime, scenarioOf } from '../scenarios/scenarios.ts'
 
 /**
  * Procedural event resolution.
@@ -172,7 +172,9 @@ export function resolveEvent(
   state: SimulationState,
   catalog: readonly GameEvent[] = EVENT_CATALOG,
 ): EventResolution {
-  const difficulty = getDifficulty(state.config.difficulty)
+  // `measurementRegime`, not `getDifficulty`: a scenario sets its own length
+  // and therefore its own event dials. See `Scenario.eventSeverityScale`.
+  const difficulty = measurementRegime(state.config)
   const prng = restorePrng(state.rng)
   const ctx = buildEventContext(state)
 

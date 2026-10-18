@@ -132,7 +132,7 @@ export const EXPECTATIONS = {
    * expectations are already more than a point from target, so an ordinary
    * mandate never sees it and nothing rebalances.
    */
-  anchoringResolve: 0.95,
+  anchoringResolve: 1.7,
   /** Ex-post real-rate gap, in points, that earns the whole of it. */
   anchoringResolveFullAt: 4.0,
   /** How much credibility supports anchoring. */
@@ -449,6 +449,53 @@ export const INSTITUTIONAL = {
     missKnee: 6.0,
     /** Slope beyond the knee, as a fraction of the linear one. */
     missCompression: 0.3,
+    /**
+     * How much of the inflation a chairman *inherited* is forgiven, and for
+     * how long.
+     *
+     * The mechanism this model was missing, and the one that made the Volcker
+     * scenario unplayable on its own historical path. Measured on the rate
+     * path that actually prevailed in 1979-83: credibility fell monotonically
+     * from 45 to 0 and anchoring from 0.45 to 0.05, over three years in which
+     * the real policy rate averaged above +3. The institution was being
+     * destroyed for the *level* of inflation rather than for what it was doing
+     * about it — and because expectations in this model are pulled toward the
+     * objective in proportion to credibility, a collapsing credibility made
+     * inflation rise, which collapsed credibility further. The historical path
+     * disinflated in two of twelve seeds and ended the other ten in a spiral
+     * or a capitulation.
+     *
+     * A new chairman is judged on the trajectory they establish, not on the
+     * number they walked into. So the miss is charged against a **glide path**:
+     * at the first meeting the whole inherited miss is forgiven, at the last
+     * none of it is, and in between the forgiveness falls linearly. A committee
+     * that stays on the glide pays nothing; one above it pays for the
+     * difference; one below it is already earning.
+     *
+     * In an ordinary mandate the inherited miss is small — a fraction of a
+     * point — so this term is nearly inert, which is the right behaviour: it
+     * is a rule about inheriting a disaster, and the fictional modes do not.
+     * The cap stops it forgiving a mandate that opens on an inflation nobody
+     * could have inherited.
+     */
+    inheritedForgivenessCap: 10.0,
+    /**
+     * The part of an inherited miss that is *not* forgiven, in points.
+     *
+     * A deductible, and it is what keeps the glide path above from being a
+     * general softening. Every mandate inherits something — the tutorial opens
+     * 2.4 points above its objective by design — and forgiving that too made
+     * an idle player's credibility hold up as well as an active one's.
+     * Measured: the tutorial's "competent beats passive" guard, which exists
+     * because an earlier opening healed itself, went to a dead tie the moment
+     * the glide path applied to ordinary openings.
+     *
+     * Four points is above anything the fictional modes produce and well below
+     * what 1979 (9.8) or 2021 (0.7, so nothing) or 1929 (1.2, so nothing)
+     * hand over. It makes this a rule about inheriting a disaster rather than
+     * a discount on having a job.
+     */
+    inheritedDeductible: 4.0,
     /** Penalty for unanchored long-run expectations. */
     anchoring: 35.0,
     /**
@@ -468,7 +515,7 @@ export const INSTITUTIONAL = {
      * demonstration. So in an ordinary mandate this term is zero and nothing
      * rebalances; in 1979 it is the whole of how the disinflation is won.
      */
-    resolve: 34.0,
+    resolve: 46.0,
     /** Real-rate gap, in points above neutral, that earns the full credit. */
     resolveFullAt: 4.0,
     /** Expectations miss, in points beyond one, at which it is fully live. */

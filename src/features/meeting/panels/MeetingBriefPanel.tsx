@@ -29,13 +29,16 @@ export function MeetingBriefPanel({
   observation,
   outcome,
   institution,
+  objective,
 }: {
   readonly observation: ObservationSet
   readonly outcome: EndConditionResult
   readonly institution: Institution
+  /** The mandate's own objective. See `standing.ts`. */
+  readonly objective: number
 }) {
   const brief = useMemo(
-    () => buildMeetingBrief(observation, outcome, institution),
+    () => buildMeetingBrief(observation, outcome, institution, objective),
     [observation, outcome, institution],
   )
 

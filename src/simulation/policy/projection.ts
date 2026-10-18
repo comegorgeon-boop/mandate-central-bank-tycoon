@@ -1,10 +1,10 @@
 import type { SeriesId } from '../types/observation.ts'
 import type { PolicyPackage } from '../types/policy.ts'
 import type { SimulationState } from '../types/state.ts'
-import { getInstitution } from '../config/institutions.ts'
 import { advanceTrueState } from '../engine/advanceTrueState.ts'
 import { applyPolicyPackage } from '../engine/applyPolicyPackage.ts'
 import { getSeries } from '../observation/series.ts'
+import { inflationTargetFor } from '../scenarios/scenarios.ts'
 
 /**
  * What this package is expected to do, against doing nothing.
@@ -148,5 +148,5 @@ export function projectPackage(
 
 /** The inflation objective this projection should be read against. */
 export function projectionTarget(state: SimulationState): number {
-  return getInstitution(state.config.institution).inflationTarget
+  return inflationTargetFor(state.config)
 }

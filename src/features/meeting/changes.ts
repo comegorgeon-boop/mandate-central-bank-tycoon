@@ -205,6 +205,8 @@ function forecastChange(
   current: ObservationSet,
   previous: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): Candidate | null {
   const now = current.forecasts.find((fan) => fan.seriesId === 'headline_inflation')
   const before = previous.forecasts.find((fan) => fan.seriesId === 'headline_inflation')
@@ -215,7 +217,7 @@ function forecastChange(
   const change = nowBand.central - beforeBand.central
   if (Math.abs(change) < 0.05) return null
 
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
   const distance = nowBand.central - target
 
   return {
@@ -271,9 +273,11 @@ function revisionChanges(current: ObservationSet): Candidate[] {
 function standingFacts(
   current: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly ChangeItem[] {
   const facts: ChangeItem[] = []
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
 
   const policyRate = reading(current, 'policy_rate')
   if (policyRate !== null) {
@@ -333,6 +337,8 @@ function standingFacts(
 function openingPosition(
   current: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly ChangeItem[] {
   const opening: ChangeItem[] = [
     {
@@ -344,21 +350,23 @@ function openingPosition(
         'meeting on, this panel leads with what your decision did.',
     },
   ]
-  return [...opening, ...standingFacts(current, institution)].slice(0, MAX_CHANGES)
+  return [...opening, ...standingFacts(current, institution, objective)].slice(0, MAX_CHANGES)
 }
 
 export function buildChanges(
   current: ObservationSet,
   previous: ObservationSet | null,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly ChangeItem[] {
-  if (previous === null) return openingPosition(current, institution)
+  if (previous === null) return openingPosition(current, institution, objective)
 
   const ranked: Candidate[] = [
     ...seriesChanges(current, previous),
     ...revisionChanges(current),
   ]
-  const forecast = forecastChange(current, previous, institution)
+  const forecast = forecastChange(current, previous, institution, objective)
   if (forecast !== null) ranked.push(forecast)
 
   ranked.sort((a, b) => b.weight - a.weight)
@@ -381,7 +389,7 @@ export function buildChanges(
   // than hand the player a meeting that looks like nothing happened.
   if (items.length < MIN_CHANGES) {
     const seen = new Set(items.map((item) => item.id))
-    for (const fact of standingFacts(current, institution)) {
+    for (const fact of standingFacts(current, institution, objective)) {
       if (items.length >= MIN_CHANGES) break
       if (seen.has(fact.id)) continue
       items.push(fact)

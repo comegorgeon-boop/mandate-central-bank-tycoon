@@ -67,8 +67,20 @@ export function readStanding(
   observation: ObservationSet,
   outcome: EndConditionResult,
   institution: Institution,
+  /**
+   * The objective this mandate is judged against.
+   *
+   * Optional and defaulting to the institution's, so every existing caller is
+   * unchanged — and threaded from the run config wherever a screen has one,
+   * because a historical mandate may have been run to a different objective.
+   * 1929-33 was run to a stable price level, and before this existed six
+   * separate screens told that player to bring inflation back to 2 %.
+   */
+  objective?: number,
+  /** The sustainable rate of unemployment this mandate is read against. */
+  sustainable?: number,
 ): StandingReading {
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
   const achievements: string[] = []
   const concerns: string[] = []
 
@@ -89,7 +101,7 @@ export function readStanding(
   }
 
   const unemployment = value(observation, 'unemployment')
-  const natural = getInstitution(institution).initial.naturalUnemployment
+  const natural = sustainable ?? getInstitution(institution).initial.naturalUnemployment
   if (unemployment !== null) {
     const gap = unemployment - natural
     if (gap <= AT_FULL_EMPLOYMENT) {

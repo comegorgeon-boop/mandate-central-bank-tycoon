@@ -31,7 +31,28 @@ export function TheStandardPanel({
   readonly session: RunSession
   readonly score: ScoreBreakdown
 }) {
-  const standard = useMemo(() => buildTheStandard(session, score), [session, score])
+  /**
+   * The comparison, or nothing.
+   *
+   * Wrapped, and the wrapping is not defensive programming for its own sake.
+   * This computation replays a whole alternative mandate inside a `useMemo` on
+   * the result screen, so anything it throws takes the *entire report* down
+   * with it — and one did: a replay rule that reached for the discount window
+   * in a currency area that has none blanked the result page of every
+   * euro-area scenario, silently, with no console error the harness caught and
+   * 952 tests green.
+   *
+   * A panel that cannot build itself is a missing panel. It is never a missing
+   * screen, and the thing that stops it being one is six lines.
+   */
+  const standard = useMemo(() => {
+    try {
+      return buildTheStandard(session, score)
+    } catch (error) {
+      console.error('The standard could not be built for this mandate', error)
+      return null
+    }
+  }, [session, score])
   if (standard === null) return null
 
   const { meetings, replay, yours, meanGap } = standard

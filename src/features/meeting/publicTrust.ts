@@ -61,6 +61,9 @@ const DOMINANT_SHARE = 0.6
 export function readPublicTrust(
   observation: ObservationSet,
   institution: Institution,
+  /** See `readStanding`. */
+  objective?: number,
+  sustainable?: number,
 ): TrustReading | null {
   const config = INSTITUTIONAL.publicTrust
   const inflation = value(observation, 'headline_inflation')
@@ -68,8 +71,8 @@ export function readPublicTrust(
   const rate = value(observation, 'policy_rate')
   if (inflation === null && unemployment === null && rate === null) return null
 
-  const target = getInstitution(institution).inflationTarget
-  const natural = getInstitution(institution).initial.naturalUnemployment
+  const target = objective ?? getInstitution(institution).inflationTarget
+  const natural = sustainable ?? getInstitution(institution).initial.naturalUnemployment
 
   const terms: TrustTerm[] = []
 

@@ -366,12 +366,36 @@ Non-negotiable, and they are the reason this took the time it took:
   the historical policy path is compared against what happened, with the
   misses named and quantified.
 
-## The five, and the one
+## The six, all built
 
-1929-33 · **1979-83 (built)** · 2008-10 · 2010-12 · 2021-23. The other four are
-specified in `docs/SCENARIOS.md` only to the level that constrains the code —
-what each makes the game *about*, and what was knowable then — and at no level
-beyond that.
+1929-33 · 1979-83 · 2008-10 · 2010-12 · 2021-23 twice, once from each seat.
+Six mandates across five periods, every number in `docs/SCENARIOS.md`, every
+calendar generated from the published series by `tools/scenario-data.mjs`
+rather than typed, and every one of them locked to that document by a test
+that parses it.
+
+Two mechanics were added for them and both generalise:
+
+- **A metallic standard**, as a floor on the rate that the player can see on
+  the dial and cross at a price. It is a schedule rather than a constant, and
+  the schedule is the point: it steps up when Britain leaves gold in September
+  1931, which is why the Federal Reserve raised into the third year of a
+  depression and the one moment the 1929 scenario exists to make playable.
+- **A per-scenario objective.** The Federal Reserve of 1929 had no inflation
+  target; what it had was a dollar convertible into a fixed weight of gold,
+  which is a commitment to a stable price *level*. Running that mandate against
+  2 % was not a small anachronism — every expectations block in this engine
+  pulls inflation toward the objective, so a 2 % objective in 1931 pulls a 10 %
+  deflation upward and the scenario stops being a deflation.
+
+And one model defect they exposed, which was general and is now fixed:
+**credibility could be lost but not earned by a chairman who inherited a
+disaster.** The 1979 path fell from 45 to 0 over three years of a real policy
+rate above +3, and since expectations are pulled toward the objective in
+proportion to credibility, the falling credibility raised inflation, which fell
+credibility further. The inflation miss is now charged against a glide path
+from what was inherited, above a four-point deductible so no ordinary mandate
+is touched.
 
 ## Deferred
 

@@ -136,8 +136,14 @@ export function purchaseEffectiveness(latent: LatentState): {
 export function taylorBenchmark(
   latent: LatentState,
   institution: Institution,
+  // The objective the rule is written against. Optional so that the dozen
+  // callers who are in an ordinary mandate stay unchanged, and explicit so
+  // that a scenario with an objective of its own — 1929's gold standard is a
+  // commitment to a price *level* — cannot be given the institution's 2 % by
+  // accident. See `inflationTargetFor`.
+  objective?: number,
 ): number {
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
   return (
     latent.neutralRealRate +
     latent.inflationHeadline +

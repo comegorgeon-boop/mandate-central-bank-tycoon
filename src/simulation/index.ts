@@ -175,12 +175,17 @@ export {
   SCENARIOS,
   getScenario,
   instrumentRangesFor,
+  inflationTargetFor,
   measurementRegime,
+  rateInstrumentLabel,
+  sustainableRateFor,
   meetingLabel,
   thresholdsFor,
   scenarioOf,
 } from './scenarios/scenarios.ts'
 export { VOLCKER_1979 } from './scenarios/volcker.ts'
+export { goldFloorAt, goldLabel } from './scenarios/goldStandard.ts'
+export { isScheduledMajor } from './scenarios/scheduled.ts'
 export type {
   OperatingProcedure,
   Scenario,

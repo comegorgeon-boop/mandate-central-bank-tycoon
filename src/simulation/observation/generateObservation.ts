@@ -11,9 +11,8 @@ import type {
 import type { LatentState, SimulationState } from '../types/state.ts'
 import type { DifficultyConfig } from '../config/difficulty.ts'
 import { hashGaussian, hashUnit } from '../rng/prng.ts'
-import { getInstitution } from '../config/institutions.ts'
 import { MEETINGS_PER_YEAR, YEARS_PER_MEETING } from '../config/time.ts'
-import { measurementRegime, scenarioOf } from '../scenarios/scenarios.ts'
+import { inflationTargetFor, measurementRegime, scenarioOf } from '../scenarios/scenarios.ts'
 import { taylorBenchmark } from '../engine/indices.ts'
 import { runSeedString } from '../engine/initialState.ts'
 import { FORECAST_SERIES, getSeries, seriesFor } from './series.ts'
@@ -280,7 +279,7 @@ function buildForecast(
   const series = getSeries(seriesId)
   if (!series) return null
 
-  const target = getInstitution(state.config.institution).inflationTarget
+  const target = inflationTargetFor(state.config)
   const latent = state.latent
   const horizons = [2, 4, 8]
 
@@ -383,7 +382,11 @@ export function generateObservation(
     // if the ghost on the slider were computed from the latent state. In an
     // ordinary mandate the two are the same, because there is no bias to apply.
     taylorBenchmark: round(
-      taylorBenchmark(asPublished(state), state.config.institution),
+      taylorBenchmark(
+        asPublished(state),
+        state.config.institution,
+        inflationTargetFor(state.config),
+      ),
       2,
     ),
     diagnosis: null,
