@@ -366,21 +366,34 @@ Non-negotiable, and they are the reason this took the time it took:
   the historical policy path is compared against what happened, with the
   misses named and quantified.
 
-## The six, all built
+## The seven, all built
 
-1929-33 · 1979-83 · 2008-10 · 2010-12 · 2021-23 twice, once from each seat.
-Six mandates across five periods, every number in `docs/SCENARIOS.md`, every
-calendar generated from the published series by `tools/scenario-data.mjs`
-rather than typed, and every one of them locked to that document by a test
-that parses it.
+1929-33 · 1972-74 · 1979-83 · 2008-10 · 2010-12 · 2021-23 twice, once from
+each seat. Seven mandates across six periods, every number in
+`docs/SCENARIOS.md`, every calendar generated from the published series by
+`tools/scenario-data.mjs` rather than typed, and every one of them locked to
+that document by a test that parses it.
 
-Two mechanics were added for them and both generalise:
+**1972-74 is the sixth period and the last one added.** It is the only one in
+which the political pressure can carry names, because it is the only one where
+the record is public — and it still quotes nobody and names nobody on any
+screen the player sees. What makes it hard is a published inflation number
+held about a point below the truth by price controls, against a real-time
+output gap reading about two and a half points too high; both tell the
+committee there is room, and there is not. It is also the only scenario that
+sets `opening.politicalPressure`, which was added for it.
+
+Three mechanics were added for these and all three generalise:
 
 - **A metallic standard**, as a floor on the rate that the player can see on
   the dial and cross at a price. It is a schedule rather than a constant, and
   the schedule is the point: it steps up when Britain leaves gold in September
   1931, which is why the Federal Reserve raised into the third year of a
   depression and the one moment the 1929 scenario exists to make playable.
+- **An opening political pressure.** One field, set by one scenario, for the
+  period whose whole subject is an administration leaning on a chairman from
+  the first meeting. Everything downstream of it — the government's demands,
+  the expectations channel, the revocation gauge — already existed.
 - **A per-scenario objective.** The Federal Reserve of 1929 had no inflation
   target; what it had was a dollar convertible into a fixed weight of gold,
   which is a commitment to a stable price *level*. Running that mandate against
@@ -433,13 +446,19 @@ What *is* the player's is one line: debt service, which follows the average
 coupon on the stock, which converges on the rate they set at a speed set by
 the average maturity. The panel marks that row and no other.
 
-## The seventh scenario, and why it is not built
+## Nixon and Burns — built, on the terms set here
 
-**Nixon and Burns, 1972.** The one nameable case of a central bank giving in,
-documented to the tape, and the obvious home for the mechanic above: a mandate
-whose whole subject is a demand that arrives every meeting and a chairman who
-answered it. It is not built, and if it is built the honesty rules apply
-unchanged — what the office did is in the game and what the man said is not,
-even where a recording exists, because a scenario that quoted one person and
-no other would be making an argument about him rather than about the
-institution.
+**1972-74.** The one nameable case, documented to the tape, and the obvious
+home for the political-pressure mechanic: a mandate whose subject is a demand
+that arrives from the first meeting. It is now built, and the honesty rules
+were applied unchanged. What the office did is in the game; what either man
+said is not, even where a recording exists, because a scenario that quoted one
+person and no other would be making an argument about *him* rather than about
+the institution. Two tests enforce it: one forbids quotation marks and
+reported speech anywhere in the scenario's text, the other forbids either
+surname appearing on any screen the player reads.
+
+The period also does not settle whether the chairman gave in. That is
+contested, and the game declines to decide it. What it does instead is put the
+same pressure in front of the player and record what *they* do — which is the
+only version of the question a game can honestly ask.

@@ -8,7 +8,7 @@ import { createInitialState, createRunConfig } from '../engine/initialState.ts'
 import { SCENARIOS } from './scenarios.ts'
 
 /**
- * The documented table is the authority, for all six scenarios.
+ * The documented table is the authority, for every scenario that ships.
  *
  * The player's condition, and it is not negotiable: *sourced opening states and
  * dates, not invented; record the sources in docs/ and mark explicitly what is

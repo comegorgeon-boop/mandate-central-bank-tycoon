@@ -1,7 +1,16 @@
 # Historical scenarios
 
-**Six are built**, across five periods: 1929-33, 1979-83, 2008-10, 2010-12, and
-2021-23 played twice, once from each seat.
+**Seven are built**, across six periods: 1929-33, 1972-74, 1979-83, 2008-10,
+2010-12, and 2021-23 played twice, once from each seat.
+
+| scenario | period | institution | what makes it hard |
+| --- | --- | --- | --- |
+| The Great Contraction | 1929-33 | Federal Reserve | A gold floor under the rate, and deflation lifting the real rate while the dial sits still |
+| Burns | 1972-74 | Federal Reserve | A published inflation number held down by price controls, a gap estimate that read too high, and an administration pressing from the first meeting |
+| Volcker | 1979-83 | Federal Reserve | An anchor already gone, and a real-time output gap that read three points too pessimistic |
+| Lehman | 2008-10 | Federal Reserve | The rate reaches its floor early, and the mandate becomes the facilities |
+| The euro area | 2010-12 | ECB | One rate for members whose spreads are pulling apart |
+| Transitory | 2021-23 | Fed and ECB | The same shock from two seats, and an output gap nobody could measure in real time |
 
 This document is the **authority**. `src/simulation/scenarios/sourced.test.ts`
 parses it and compares it to the code scenario by scenario, row by row: every
@@ -108,8 +117,8 @@ Non-negotiable, and they are the reason this took the time it took.
 
 ## What the model cannot do, stated once
 
-Three misses recur across the scenarios and are easier to state here than six
-times:
+Three misses recur across the scenarios and are easier to state here than
+seven times:
 
 1. **Depth.** The engine's output gap is bounded at −20 and its Phillips curve
    is a modern reduced form. 1929-33 reaches a modelled gap of about −11 and
@@ -122,10 +131,15 @@ times:
    The model gets the peak (16.2 against 14.59) and the recession (a gap of
    −10.4 against −7.3, unemployment 9.3 against 10.8) and it does not get the
    last four points of the disinflation inside the four years.
-3. **Unemployment in a deep recession.** Every scenario understates it, by
-   about a point and a half in 1979 and 2008 and by a great deal in 1929. The
-   engine's Okun coefficient of 0.42 is a modern one; 1929 overrides it to 0.75
-   and still falls short.
+3. **Unemployment, in both directions.** Every scenario understates how far it
+   moves: by about a point and a half in 1979 and 2008, by a great deal in
+   1929, and in 1972-74 by failing to produce the boom at all — the real
+   series fell to 4.6 % in 1973 and the model holds near 5.5. The engine's
+   Okun coefficient of 0.42 is a modern one; 1929 overrides it to 0.75 and
+   still falls short. The consequence is the same wherever it appears: the
+   *price* half of every mandate tracks and the *quantity* half is damped, so
+   a player reading these scenarios should take the inflation paths seriously
+   and the unemployment paths as indicative.
 
 ---
 
@@ -378,6 +392,240 @@ within each year, transcribed as noted above.
 | capitulation | 4 meetings | **unreachable** | there is no anchor to give in on in a deflation, and the real rate is high for the whole mandate whatever the player does. |
 
 ---
+
+<!-- scenario: nixon_burns_1972 -->
+
+# Nixon and Burns, 1972-74
+
+**Twenty-four monthly slots, January 1972 to December 1974.** From the year of
+the re-election, with wage and price controls holding the index down and an
+administration pressing in private, through the controls unravelling, the
+collapse of the fixed parities and the oil embargo, to December 1974 —
+inflation at 12.1 % and unemployment at 7.2 %, which is the pair of numbers
+that made "stagflation" a word people needed.
+
+Rules: `hard`. Institution: the Federal Reserve.
+
+## Why this period can name names, and still does not quote anyone
+
+Everywhere else in this game the **institution** speaks — the administration,
+the Treasury, a committee of the legislature — and never a named living
+politician. That is a standing rule, because inventing a named politician who
+leaned on a central bank is inventing a defamation.
+
+1972 is the documented exception. The White House taping system recorded the
+conversations; the chairman kept a diary; both have been published and studied
+for fifty years. The pressure happened, it was sustained, and it was about the
+rate before an election.
+
+- Burns, Arthur F., *The Diary of Arthur Burns, 1969-1974* (Hetzel/Mallineni
+  edition, Federal Reserve Bank of Richmond).
+- Abrams, Burton A. (2006), "How Richard Nixon Pressured Arthur Burns:
+  Evidence from the Nixon Tapes", *Journal of Economic Perspectives* 20(4),
+  177-188.
+
+**Nothing in the scenario quotes either man.** What is modelled is the
+pressure — a political-pressure gauge that opens above the level at which the
+government starts asking for things — and the player's answer to it. What was
+actually said is in the sources, where a reader can check it.
+
+Note also what the period does *not* establish: that the chairman gave in.
+That is contested, and the game does not settle it. What the game does is put
+the same pressure in front of the player and record what they do.
+
+## What the player holds
+
+The **federal funds rate**, in 25 bp detents. The **discount window** and the
+**open market account**.
+
+What they do not hold: **forward guidance** — this committee published no
+statement, no path and no vote; the directive was released with a lag of
+ninety days and the vote with it. Also no announced asset-purchase programme
+and no yield-curve control.
+
+## The opening state, January 1972
+
+| quantity | value | source |
+| --- | --- | --- |
+| federal funds rate | 3.51 | FEDFUNDS, monthly average, January 1972 |
+| headline CPI inflation | 3.26 | CPIAUCSL, twelve-month ratio change, computed |
+| core CPI inflation | 3.33 | CPILFESL, twelve-month ratio change, computed |
+| unemployment | 5.8 | UNRATE, January 1972 |
+| natural rate of unemployment | 6.01 | NROU (CBO), 1972 Q1 |
+| output gap | -0.19 | GDPC1 / GDPPOT − 1, 1972 Q1, today's vintage |
+| ten-year Treasury yield | 5.95 | GS10, January 1972 |
+| wage growth | 7.65 | AHETPI, twelve-month ratio change, computed |
+| one-year inflation expectations | 3.4 | **Approximated.** No monthly survey exists for 1972 — the Michigan series begins in 1978 and the Livingston survey is semi-annual. A shade above the published headline, which is what a household reading a controlled index would say. A judgement, not a measurement. |
+| long-run inflation expectations | 4.0 | **Derived**, the same way 1979's is: the ten-year yield of 5.95 % less an assumed 2 % long-run real rate, rounded. A derivation from a sourced number; the derivation is its whole authority. |
+
+Two further opening values are **approximations** and are marked as such in the
+code: credibility 62 and anchoring 0.62. The institution had held the anchor
+through two decades in which inflation was 3 % or less for most of the period
+before 1966; it had not yet visibly lost it. Higher than 1979's 45, well below
+a modern inflation-targeting central bank's.
+
+The supply-shock and import-price terms open at 0.55 and 1.1. These are
+**derived from the model's own identity**, not observed: wages run at 7.65 %
+against a 3.3 % price index, and that gap is not an inconsistency the engine
+should close — it is an uncontrolled labour market underneath a controlled
+price index, and the suppressed pressure is exactly what the supply-shock term
+represents. Without them the model reads the wedge as an error and closes it,
+handing the player two free points of disinflation that the end of controls
+was in fact still owed.
+
+**Political pressure opens at 58.** This is the only scenario in the game that
+sets it. The engine opens a fictional mandate near 25; the government starts
+asking for things above 46 and goes public above 64. Fifty-eight is pressing
+hard, in private, and not yet in public — which is where the record puts
+January 1972. It is a calibration against the game's own thresholds, not a
+measurement of anything.
+
+## What was knowable in 1972-74
+
+The scenario's difficulty is **what was knowable**, as everywhere else. Here
+there are two biases and they point in opposite directions, which is what makes
+the period genuinely hard rather than merely violent.
+
+**Published inflation read about a point too low.** Wage and price controls ran
+from 15 August 1971. They did not remove price pressure; they deferred its
+appearance in the index. A chairman reading the CPI in 1972 saw the lowest
+inflation in four years, and every rule that responds to published inflation
+therefore prescribed an easier policy than the situation required.
+
+`seriesBias: { headline_inflation: -1.0, core_inflation: -1.0 }` — and this is
+**an approximation of a contested quantity**. Estimates of how much the
+controls suppressed the index vary across the literature; around a point
+through the mandatory phases is the middle of the published range. It is not a
+measurement and it is not presented as one.
+
+**The output gap read about two and a half points too high.** Real-time
+estimates of potential output in the early 1970s were far above what later
+vintages show, because the productivity slowdown had begun and had not yet
+appeared in the data. The economy looked slacker than it was.
+
+`seriesBias: { output_gap_estimate: +2.4 }` — Orphanides (2003), "The quest for
+prosperity without inflation", *Journal of Monetary Economics* 50(3). The sign
+is the opposite of 1979's, where the real-time gap read *too pessimistic*; the
+consequence is the same, which is that a gap-following rule eased when it
+should not have.
+
+So the player is handed an inflation print that is too low and a gap estimate
+that is too high, and both say the same thing: there is room. There was not.
+
+## The dated events
+
+Scripted, because they happened on dates. The drawn catalogue's energy,
+banking and exchange-rate families are **suppressed** for this scenario, so a
+second oil shock or a second large bank failure cannot land on top of the real
+ones.
+
+The game's text names none of these, in keeping with the rest of the project:
+the newswire describes what happened and attributes nothing to anyone. The
+right-hand column is here so a reader can check that what the newswire
+describes is a real event on a real date.
+
+| slot | date | event | what it was |
+| --- | --- | --- | --- |
+| 4 | 1972-07-08 | A very large grain sale is agreed; stocks fall to post-war lows and food prices follow a harvest later | The Soviet grain purchases of July-August 1972 — around a quarter of the US wheat crop, bought across several weeks at prices set before the scale was public |
+| 5 | 1972-09-01 | Social security benefits rise 20 %, legislated in the summer and payable from September | The Social Security Amendments of 1972, signed 1 July, raising benefits 20 % effective for September |
+| 8 | 1973-01-11 | Controls move to a largely self-administered phase | Phase III, announced 11 January 1973 |
+| 9 | 1973-03-19 | The major currencies float; the dollar falls | The collapse of the Smithsonian parities; the major currencies floated in March 1973 |
+| 11 | 1973-06-13 | A second across-the-board freeze; shortages appear within weeks | The sixty-day freeze announced 13 June 1973, followed by Phase IV |
+| 14 | 1973-10-17 | **The oil embargo.** Posted crude quadruples within three months | The OAPEC embargo and production cuts announced 17 October 1973 |
+| 18 | 1974-04-30 | **The controls expire.** Three years of deferred increases arrive in the index at once | The Economic Stabilization Act authority lapsed on 30 April 1974 |
+| 22 | 1974-10-08 | A large commercial bank fails after foreign-exchange losses | Franklin National Bank, declared insolvent 8 October 1974 — the twentieth largest in the country and the largest failure to that date |
+
+A scheduled event fires *after* the decision at its slot, so its effects land
+in the interval that follows. The dates above sit inside those intervals.
+
+## The calendar
+
+**Monthly slots on a uniform grid, not FOMC meeting dates.** The committee met
+roughly monthly in this period, but this project does not hold that calendar
+and will not invent one, so the slots are labelled as months — the same rule
+1929-33 follows. The benchmark is the effective federal funds rate as it
+actually stood in each month.
+
+| # | month | funds rate | CPI y/y | core CPI y/y | unemployment |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 1972-01-01 | 3.51 | 3.26 | 3.33 | 5.8 |
+| 1 | 1972-03-01 | 3.83 | 3.50 | 3.32 | 5.8 |
+| 2 | 1972-04-01 | 4.17 | 3.49 | 3.30 | 5.7 |
+| 3 | 1972-06-01 | 4.46 | 2.96 | 2.80 | 5.7 |
+| 4 | 1972-07-01 | 4.55 | 2.96 | 2.80 | 5.6 |
+| 5 | 1972-09-01 | 4.87 | 3.19 | 3.02 | 5.5 |
+| 6 | 1972-10-01 | 5.05 | 3.18 | 3.02 | 5.6 |
+| 7 | 1972-12-01 | 5.33 | 3.41 | 3.00 | 5.2 |
+| 8 | 1973-01-01 | 5.94 | 3.64 | 2.53 | 4.9 |
+| 9 | 1973-03-01 | 7.09 | 4.83 | 3.21 | 4.9 |
+| 10 | 1973-04-01 | 7.12 | 5.30 | 2.97 | 5.0 |
+| 11 | 1973-06-01 | 8.49 | 6.00 | 3.18 | 4.9 |
+| 12 | 1973-07-01 | 10.40 | 5.74 | 3.17 | 4.8 |
+| 13 | 1973-09-01 | 10.78 | 7.36 | 3.84 | 4.8 |
+| 14 | 1973-10-01 | 10.01 | 8.06 | 4.28 | 4.6 |
+| 15 | 1973-12-01 | 9.95 | 8.94 | 4.71 | 4.9 |
+| 16 | 1974-01-01 | 9.65 | 9.60 | 5.16 | 5.1 |
+| 17 | 1974-03-01 | 9.35 | 10.14 | 5.78 | 5.1 |
+| 18 | 1974-04-01 | 10.51 | 10.07 | 6.21 | 5.1 |
+| 19 | 1974-06-01 | 11.93 | 10.86 | 7.93 | 5.4 |
+| 20 | 1974-07-01 | 12.92 | 11.54 | 8.79 | 5.5 |
+| 21 | 1974-09-01 | 11.34 | 11.95 | 10.22 | 5.9 |
+| 22 | 1974-10-01 | 10.06 | 11.84 | 10.58 | 6.0 |
+| 23 | 1974-12-01 | 8.53 | 12.10 | 11.35 | 7.2 |
+
+## How well it actually tracks
+
+Played by the engine's own benchmark rule on seed `NIXON-FIT`. Reproduce with
+`npx tsx src/simulation/dev/nixonFit.ts`.
+
+| slot | month | inflation: model | actual | unemployment: model | actual |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 1972-01 | 3.26 | 3.26 | 5.80 | 5.8 |
+| 4 | 1972-07 | 2.56 | 2.96 | 5.82 | 5.6 |
+| 8 | 1973-01 | 3.61 | 3.64 | 5.69 | 4.9 |
+| 12 | 1973-07 | 5.62 | 5.74 | 5.54 | 4.8 |
+| 16 | 1974-01 | 7.14 | 9.60 | 5.38 | 5.1 |
+| 20 | 1974-07 | 10.83 | 11.54 | 6.16 | 5.5 |
+| 24 | end | 10.77 | 12.10 | 6.57 | 7.2 |
+
+**Inflation tracks.** Within four tenths at the opening, at the start of 1973
+and through mid-1973, and within a point at the July 1974 peak. The worst miss
+is January 1974, where the model is 2.5 points low: the embargo's price effect
+arrives slightly later here than it did.
+
+**Unemployment does not swing far enough, and this is the scenario's honest
+weakness.** The real series went 5.8 → 4.6 in the 1973 boom → 7.2 by December
+1974, a range of 2.6 points. The model does 5.4 → 6.6, a range of 1.2. It
+never produces the boom. The engine's Okun relationship is a modern reduced
+form estimated on a labour market that does not behave like 1973's, and this
+is the same limitation 1929-33 records — see "What the model cannot do, stated
+once".
+
+What the period exists to teach survives at that depth: an inflation print
+held down by controls, a gap estimate reading high, a rule that therefore eases
+into a boom, and a mandate that ends with prices and unemployment rising
+together. The last of those is the thing the word was invented for, and the
+model does produce it.
+
+## The failure thresholds this year needs of its own
+
+The real mandate ends at 12.1 % inflation with unemployment at 7.2 %. A game
+that dismissed the player for arriving roughly where the Federal Reserve
+actually arrived would be comparing them against a path it had already
+disqualified, which is not a comparison.
+
+| threshold | fictional | here | why |
+| --- | --- | --- | --- |
+| `inflationSpiral.failInflation` | 12 | 16 | The benchmark's own last reading is 12.1. Sixteen marks acceleration past where the real thing ended rather than arrival at it. |
+| `inflationSpiral.watchInflation` | 6 | 9 | Two of the three years are spent above 6, and a warning lit continuously stops being one. |
+| `inflationSpiral.failExpectations` | 6 | 8 | Scaled with the above. |
+| `dismissal.watchPoliticalPressure` | 70 | 88 | Pressure opens at 58 *by design*. A dismissal rule that fires on the scenario's own premise ends the mandate for having been given it. |
+| `dismissal.failCredibility` | 25 | 12 | As above. The chairman of 1972-74 was reappointed in 1974. |
+| `dismissal.meetingsToFail` | 4 | 6 | As above. |
+
+The pressure still costs. It moves expectations, it feeds the demand
+generator, and yielding to it is recorded in the run and on the report. What it
+does not do is end the mandate by itself.
 
 <!-- scenario: volcker_1979 -->
 

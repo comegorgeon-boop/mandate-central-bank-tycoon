@@ -448,6 +448,7 @@ export function createInitialState(
             creditGrowth: scenario.opening.creditGrowth,
             assetPricePressure: scenario.opening.assetPricePressure,
             geopoliticalRisk: scenario.opening.geopoliticalRisk,
+            politicalPressure: scenario.opening.politicalPressure,
             neutralRealRate: scenario.opening.neutralRealRate,
             debtPressure: scenario.opening.debtPressure,
             fragmentation: scenario.opening.fragmentation,

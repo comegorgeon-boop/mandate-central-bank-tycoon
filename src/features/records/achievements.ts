@@ -47,7 +47,7 @@ export type AchievementId =
   | 'gave_in'
   | 'whole_toolkit'
   | 'full_marks'
-  | 'all_six'
+  | 'every_period'
 
 export interface Achievement {
   readonly id: AchievementId
@@ -237,10 +237,14 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     earned: (c) => c.score.score >= 8000,
   },
   {
-    id: 'all_six',
-    name: 'All six periods',
+    id: 'every_period',
+    // No number in the name, deliberately. It was "All six periods" until a
+    // seventh was added, at which point the name was a lie that the predicate
+    // underneath it had already stopped telling — `SCENARIOS.every` counts
+    // whatever is there.
+    name: 'Every period',
     note:
-      'Served a full term in every one of the six historical mandates, on ' +
+      'Served a full term in every historical mandate the game ships, on ' +
       'this device.',
     earned: (c) =>
       SCENARIOS.every((scenario) => c.scenariosCompleted.has(scenario.id)),

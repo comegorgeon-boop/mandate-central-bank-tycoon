@@ -6,6 +6,7 @@ import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { THRESHOLDS } from '../config/thresholds.ts'
 import { GREAT_CONTRACTION_1929 } from './greatContraction.ts'
+import { NIXON_BURNS_1972 } from './nixonBurns.ts'
 import { VOLCKER_1979 } from './volcker.ts'
 import { LEHMAN_2008 } from './lehman.ts'
 import { EURO_CRISIS_2010 } from './euroCrisis.ts'
@@ -32,6 +33,8 @@ import { TRANSITORY_ECB_2021, TRANSITORY_FED_2021 } from './transitory.ts'
  */
 export const SCENARIOS: readonly Scenario[] = [
   GREAT_CONTRACTION_1929,
+  // Chronological, so the list reads as a history rather than as a menu.
+  NIXON_BURNS_1972,
   VOLCKER_1979,
   LEHMAN_2008,
   EURO_CRISIS_2010,

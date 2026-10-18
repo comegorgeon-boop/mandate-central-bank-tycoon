@@ -430,3 +430,52 @@ published figures are now passed *in*, which is both cheaper and more correct
 `CommitteeSplitPanel` was dead code — a divided-committee panel superseded by
 the doctrines debate and imported by nothing, which I nearly built the vote on
 top of before noticing nobody could see it. Deleted.
+
+---
+
+## 10 — A seventh scenario, and the one period that can name names
+
+**Did.** Nixon and Burns, January 1972 to December 1974 — the sixth scenario
+you said would be natural if there was time. Twenty-four monthly slots from
+the re-election year, with controls holding the index down and an
+administration already pressing, through the controls unravelling and the
+embargo, to 12.1 % inflation with 7.2 % unemployment.
+
+It is the only period in the game where the pressure can be put on screen with
+names attached, because it is the only one where the record is public: the
+White House tapes and the chairman's own diary, both published and studied for
+fifty years (Abrams 2006; the Burns diary). **And it still quotes nobody, and
+names nobody on any screen the player sees** — the title is a surname, the
+sources are in the code and the document, and there are two tests that keep it
+that way.
+
+What makes it hard is not the shock. It is that the player is handed an
+inflation print about a point too low, because controls defer price pressure
+rather than removing it, *and* a gap estimate about two and a half points too
+high, because the productivity slowdown had begun and had not reached the
+data. Both say the same thing — there is room — and there was not. Orphanides
+again, seven years before 1979, with the sign on the gap bias reversed.
+
+**Measured.** 1093 tests. Contrast clean across **604 states**. The arc,
+against the real series (`dev/nixonFit.ts`): inflation 3.26 → 3.61 at the
+start of 1973 against an actual 3.64, 5.62 in mid-1973 against 5.74, 10.83 in
+mid-1974 against 11.54, ending 10.77 against 12.10. Unemployment is the honest
+miss — the model swings 1.2 points where the period swung 2.6, and never
+produces the 1973 boom. It is in the fit table and in the document's "what the
+model cannot do" territory, as 1929's is.
+
+**Bothers me.** The first draft **deflated**: inflation reached −0.04 % in July
+1973, in a year that actually ran at 5.7 % and climbing, and every test in the
+repository was green while it did. The sourced table was right, the mandate was
+playable, the scoring worked — and the scenario taught the opposite of the
+period it is named after. What was missing was the demand and food impulses
+that drove the year, so I have added the grain sale and the benefit increase,
+both dated and both real. There is now an arc test, because "it opens on the
+right numbers" and "it reaches an ending" are not the same claim as "it is
+that period".
+
+Separately, the ending that fired said **"The disinflation was abandoned"** to
+a player who had just watched prices triple. The condition was right — real
+rates below zero with the anchor adrift — and the label presupposed a 1979
+that 1972 did not have. It now names the mechanism, and the written account
+above it carries the period.

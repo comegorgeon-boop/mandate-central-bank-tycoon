@@ -72,7 +72,7 @@ export type EndConditionId =
   | 'loss_of_monetary_control'
   | 'dismissed'
   /**
-   * Scenario only: the disinflation was abandoned before it had worked.
+   * Scenario only: real rates left below zero while the anchor was adrift.
    *
    * Not unpopularity and not a bad quarter. The real policy rate back below
    * zero while long-run expectations are still far above target, held long

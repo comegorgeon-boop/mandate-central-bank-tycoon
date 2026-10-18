@@ -266,7 +266,17 @@ function conditionsFor(THRESHOLDS: ThresholdSet): readonly ConditionDefinition[]
     // voting for it, and charging a player for a fall they did not choose
     // would be scoring them on the procedure rather than on the decision.
     id: 'gave_in',
-    label: 'The disinflation was abandoned',
+    // The label says the *mechanism*, not the story, and that is a correction
+    // rather than a preference. It read "The disinflation was abandoned",
+    // which is exactly right for 1979-83 and false for 1972-74 — a mandate
+    // that opens at 3.3 % inflation has no disinflation under way to abandon,
+    // and the screen told a player who had just watched prices triple that
+    // they had given up on bringing them down. The condition itself is the
+    // same in both periods and is the right one for both: real rates below
+    // zero while the anchor is adrift. The period-specific story is carried by
+    // the written account above it, which names the embargo or the oil shock
+    // as the case may be.
+    label: 'Real rates were left below zero',
     meetingsToFail: THRESHOLDS.capitulation.meetingsToFail,
     watch: (latent, _leniency, target) =>
       latent.policyRate - latent.expectedInflationShort <
@@ -279,14 +289,14 @@ function conditionsFor(THRESHOLDS: ThresholdSet): readonly ConditionDefinition[]
       latent.expectedInflationLong - target > THRESHOLDS.capitulation.unanchoredBy &&
       latent.inflationHeadline - target > THRESHOLDS.capitulation.inflationStillAbove,
     summary:
-      'Policy turned before it had worked. With expectations still far above ' +
-      'the objective, real short rates were allowed back below zero and left ' +
-      'there — which makes borrowing free again in exactly the conditions ' +
-      'that had made it expensive for a reason. The recession had already ' +
-      'been paid for. Nothing was bought with it.',
+      'With expectations already adrift and inflation far above the ' +
+      'objective, real short rates were allowed below zero and left there — ' +
+      'which makes borrowing free again in exactly the conditions that make ' +
+      'it expensive for a reason. Whatever the policy had cost up to that ' +
+      'point was spent rather than banked.',
     warning:
-      'Real short rates are near zero while expectations are still unanchored. ' +
-      'Held there, the disinflation is being abandoned rather than paused.',
+      'Real short rates are near zero while expectations are still ' +
+      'unanchored. Held there, this is a policy rather than a pause.',
   },
   ]
 }

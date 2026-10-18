@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   SIMULATION_VERSION,
   createRunConfig,
+  SCENARIOS,
   calculateScore,
   startRun,
   submitMeeting,
@@ -119,25 +120,21 @@ describe('achievements are derived from a run that actually happened', () => {
     expect(earned).toContain('gave_in')
   })
 
-  it('requires all six scenarios for the one that says all six', () => {
+  it('requires every scenario the game ships, however many that is', () => {
+    // Driven off `SCENARIOS` rather than a hand-written list of ids, because
+    // the hand-written list is what went stale the moment a seventh scenario
+    // was added — and the achievement's own name went stale with it.
     const session = playToTheEnd('ACH-SIX')
-    const five = new Set([
-      'volcker_1979',
-      'great_contraction_1929',
-      'lehman_2008',
-      'euro_crisis_2010',
-      'transitory_fed_2021',
-    ])
-    expect(earnedBy(contextFor(session, { scenariosCompleted: five }))).not.toContain(
-      'all_six',
-    )
+    const all = SCENARIOS.map((scenario) => scenario.id)
+    expect(all.length).toBeGreaterThan(5)
+
+    const allButOne = new Set(all.slice(0, -1))
     expect(
-      earnedBy(
-        contextFor(session, {
-          scenariosCompleted: new Set([...five, 'transitory_ecb_2021']),
-        }),
-      ),
-    ).toContain('all_six')
+      earnedBy(contextFor(session, { scenariosCompleted: allButOne })),
+    ).not.toContain('every_period')
+    expect(
+      earnedBy(contextFor(session, { scenariosCompleted: new Set(all) })),
+    ).toContain('every_period')
   })
 
   it('gives every achievement a name and a note', () => {

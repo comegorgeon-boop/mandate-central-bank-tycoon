@@ -230,7 +230,7 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
         //
         // Nothing is lost by waiting: finishing a mandate goes to the report.
         // `recordResult` above has already run, so the scenario count the
-        // report reads includes this mandate — "all six periods" is earned by
+        // report reads includes this mandate — "every period" is earned by
         // the sixth one rather than by the one after it.
       } else {
         // Saved after every confirmed decision, because a mandate is forty

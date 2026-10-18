@@ -45,6 +45,9 @@ const MANDATES = [
   // 1979 for the operating-procedure choice at its second meeting.
   { id: 'volcker', seed: 'BOARD-VOLCKER', institution: 'fed', difficulty: 'hard', scenario: 'volcker_1979', meetings: 2 },
   { id: 'contraction', seed: 'BOARD-1929', institution: 'fed', difficulty: 'hard', scenario: 'great_contraction_1929', meetings: 2 },
+  // 1972-74: a month-labelled header like 1929's, and a government already
+  // pressing at the first meeting.
+  { id: 'burns', seed: 'BOARD-BURNS', institution: 'fed', difficulty: 'hard', scenario: 'nixon_burns_1972', meetings: 2 },
 ]
 
 /** Every shot taken, in the order it was taken. */

@@ -39,6 +39,7 @@ export type ScenarioId =
   | 'euro_crisis_2010'
   | 'transitory_fed_2021'
   | 'transitory_ecb_2021'
+  | 'nixon_burns_1972'
 
 /** How the funds rate is set, which was itself a decision in October 1979. */
 export type OperatingProcedure = 'rate_target' | 'reserve_target'
@@ -161,6 +162,17 @@ export interface ScenarioOpening {
   readonly creditGrowth?: number
   readonly assetPricePressure?: number
   readonly geopoliticalRisk?: number
+  /**
+   * How hard the administration is leaning on the bank at the opening.
+   *
+   * Left out for every scenario but one. The engine opens a fictional mandate
+   * near 25 with noise, which is the right default for a central bank nobody
+   * is currently shouting at, and most historical openings have no better
+   * number than that. 1972 does: the pressure on that chairman is documented
+   * in the administration's own tapes and the chairman's own diaries, and it
+   * is the entire premise of the period.
+   */
+  readonly politicalPressure?: number
   readonly neutralRealRate?: number
   readonly debtPressure?: number
   readonly fragmentation?: number
@@ -299,7 +311,7 @@ export interface Scenario {
   /**
    * The objective this year was actually run to, where it was not 2 %.
    *
-   * Undefined in five of the six scenarios. 1929-33 sets it to zero, because
+   * Undefined in every scenario but one. 1929-33 sets it to zero, because
    * the Federal Reserve of 1929 had no inflation target and the commitment it
    * did have — a dollar convertible into a fixed weight of gold — is a
    * commitment to a stable price level. See `inflationTargetFor`.

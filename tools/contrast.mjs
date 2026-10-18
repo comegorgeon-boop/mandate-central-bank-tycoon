@@ -39,7 +39,7 @@ import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open
  * difference between "nothing failed" and "nothing was looked at" into an
  * error rather than a number nobody reads.
  */
-const MINIMUM_STATES = 500
+const MINIMUM_STATES = 580
 
 /**
  * Measure every text node in the page.
@@ -370,6 +370,11 @@ async function main() {
     // objective of zero.
     { seed: 'AUDIT-VOLCKER', institution: 'fed', difficulty: 'hard', scenario: 'volcker_1979', meetings: 3 },
     { seed: 'AUDIT-1929', institution: 'fed', difficulty: 'hard', scenario: 'great_contraction_1929', meetings: 3 },
+    // 1972-74, which opens with political pressure already above the level at
+    // which the government starts asking for things — so the demand panel can
+    // appear in the first few meetings of a *scenario*, which no other walk
+    // here produces.
+    { seed: 'AUDIT-BURNS', institution: 'fed', difficulty: 'hard', scenario: 'nixon_burns_1972', meetings: 3 },
     // A seed and a policy that produce a demand from the government by the
     // fourth meeting, because the demand panel is a screen that only exists
     // under pressure and nothing else in this walk creates any.

@@ -13,7 +13,7 @@ import { bestByBucket, loadSave, type SavedRun } from '../features/records/stora
  *
  * It used to be a title, one sentence about chairing the Federal Reserve for
  * twelve meetings, and a button — written when twelve meetings was the whole
- * game. It now has six historical mandates behind it and a mandate in
+ * game. It now has seven historical mandates behind it and a mandate in
  * progress to come back to, and a front door that mentions neither is lying
  * about what is through it.
  *
@@ -28,6 +28,24 @@ import { bestByBucket, loadSave, type SavedRun } from '../features/records/stora
  * the honest answer to that is the last confirmed decision wins, not a page
  * that reshuffles itself underneath a reader.
  */
+
+/**
+ * A small count, spelled out.
+ *
+ * Because the heading above the scenario list said "Six that happened" over a
+ * list rendered from `SCENARIOS` — so the moment a seventh was added the page
+ * contradicted itself in two adjacent lines. A number that is *derived* from
+ * the same array as the thing it counts cannot do that. Falls back to digits
+ * above twelve, which is where spelling out stops helping anyway.
+ */
+function countWord(n: number): string {
+  const words = [
+    'None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six',
+    'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',
+  ]
+  return words[n] ?? String(n)
+}
+
 export default function HomePage() {
   const navigate = useNavigate()
   const { resume } = useRun()
@@ -125,7 +143,7 @@ export default function HomePage() {
           </div>
           <div>
             <dt className="font-medium text-onwood">
-              Six that happened
+              {countWord(SCENARIOS.length)} that happened
             </dt>
             <dd className="text-onwood-soft">
               {SCENARIOS.map((entry) => entry.title).join(', ')}. There is no
