@@ -6,8 +6,10 @@ import {
   getInstrument,
   getInstrumentRange,
   instrumentRangesFor,
+  configFromLog,
   startRun,
   submitMeeting,
+  type DecisionLog,
   type MeetingResult,
   type PolicyPackage,
   type RunConfig,
@@ -16,6 +18,7 @@ import {
   RunContext,
   type ActiveRun,
   type FinishedRun,
+  type ResumeResult,
   type RunContextValue,
   type StartRunOptions,
 } from './runContext.ts'
@@ -27,6 +30,7 @@ import { settledPromise } from '../policy/settledPromise.ts'
 import { advanceArms, openArms } from './counterfactualRun.ts'
 import { advanceScoreboard, openScoreboard } from './doctrineScoreboard.ts'
 import { makeRunId } from './seed.ts'
+import { clearSave, loadSave, recordResult, saveRun } from '../records/storage.ts'
 
 /** The largest move the desk allows, which caps every school's advice. */
 function maxMoveFor(config: RunConfig): number {
@@ -55,6 +59,77 @@ const NO_ACTIVE_RUN: MeetingResult = {
 export function RunProvider({ children }: { readonly children: ReactNode }) {
   const [active, setActive] = useState<ActiveRun | null>(null)
   const [finished, setFinished] = useState<FinishedRun | null>(null)
+
+  /**
+   * Rebuild the whole derived run state from a session.
+   *
+   * Used by both `begin` and `resume`, and shared rather than duplicated
+   * because the counterfactual arms, the ledger and the doctrine scoreboard
+   * are *derived* from the decisions — a resume that opened them empty would
+   * produce a mandate whose second half was compared against a counterfactual
+   * that had not been running during its first.
+   */
+  const rebuild = useCallback(
+    (runId: string, log: DecisionLog): ActiveRun | null => {
+      let arms = openArms(startRun(configFromLog(log)))
+      let scoreboard = openScoreboard()
+      let ledger: ActiveRun['ledger'] = []
+      let settled: ActiveRun['settled'] = null
+
+      // Walk the log forward, keeping the derived structures in step. This is
+      // the same loop `submit` runs, which is why it produces the same state.
+      let step = startRun(configFromLog(log))
+      for (const entry of log.decisions) {
+        const recorded = recordInstruments(step, entry.package)
+        const result = submitMeeting(step, entry.package)
+        if (!result.ok) break
+        const next = result.session
+        scoreboard = advanceScoreboard(
+          scoreboard,
+          step,
+          next,
+          entry.package,
+          maxMoveFor(step.state.config),
+        )
+        arms = advanceArms(arms, step, next, entry.package)
+        ledger = pruneLedger([...ledger, ...recorded], next.state.meetingIndex)
+        settled = settledPromise(
+          step.state.guidance,
+          next.state.guidance,
+          next.state.config.difficulty,
+        )
+        step = next
+      }
+
+      // The log must replay in full. A partial replay means the save no
+      // longer describes a reachable mandate — a rejected package, a changed
+      // instrument range — and resuming into half of one would be worse than
+      // refusing.
+      if (step.state.meetingIndex !== log.decisions.length) return null
+      return { runId, session: step, ledger, settled, arms, scoreboard }
+    },
+    [],
+  )
+
+  const resume = useCallback((): ResumeResult => {
+    const stored = loadSave()
+    if (stored === null) {
+      return { ok: false, error: 'There is nothing saved on this device.' }
+    }
+    const rebuilt = rebuild(makeRunId(stored.log.seed), stored.log)
+    if (rebuilt === null) {
+      clearSave()
+      return {
+        ok: false,
+        error:
+          'The saved mandate no longer replays on this build, so it has been ' +
+          'discarded rather than resumed into a model that has changed under it.',
+      }
+    }
+    setActive(rebuilt)
+    setFinished(null)
+    return { ok: true }
+  }, [rebuild])
 
   const begin = useCallback((options: StartRunOptions) => {
     const config = createRunConfig({
@@ -118,11 +193,41 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
       // The engine decides when a mandate is over; the score is computed once,
       // here, so the result screen never recomputes it from a moving state.
       if (session.outcome.status !== 'active') {
+        const score = calculateScore(session.state, session.outcome)
         setFinished({
           runId: active.runId,
           session,
-          score: calculateScore(session.state, session.outcome),
+          score,
           scoreboard,
+        })
+        // A finished mandate is remembered and the save is dropped: there is
+        // nothing left to resume, and a save that outlived its own run would
+        // offer the player a mandate that had already been scored.
+        clearSave()
+        recordResult({
+          score: score.score,
+          outcome: session.outcome.triggered ?? 'mandate_completed',
+          outcomeLabel: session.outcome.label ?? 'Mandate completed',
+          meetingsServed: session.state.meetingIndex,
+          meetingCount: session.state.config.meetingCount,
+          seed: session.state.config.seed,
+          institution: session.state.config.institution,
+          difficulty: session.state.config.difficulty,
+          scenario: session.state.config.scenario,
+        })
+      } else {
+        // Saved after every confirmed decision, because a mandate is forty
+        // minutes long and the project's own setup screen used to warn that
+        // reloading the page ended it. The log is the decisions and nothing
+        // else, so this is a few hundred bytes.
+        saveRun({
+          simulationVersion: SIMULATION_VERSION,
+          institution: session.state.config.institution,
+          difficulty: session.state.config.difficulty,
+          mode: session.state.config.mode,
+          scenario: session.state.config.scenario,
+          seed: session.state.config.seed,
+          decisions: session.decisions,
         })
       }
 
@@ -137,8 +242,8 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
   }, [])
 
   const value = useMemo<RunContextValue>(
-    () => ({ active, finished, begin, submit, reset }),
-    [active, finished, begin, submit, reset],
+    () => ({ active, finished, begin, submit, resume, reset }),
+    [active, finished, begin, submit, resume, reset],
   )
 
   return <RunContext.Provider value={value}>{children}</RunContext.Provider>

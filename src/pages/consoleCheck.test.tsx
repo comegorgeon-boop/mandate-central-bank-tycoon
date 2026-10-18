@@ -26,7 +26,7 @@ const DIFFICULTY_LABEL: Readonly<Record<Difficulty, RegExp>> = {
 }
 
 function playWholeMandate(difficulty: Difficulty): void {
-  fireEvent.click(screen.getByRole('link', { name: 'Play now' }))
+  fireEvent.click(document.querySelector('[data-start]') as HTMLElement)
   fireEvent.click(screen.getByRole('button', { name: DIFFICULTY_LABEL[difficulty] }))
   fireEvent.change(screen.getByLabelText('Scenario seed', { selector: 'input' }), {
     target: { value: 'CONSOLE' },
@@ -103,7 +103,7 @@ describe('both institutions are reachable', () => {
           <App />
         </MemoryRouter>,
       )
-      fireEvent.click(screen.getByRole('link', { name: 'Play now' }))
+      fireEvent.click(document.querySelector('[data-start]') as HTMLElement)
       fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label}`) }))
       fireEvent.change(screen.getByLabelText('Scenario seed', { selector: 'input' }), {
         target: { value: 'BOTH' },
@@ -132,7 +132,7 @@ describe('the toolkit each difficulty actually reaches', () => {
         <App />
       </MemoryRouter>,
     )
-    fireEvent.click(screen.getByRole('link', { name: 'Play now' }))
+    fireEvent.click(document.querySelector('[data-start]') as HTMLElement)
     fireEvent.click(screen.getByRole('button', { name: DIFFICULTY_LABEL[difficulty] }))
     fireEvent.change(screen.getByLabelText('Scenario seed', { selector: 'input' }), {
       target: { value: 'TOOLKIT' },

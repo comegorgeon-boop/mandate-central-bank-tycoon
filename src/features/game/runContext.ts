@@ -79,6 +79,11 @@ export interface StartRunOptions {
   readonly scenario?: ScenarioId | null
 }
 
+/** How a resume turned out, so the home page can say why it failed. */
+export type ResumeResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly error: string }
+
 export interface RunContextValue {
   readonly active: ActiveRun | null
   readonly finished: FinishedRun | null
@@ -89,6 +94,15 @@ export interface RunContextValue {
    * rejections; a rejected package leaves the run untouched.
    */
   readonly submit: (pkg: PolicyPackage) => MeetingResult
+  /**
+   * Replays a saved mandate back to where it was left.
+   *
+   * A save is the decision log and nothing else, so resuming *is* replaying:
+   * the same configuration and the same ordered packages reproduce the same
+   * world, meeting for meeting, because the engine is deterministic. See
+   * `features/records/storage.ts` for why that is the format.
+   */
+  readonly resume: () => ResumeResult
   /** Clears both the active and the finished run. */
   readonly reset: () => void
 }

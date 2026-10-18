@@ -290,8 +290,9 @@ export default function SetupPage() {
       </div>
 
       <p className="mt-8 text-xs text-onwood-faint">
-        This build keeps no local records and does not save runs. Reloading the page
-        during a mandate ends it.
+        Your mandate is saved in this browser after every confirmed decision,
+        so closing the tab does not end it. Nothing leaves this device: there
+        is no account and no online table.
       </p>
     </main>
   )

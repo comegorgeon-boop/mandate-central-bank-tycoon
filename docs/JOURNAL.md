@@ -278,3 +278,40 @@ clean, `npm run sim:sweep` with no balance warnings, the contrast audit clean
 across 456 states with every disclosure opened, the board rebuilt, and I
 played all six scenarios and both new panels myself and looked at the
 captures.
+
+## 6 — The front matter, and a mandate you can come back to
+
+**Did.** Most of chantier D. A rewritten **home page** that knows about the six
+historical mandates and about the mandate you left half-played; **saving and
+resuming**, which turned out to need almost no new machinery; **local
+records**, grouped rather than ranked; a **glossary**; and a **legal page**
+written as prose rather than as a wall of disclaimers.
+
+The save is the **decision log and nothing else** — the configuration and the
+ordered packages — because the engine is deterministic and
+`replay/decisionLog.ts` already existed to say so. That buys three things for
+free: a save is a few hundred bytes rather than a serialised latent state, it
+cannot drift out of sync with the engine that produces it, and a log written
+by another engine version is *refused* rather than reinterpreted, because
+resuming into a model that has changed under the first half of a mandate
+produces a run whose own history did not happen.
+
+The glossary writes nothing of its own. Every entry is read off the object
+that produces it — `SERIES`, `INSTRUMENTS`, `DOCTRINES` — so it cannot drift
+from the panels and an instrument added to the toolkit appears there without
+anybody remembering to write it down.
+
+**Measured.** A mandate played three meetings, the whole page reloaded, and
+resumed: same meeting, and — the claim that actually matters, now in a test —
+the same latent economy to the last decimal, not merely the same meeting
+number. 1018 tests. Contrast clean across **462 states**, the three new pages
+among them.
+
+**Bothers me.** The records are grouped by bucket and capped at five a bucket,
+which is right, but there is still no **achievements** list and no **tutorial**
+— the two items of chantier D I have not done. The tutorial in particular is
+not a page: the easy mandate *is* the tutorial, and what is missing is the
+first-time explanation of what a meeting is before the first one starts. And
+I took the setup screen's old warning down ("reloading the page during a
+mandate ends it") because it is no longer true, which is the sort of stale
+sentence that was probably not the only one.

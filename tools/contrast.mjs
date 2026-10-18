@@ -228,12 +228,25 @@ async function audit(page, label) {
 }
 
 /** One full mandate in one direction, measured at every screen it has. */
-async function walk({ direction, seed, scenario, institution, difficulty, meetings, move = 0 }) {
+async function walk({ direction, seed, scenario, institution, difficulty, meetings, move = 0, first = false }) {
   const tag = scenario ?? `${institution}/${difficulty}`
   const { browser, page, consoleMessages } = await open({ direction })
 
-  await page.goto(`${process.env.MANDATE_URL ?? 'http://localhost:4173'}/`)
+  const base = process.env.MANDATE_URL ?? 'http://localhost:4173'
+  await page.goto(`${base}/`)
   await audit(page, `${direction}:${tag}:home`)
+
+  // The standing pages, measured on the first walk of each direction only:
+  // they do not depend on the mandate, and auditing them six times a
+  // direction would be five-sixths wasted and would pad the itinerary that
+  // the floor below is meant to make meaningful.
+  if (first) {
+    for (const path of ['glossary', 'records', 'about']) {
+      await page.goto(`${base}/${path}`)
+      await audit(page, `${direction}:page:${path}`)
+    }
+    await page.goto(`${base}/`)
+  }
 
   await startMandate(page, { seed, scenario, institution, difficulty })
   await audit(page, `${direction}:${tag}:setup`)
@@ -314,8 +327,8 @@ async function main() {
 
   const consoleProblems = []
   for (const direction of DIRECTIONS) {
-    for (const run of runs) {
-      const messages = await walk({ direction, ...run })
+    for (const [index, run] of runs.entries()) {
+      const messages = await walk({ direction, ...run, first: index === 0 })
       for (const message of messages) {
         consoleProblems.push(`${direction}:${run.scenario ?? run.difficulty}: ${message}`)
       }

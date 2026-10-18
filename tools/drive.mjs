@@ -151,7 +151,7 @@ export async function startMandate(
   { seed, scenario = null, institution = 'fed', difficulty = 'easy' } = {},
 ) {
   await page.goto(`${BASE_URL}/`, { waitUntil: 'load' })
-  await page.getByRole('link', { name: 'Play now' }).click()
+  await page.locator('[data-start]').click()
   await page.waitForSelector('text=Set up your mandate')
 
   // Selected by `data-*` hooks rather than by their labels, deliberately.
