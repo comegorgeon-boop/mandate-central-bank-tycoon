@@ -378,6 +378,19 @@ async function sep(date) {
  * make playable: the month the Federal Reserve raised its discount rate twice,
  * in a depression, to defend the gold standard. Rounding puts a slot there.
  */
+/** A quarterly series read at the quarter containing `date`. */
+function quarterly(data, date) {
+  return data.get(quarter(date)) ?? null
+}
+
+/** Output gap in percent of potential, from two quarterly levels. */
+function gapPercent(actual, potential, date) {
+  const q = quarter(date)
+  const now = actual.get(q)
+  const pot = potential.get(q)
+  return now === undefined || pot === undefined || !pot ? null : (now / pot - 1) * 100
+}
+
 function uniformGrid(startMonth, count) {
   const slots = []
   for (let index = 0; index < count; index += 1) {
@@ -821,6 +834,63 @@ async function realTimeBelief() {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Nixon and Burns, 1972-74.
+ *
+ * The one period in this game where a named living — in 1972 — politician
+ * pressing a named chairman is *documented* rather than inferred, and so the
+ * only one where the pressure can be put on the screen with names attached.
+ *
+ * Slots are **months on a uniform grid**, not FOMC meeting dates. The 1972-74
+ * FOMC met roughly monthly, but this script does not carry that calendar and
+ * will not invent it, so the scenario's slots are labelled as months and the
+ * document says so — the same rule `greatContraction` follows for 1929.
+ */
+async function nixonBurns() {
+  const funds = await series('FEDFUNDS', { from: '1969-01-01' })
+  const cpi = await series('CPIAUCSL', { from: '1969-01-01' })
+  const core = await series('CPILFESL', { from: '1969-01-01' })
+  const unemployment = await series('UNRATE', { from: '1969-01-01' })
+  const natural = await series('NROU', { from: '1969-01-01' })
+  const gdp = await series('GDPC1', { from: '1969-01-01' })
+  const potential = await series('GDPPOT', { from: '1969-01-01' })
+  const long = await series('GS10', { from: '1969-01-01' })
+  const wages = await series('AHETPI', { from: '1969-01-01' })
+
+  // January 1972 to December 1974: the year of the re-election pressure and
+  // the price controls, then the controls unravelling, then the oil embargo
+  // and the recession. Twenty-four slots at eight a year is three years.
+  const grid = uniformGrid('1972-01-01', 24)
+
+  const lines = []
+  lines.push(`Slots: ${grid.length} (${grid[0]} to ${grid[grid.length - 1]}), uniform months — NOT FOMC dates`)
+  lines.push('')
+  lines.push('| # | month | funds rate | CPI y/y | core CPI y/y | unemployment | natural rate | output gap % | 10y | wages y/y |')
+  lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |')
+  grid.forEach((date, index) => {
+    const g = gapPercent(gdp, potential, date)
+    lines.push(
+      `| ${index} | ${date.slice(0, 7)} | ${fmt(monthly(funds, date))} | ` +
+        `${fmt(yearOnYear(cpi, date))} | ${fmt(yearOnYear(core, date))} | ` +
+        `${fmt(monthly(unemployment, date), 1)} | ${fmt(quarterly(natural, date), 2)} | ` +
+        `${fmt(g, 2)} | ${fmt(monthly(long, date))} | ${fmt(yearOnYear(wages, date))} |`,
+    )
+  })
+
+  const open = grid[0]
+  lines.push('')
+  lines.push('Opening, January 1972:')
+  lines.push(`  policyRate            ${fmt(monthly(funds, open))}`)
+  lines.push(`  inflationHeadline     ${fmt(yearOnYear(cpi, open))}`)
+  lines.push(`  inflationCore         ${fmt(yearOnYear(core, open))}`)
+  lines.push(`  unemployment          ${fmt(monthly(unemployment, open), 1)}`)
+  lines.push(`  naturalUnemployment   ${fmt(quarterly(natural, open), 2)}`)
+  lines.push(`  outputGap             ${fmt(gapPercent(gdp, potential, open), 2)}`)
+  lines.push(`  longRate              ${fmt(monthly(long, open))}`)
+  lines.push(`  wageGrowth            ${fmt(yearOnYear(wages, open))}`)
+  return lines.join('\n')
+}
+
 const TASKS = {
   great_contraction_1929: greatContraction,
   lehman_2008: lehman,
@@ -841,6 +911,7 @@ const TASKS = {
       years: [2021, 2022, 2023],
       openingDate: '2021-03-11',
     }),
+  nixon_burns_1972: nixonBurns,
   real_time_belief: realTimeBelief,
 }
 

@@ -12,6 +12,13 @@ import type { LatentState, SimulationState } from '../types/state.ts'
 import { clamp, clampLatentState } from '../config/bounds.ts'
 import { getDifficulty, meetsDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
+import type { ObservationSet } from '../types/observation.ts'
+import { committeeViews } from '../policy/staffRule.ts'
+import {
+  chairMoveOf,
+  committeeVote,
+  type CommitteeVote,
+} from '../policy/committeeVote.ts'
 import {
   COMMUNICATION_AVAILABILITY,
   POLICY_RATE_FLOOR,
@@ -69,6 +76,19 @@ export type PolicyApplication =
       readonly ok: true
       readonly state: SimulationState
       readonly validation: PolicyValidation
+      /**
+       * How the committee voted on this package, and what the published
+       * record cost in credibility.
+       *
+       * It lives here, and not in `submitMeeting`, because a vote is part of
+       * what a decision *does*. The first version charged the credibility in
+       * `submitMeeting` and `enginePathParity.test.tsx` caught it within the
+       * hour: that test plays one mandate through the interface and one
+       * through the engine's own functions, and the engine path calls this
+       * directly. Anything that moves the economy and is not in here is a
+       * thing the two paths disagree about.
+       */
+      readonly vote: CommitteeVote
     }
   | { readonly ok: false; readonly validation: PolicyValidation }
 
@@ -486,6 +506,22 @@ function shockSince(state: SimulationState, meetingIndex: number): number {
 export function applyPolicyPackage(
   state: SimulationState,
   pkg: PolicyPackage,
+  /**
+   * What was published before this meeting — the figures the committee has in
+   * front of it when it votes.
+   *
+   * Passed in rather than generated here, for two reasons. It is the set the
+   * player was actually shown, so the vote is cast on the same numbers they
+   * decided from; and `generateObservation` observes every series and builds
+   * every forecast fan, which doubled the cost of a decision when this
+   * function called it for itself — enough to time out a test that plays
+   * several hundred mandates.
+   *
+   * Omitted means **there was no committee to ask**, not "ask a fresh one".
+   * Callers that construct a state directly are not modelling a published
+   * meeting, and a vote invented for them would be a committee nobody saw.
+   */
+  observation?: ObservationSet,
 ): PolicyApplication {
   const validation = validatePolicyPackage(state, pkg)
   if (!validation.ok) return { ok: false, validation }
@@ -494,6 +530,14 @@ export function applyPolicyPackage(
   const sensitivity = difficulty.credibilitySensitivity
   const stance = deriveStance(state, pkg)
   const { institution } = state.config
+
+  // The vote, on the figures the committee had in front of it.
+  const vote = committeeVote(
+    observation === undefined
+      ? []
+      : committeeViews(observation, institution, state.config.difficulty),
+    chairMoveOf(pkg),
+  )
 
   // How keyed-up markets already are, judged from what the committee
   // inherited walking in — see `crisisIntensity`. Governs how hard every word
@@ -821,12 +865,19 @@ export function applyPolicyPackage(
     }
   }
 
+  // Charged last, on top of everything else the package cost: the record is
+  // published with the decision, so it lands with it.
+  if (vote.credibilityCost > 0) {
+    latent.credibility = Math.max(0, latent.credibility - vote.credibilityCost)
+  }
+
   const diagnostics: DiagnosticEvent[] = []
   const clamped = clampLatentState(latent, state.stepIndex, diagnostics)
 
   return {
     ok: true,
     validation,
+    vote,
     state: {
       ...state,
       latent: clamped,

@@ -13,6 +13,7 @@ import { resolveEvent } from '../events/resolveEvent.ts'
 import { applyScheduledEvents, isScheduledMajor } from '../scenarios/scheduled.ts'
 import { applyGoldDrain } from '../scenarios/goldStandard.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
+import { committeeVote, type CommitteeVote } from '../policy/committeeVote.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
 import { configFromLog } from './decisionLog.ts'
@@ -81,6 +82,13 @@ export interface RunSession {
   /** Warning signals for risks that may materialise. */
   readonly clues: readonly string[]
   /**
+   * How the committee voted on the decision just taken, and what the published
+   * record cost. Empty ballots where there is no committee to ask — see
+   * `policy/committeeVote.ts`, which is careful that a vote nobody cast reads
+   * as absent rather than as unanimous.
+   */
+  readonly vote: CommitteeVote
+  /**
    * The interval just elapsed, sub-step by sub-step, for the interface to
    * play. Empty at the first meeting, where no time has passed yet.
    *
@@ -141,6 +149,9 @@ export function startRun(config: RunConfig): RunSession {
     previousObservation: null,
     onTheDay: null,
     outcome,
+    // No decision has been taken, so there is nothing to have voted on. The
+    // empty form reads as *absent* rather than as a unanimous 0-0.
+    vote: committeeVote([], 0),
     decisions: [],
     newswire: [],
     minorEvents: [],
@@ -177,7 +188,7 @@ export function submitMeeting(
     }
   }
 
-  const applied = applyPolicyPackage(session.state, pkg)
+  const applied = applyPolicyPackage(session.state, pkg, session.observation)
   if (!applied.ok) return { ok: false, validation: applied.validation }
 
   const meetingIndex = session.state.meetingIndex
@@ -228,6 +239,7 @@ export function submitMeeting(
       minorEvents,
       majorEvent,
       clues: resolution.clues,
+      vote: applied.vote,
       interval: buildIntervalFrames(
         steps,
         resolution.state.timeYears,

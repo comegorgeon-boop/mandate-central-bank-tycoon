@@ -91,12 +91,23 @@ function playEngineDirectly(): Published[] {
   let outcome = evaluateEndConditions(state)
   const published: Published[] = []
 
+  // Kept, so the engine path can hand the committee the same published set the
+  // interface hands it. A decision taken without one is a decision no
+  // committee voted on, and the two paths would disagree about credibility —
+  // which is exactly what this file exists to notice, and did.
+  let latestObservation = generateObservation(state, {
+    meetingIndex: state.meetingIndex,
+    newswire: [],
+    clues: [],
+  })
+
   const record = (): void => {
     const observation = generateObservation(state, {
       meetingIndex: state.meetingIndex,
       newswire: [],
       clues: [],
     })
+    latestObservation = observation
     published.push({
       meeting: state.meetingIndex + 1,
       policyRate: state.stance.targetRate,
@@ -108,7 +119,11 @@ function playEngineDirectly(): Published[] {
 
   while (outcome.status === 'active') {
     record()
-    const applied = applyPolicyPackage(state, packageFor(MOVE_BP, SIGNAL_BP))
+    const applied = applyPolicyPackage(
+      state,
+      packageFor(MOVE_BP, SIGNAL_BP),
+      latestObservation,
+    )
     if (!applied.ok) throw new Error('the engine rejected the sequence')
     state = advanceTrueState(resolveEvent(applied.state).state)
     outcome = evaluateEndConditions(state, outcome.breachCounters)

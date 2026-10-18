@@ -383,3 +383,50 @@ re-rolling. Content that cannot fire is invisible to every test that checks
 what content *does*. I have written `dev/gateProbe.ts` so the next gate is set
 from a measurement, and a test that forbids declaring a follow-up nothing acts
 on — half the links I added were decoration until it existed.
+
+---
+
+## 9 — The advisers vote, and the record is what costs
+
+**Did.** The first of the two mechanics you offered. The committee votes on
+the package the chair confirmed, the dissents are published under the wing
+that cast them with what they would have done instead, and a committee that
+cannot hold a majority behind its own policy costs credibility — nothing for
+unanimity, nothing for a single dissent, 1.6 points per voice after that,
+because the Fed publishes dissents routinely and a 10–1 vote is not an
+institution in trouble. It lands on the reaction screen, which is where a vote
+is published in the world being modelled: with the decision.
+
+I did not build the part where a majority is *required*. That removes the
+player's direct control of the rate, which is close enough to removing a
+mechanic that it is yours — **QUESTIONS.md #5**, with the five lines of code
+that turn it on.
+
+**Measured.** 1069 tests. Contrast clean across 524 states, and I checked that
+the walk actually reaches a dissent and a credibility charge rather than only
+the unanimous case. Competent play loses the room on **0 %** of votes; a chair
+slamming the dial to alternating stops loses it on **more than half**. Both
+halves are pinned, because a charge that never fires is not a mechanic and a
+record that reads "divided" every meeting is noise.
+
+**Also measured, because entry 5 left a claim standing that is no longer
+true.** It said the Meeting Brief was "still the heaviest tab at 4392
+characters" and wanted editing. Re-measured on the current build at meeting 3:
+brief 2732 and desk 2404 on fed/medium, desk 2222 and brief 2095 on ecb/hard,
+everything else under 1600. The brief is still the heaviest and it is no
+longer an outlier — a newspaper column, not a dossier. I went to edit it and
+found there was no longer a case for it, which is worth writing down, because
+the note I was acting on would have had me cutting content to hit a number
+that had already come down.
+
+**Bothers me.** I put the credibility charge in `submitMeeting` and
+`enginePathParity` caught it inside the hour — that test plays one mandate
+through the interface and one through the engine's own functions, and anything
+that moves the economy and is not in `applyPolicyPackage` is a thing the two
+paths disagree about. Then the fix made every decision generate a full
+observation and timed out a test that plays several hundred mandates. The
+published figures are now passed *in*, which is both cheaper and more correct
+— the committee votes on what the player was shown. Separately: I found
+`CommitteeSplitPanel` was dead code — a divided-committee panel superseded by
+the doctrines debate and imported by nothing, which I nearly built the vote on
+top of before noticing nobody could see it. Deleted.

@@ -151,6 +151,14 @@ export {
 export {
   committeeAgrees,
   committeeViews,
+} from './policy/staffRule.ts'
+export {
+  chairMoveOf,
+  committeeVote,
+  type Ballot,
+  type CommitteeVote,
+} from './policy/committeeVote.ts'
+export {
   staffRecommendation,
   type CommitteeView,
   type StaffRecommendation,

@@ -4,6 +4,8 @@ import type { FrontPage } from '../../simulation/index.ts'
 import { FrontPagesPanel } from './FrontPagesPanel.tsx'
 import type { RealisedEntry } from './instrumentLedger.ts'
 import type { SettledPromise } from './settledPromise.ts'
+import type { CommitteeVote } from '../../simulation/index.ts'
+import { VotePanel } from '../meeting/VotePanel.tsx'
 import { buildReaction } from './reaction.ts'
 import { RealisedEffectPanel } from './RealisedEffectPanel.tsx'
 
@@ -22,6 +24,7 @@ export function ReactionPanel({
   frontPages,
   promise,
   realised,
+  vote,
   onContinue,
 }: {
   readonly before: ObservationSet
@@ -31,6 +34,8 @@ export function ReactionPanel({
   readonly frontPages: readonly FrontPage[]
   /** A promise settled by this decision, if one was. Usually null. */
   readonly promise: SettledPromise | null
+  /** How the committee voted on the decision just taken. */
+  readonly vote: CommitteeVote
   /** Instruments whose lag has run, now checkable. Usually empty. */
   readonly realised: readonly RealisedEntry[]
   readonly onContinue: () => void
@@ -147,6 +152,12 @@ export function ReactionPanel({
           , not because of it. They lead the front page at the meeting.
         </p>
       )}
+
+      {/* The vote, published with the decision — which is when a vote is
+          published. It sits above the promise because the player is reading
+          the record of the meeting they just held, in the order the world
+          would have produced it. */}
+      <VotePanel vote={vote} />
 
       {/* A promise kept is the one thing in this game that pays for conduct
           rather than outcome, and until now nothing said when it happened.

@@ -107,3 +107,52 @@ October 1931 rise, and a banking system that fails if you let it.
 in `scenarios/scenarios.ts` and the matching section from
 `docs/SCENARIOS.md` — the test that parses the document checks both directions,
 so it will tell you if you miss one.
+
+---
+
+## 5. Can the committee refuse the chair's package?
+
+You proposed the council vote as "the advisers vote, **a majority is needed**,
+dissents are published and cost credibility — the Fed publishes its own." I
+have built all of it except the majority requirement, and the part I left out
+is the part worth asking about.
+
+**Where it came from.** A majority *requirement* means a committee that can
+refuse. That removes the player's direct control of the policy rate, which is
+the one control the whole game is built on: every panel in the interface
+exists to inform a decision the player then makes, the score measures the path
+that decision produced, and the historical comparison is "your mandate against
+what they actually did". A game whose central lever can be vetoed by an
+adviser is a game about managing advisers, and it would be a good game — but
+it is not this one, and turning this one into it is not a change I can make
+between two commits.
+
+**What I applied.** The chair decides, always. The vote is taken, the dissents
+are published under the wing that cast them with what they would have done
+instead, and a committee that cannot hold a majority behind its own policy
+costs credibility — nothing for unanimity, nothing for a single dissent
+(the Fed publishes those routinely and a 10–1 vote is not an institution in
+trouble), and 1.6 points per dissenting voice after the first.
+
+This is also what the institution being modelled actually does. The FOMC chair
+has been outvoted once since the 1930s. The committee's power is not the
+ballot, it is the record — and the record is what markets read as a statement
+about how durable the policy is. So the vote does not take the decision away
+from the player. It prices it.
+
+**Measured.** Competent play loses the room on 0 % of votes; a chair slamming
+the dial to alternating stops loses it on more than half. Both halves are
+pinned by tests, because a charge that never fires is not a mechanic and a
+record that says "divided" every meeting is noise.
+
+**Why I did not decide it.** Letting the committee block a package changes
+what the player controls, which is close enough to removing a mechanic that it
+is yours.
+
+**To turn it on.** In `simulation/policy/committeeVote.ts`, `committeeVote`
+already computes `inFavour` and `against`. Add a `carried: inFavour > against`
+field, and in `engine/applyPolicyPackage.ts` return a validation rejection
+when it is false — the rejection path already exists and the confirmation
+screen already renders rejections, so the interface needs nothing new. The
+test `leaves the chair's decision standing, whatever the vote` in
+`committeeVote.test.ts` is the one that will fail, and it should.

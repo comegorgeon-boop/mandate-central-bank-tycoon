@@ -264,6 +264,7 @@ export function MeetingScreen({
             frontPages={frontPages}
             promise={settled}
             realised={realised}
+            vote={session.vote}
             onContinue={() => setShowReaction(false)}
           />
         </div>
