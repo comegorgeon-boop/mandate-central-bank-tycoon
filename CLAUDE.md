@@ -18,4 +18,7 @@
 ## Avant de dire qu'une tâche est finie
 - `npm run build` passe
 - `npm test` est vert
+- `npm run check:offline` est vert — aucune requête ne sort de l'origine, et
+  une partie entière se joue réseau coupé. Après un déploiement, le relancer
+  contre le site : `MANDATE_URL=<adresse> npm run check:offline`
 - aucune erreur dans la console du navigateur
