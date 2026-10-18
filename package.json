@@ -11,7 +11,10 @@
     "test": "vitest run",
     "sim:demo": "node src/simulation/dev/demo.ts",
     "sim:sweep": "node src/simulation/dev/sweep.ts",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "check:offline": "node tools/offline.mjs",
+    "check:contrast": "node tools/contrast.mjs",
+    "board": "node tools/board.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

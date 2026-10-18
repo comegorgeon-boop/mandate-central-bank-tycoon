@@ -520,3 +520,42 @@ it, and the measurement said the height is *content*: three stacked charts and
 five readings with their provenance, not gloss. Restructuring the game's main
 screen to save scrolling on a page where scrolling is the medium would be
 churn. The board flags it so you can disagree.
+
+---
+
+## 12 — The first rule, checked rather than asserted
+
+**Did.** `npm run check:offline`. The project's first rule is "100 % static,
+no network call during play once the static files are loaded", and **nothing
+verified it.** The browser tools listened for `requestfailed`, which catches a
+*broken* call and says nothing whatever about a working one — so a stylesheet
+pulled from a font CDN, an analytics beacon or a lazily fetched chunk would
+have passed every check in this repository while breaking the one rule the
+project will not negotiate.
+
+The tool does two things. It records every request a full mandate makes,
+grouped by origin. Then it **cuts the wire and plays anyway**: once the
+document has loaded, every further request is aborted, and the mandate has to
+reach its report regardless. That is a far stronger claim than "nothing
+failed", and it is the claim the rule actually makes.
+
+**Measured.** Twelve requests in a whole ECB hard mandate across all eight
+tabs and the three standing pages, **all of them to this origin**. With the
+network cut after load: a full easy mandate played to its report, and **zero
+requests were even attempted**. The game is genuinely offline once loaded.
+
+It also takes `MANDATE_URL`, so it can be pointed at the deployed site — which
+is the version worth running after a deploy, because the rule is about what
+the player's browser does and a deployment can acquire a third-party request a
+local preview never shows.
+
+**Bothers me.** That this took until the twelfth entry. The rule is the first
+line of CLAUDE.md, I have read it at the top of every session this week, and I
+checked contrast on 604 screen states before I checked the thing the project
+says is non-negotiable. The lesson is not about networks: a rule nobody has
+written an executable check for is a rule that is true only as long as nobody
+has broken it yet, and "we would have noticed" is what every one of this
+week's silent failures also had going for it.
+
+Worth adding to the list in CLAUDE.md beside `npm run build` and `npm test` —
+but that file is your instructions to me, so it is your line to write.
