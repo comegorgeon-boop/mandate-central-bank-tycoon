@@ -65,11 +65,61 @@ export const COMMITMENT_OPTIONS: readonly CommitmentOption[] = [
   },
 ]
 
+/** One selectable tone, where the difficulty lets the words be chosen. */
+export interface ToneOption {
+  readonly tone: CommunicationTone
+  readonly label: string
+  readonly detail: string
+}
+
 /**
- * The tone markets read off the package. At easy it is derived, not chosen:
- * the announced path speaks first, and a package that announces nothing is
- * read off the decision itself. Saying one thing while doing another only
- * becomes possible at the difficulties that price it.
+ * The tones a committee may strike when it is allowed to choose.
+ *
+ * Reachable only at hard (`DifficultyConfig.choosesTone`). The point is not
+ * variety: it is that a chosen tone can *disagree with the decision*, which a
+ * derived one cannot. Bluffing — talking hawkish while cutting, talking calm
+ * into a crisis — is the move this opens, and the engine already prices it,
+ * through `detectContradictions` and the conduct gate.
+ */
+export const TONE_OPTIONS: readonly ToneOption[] = [
+  {
+    tone: 'hawkish',
+    label: 'Firm on inflation',
+    detail: 'Signals a bias to tighten, whatever the decision itself was.',
+  },
+  {
+    tone: 'neutral',
+    label: 'Even-handed',
+    detail: 'Commits the statement to no direction at all.',
+  },
+  {
+    tone: 'dovish',
+    label: 'Concerned for activity',
+    detail: 'Signals a bias to ease, whatever the decision itself was.',
+  },
+  {
+    tone: 'reassuring',
+    label: 'Reassuring',
+    detail:
+      'Calms markets — and pays only when the package does something about ' +
+      'what frightened them. Empty calm in a real crisis costs credibility.',
+  },
+  {
+    tone: 'alarmed',
+    label: 'Alarmed',
+    detail:
+      'Names the danger openly. Buys attention at the price of the volatility ' +
+      'it adds.',
+  },
+]
+
+/**
+ * The tone markets read off the package, where the committee does not pick one.
+ *
+ * Below hard it is derived, not chosen: the announced path speaks first, and a
+ * package that announces nothing is read off the decision itself. Saying one
+ * thing while doing another only becomes possible at the difficulty that
+ * prices it — see `DifficultyConfig.choosesTone`.
  */
 export function deriveTone(
   moveBp: number,

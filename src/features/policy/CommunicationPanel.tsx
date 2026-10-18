@@ -1,12 +1,22 @@
 import type {
   CommunicationCommitment,
+  CommunicationTone,
+  Difficulty,
   GuidanceState,
   ObservationSet,
 } from '../../simulation/index.ts'
-import { GUIDANCE_HORIZON_MEETINGS } from '../../simulation/index.ts'
+import {
+  GUIDANCE_HORIZON_MEETINGS,
+  getInstrument,
+  getInstrumentRange,
+} from '../../simulation/index.ts'
+import { InstrumentBrief } from './InstrumentBrief.tsx'
+import { PromisePanel } from './PromisePanel.tsx'
+import { promiseLedger } from './promiseLedger.ts'
 import {
   COMMITMENT_OPTIONS,
   PATH_OPTIONS,
+  TONE_OPTIONS,
   buildStatement,
 } from './statement.ts'
 
@@ -51,10 +61,10 @@ function marketMood(observation: ObservationSet): MarketMood {
  */
 
 const selectedClasses =
-  'border-neutral-300 bg-neutral-200 font-semibold text-neutral-900'
-const unselectedClasses = 'border-neutral-700 text-neutral-200 hover:bg-neutral-800'
+  'border-edge-accent bg-accent font-semibold text-on-accent'
+const unselectedClasses = 'border-edge text-ink hover:bg-sunk'
 const buttonBase =
-  'rounded border px-3 py-2 text-sm text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400'
+  'rounded border px-3 py-2 text-sm text-left'
 
 function isBinding(commitment: CommunicationCommitment): boolean {
   return commitment === 'conditional_path' || commitment === 'strong_commitment'
@@ -78,7 +88,7 @@ function StandingGuidance({
 
   if (!isBinding(guidance.commitment)) {
     return (
-      <p className="mt-3 rounded border border-neutral-800 bg-neutral-900 p-3 text-sm text-neutral-400">
+      <p className="mt-3 rounded border border-edge bg-sunk p-3 text-sm text-ink-soft">
         Standing leaning: toward about {path.toFixed(2)} %. It binds nothing and
         lapses on its own.
       </p>
@@ -86,14 +96,14 @@ function StandingGuidance({
   }
 
   return (
-    <div className="mt-3 rounded border border-sky-900 bg-sky-950/40 p-3 text-sm text-sky-200">
+    <div className="mt-3 rounded border border-edge-accent bg-sunk p-3 text-sm text-accent-strong">
       <p className="font-medium">
         Standing commitment: about {path.toFixed(2)} % — judged around meeting{' '}
         {dueMeeting}
         {meetingsLeft > 0 ? `, ${meetingsLeft} meeting${meetingsLeft === 1 ? '' : 's'} from now` : ' — due now'}
         .
       </p>
-      <p className="mt-1 text-sky-300/90">
+      <p className="mt-1 text-accent-strong">
         {Math.abs(gapBp) <= 50
           ? 'The rate is already close enough to count as delivered.'
           : `${Math.abs(gapBp)} bp still to deliver.`}{' '}
@@ -109,18 +119,25 @@ export function CommunicationPanel({
   signal,
   commitment,
   allowedCommitments,
+  difficulty,
   selectedRate,
   pricedRate,
   guidance,
   meetingIndex,
   observation,
+  derivedTone,
+  chosenTone,
+  allowsFreeTone,
   onSignal,
   onCommitment,
+  onTone,
 }: {
   readonly move: number
   readonly signal: number
   readonly commitment: CommunicationCommitment
   readonly allowedCommitments: readonly CommunicationCommitment[]
+  /** Sets guidance's own allowed range, for its brief. */
+  readonly difficulty: Difficulty
   /** The rate the desk currently has selected, %, after the chosen move. */
   readonly selectedRate: number
   /** The one-year rate markets currently price, or null if unpublished. */
@@ -128,10 +145,22 @@ export function CommunicationPanel({
   readonly guidance: GuidanceState
   readonly meetingIndex: number
   readonly observation: ObservationSet
+  /** The tone the decision implies, shown as the default and the comparison. */
+  readonly derivedTone: CommunicationTone
+  /** A tone deliberately chosen against it, where the difficulty allows one. */
+  readonly chosenTone: CommunicationTone | null
+  readonly allowsFreeTone: boolean
   readonly onSignal: (signal: number) => void
   readonly onCommitment: (commitment: CommunicationCommitment) => void
+  readonly onTone: (tone: CommunicationTone | null) => void
 }) {
   const announcedRate = selectedRate + signal / 100
+  const ledger = promiseLedger(guidance, difficulty)
+  const guidanceInstrument = getInstrument('forward_guidance') ?? null
+  const guidanceRange =
+    guidanceInstrument === null
+      ? null
+      : getInstrumentRange(guidanceInstrument, difficulty)
   const options = COMMITMENT_OPTIONS.filter((option) =>
     allowedCommitments.includes(option.commitment),
   )
@@ -139,10 +168,10 @@ export function CommunicationPanel({
 
   return (
     <section aria-labelledby="communication-heading" className="mt-6">
-      <h3 id="communication-heading" className="text-sm font-medium text-neutral-200">
+      <h3 id="communication-heading" className="text-sm font-medium text-ink">
         The statement
       </h3>
-      <p className="mt-1 text-sm text-neutral-400">
+      <p className="mt-1 text-sm text-ink-soft">
         What you say acts on expectations directly, ahead of anything the rate
         itself will do. Markets reprice it the moment it is published — against
         what they already expected, not against zero.
@@ -155,8 +184,8 @@ export function CommunicationPanel({
           <p
             className={`mt-3 rounded border p-3 text-sm ${
               mood === 'panicked'
-                ? 'border-rose-800 bg-rose-950/40 text-rose-200'
-                : 'border-amber-800 bg-amber-950/30 text-amber-200'
+                ? 'border-bad bg-bad-surface text-bad-strong'
+                : 'border-accent bg-accent-surface text-accent-strong'
             }`}
           >
             {MOOD_COPY[mood]}
@@ -171,7 +200,7 @@ export function CommunicationPanel({
       />
 
       <fieldset className="mt-4">
-        <legend className="text-sm font-medium text-neutral-200">
+        <legend className="text-sm font-medium text-ink">
           Where is the rate heading from here?
         </legend>
         <div className="mt-2 flex flex-col gap-2">
@@ -187,7 +216,10 @@ export function CommunicationPanel({
               >
                 {option.label}
                 <span
-                  className={`ml-2 text-xs tabular-nums ${selected ? 'text-neutral-600' : 'text-neutral-500'}`}
+                  // The footnote sits *inside* the button, so when the button
+                  // is selected its ground is brass and the text has to be ink
+                  // on brass, not ink on paper.
+                  className={`ml-2 text-xs tabular-nums ${selected ? 'text-on-accent opacity-80' : 'text-ink-faint'}`}
                 >
                   {option.signal === 0
                     ? 'hold near today’s level'
@@ -197,7 +229,18 @@ export function CommunicationPanel({
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-neutral-500">
+        {/* Guidance is an instrument like any other, so it gets the same four
+            answers as the dials on the desk — what it is for, how much is a
+            lot, what happens if it is abused. Its own definition supplies
+            them; nothing about it is written out here. */}
+        {guidanceInstrument !== null && guidanceRange !== null && (
+          <InstrumentBrief
+            instrument={guidanceInstrument}
+            range={guidanceRange}
+            value={signal}
+          />
+        )}
+        <p className="mt-1.5 text-xs text-ink-faint">
           Announced path: about {announcedRate.toFixed(2)} % a year from now
           {pricedRate !== null
             ? ` — markets currently price ${pricedRate.toFixed(2)} %. What moves them is the difference.`
@@ -206,7 +249,7 @@ export function CommunicationPanel({
       </fieldset>
 
       <fieldset className="mt-4">
-        <legend className="text-sm font-medium text-neutral-200">How firmly?</legend>
+        <legend className="text-sm font-medium text-ink">How firmly?</legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {options.map((option) => {
             const selected = option.commitment === commitment
@@ -224,15 +267,64 @@ export function CommunicationPanel({
           })}
         </div>
         {selectedCommitment !== undefined && (
-          <p className="mt-2 text-xs text-neutral-500">{selectedCommitment.detail}</p>
+          <p className="mt-2 text-xs text-ink-faint">{selectedCommitment.detail}</p>
         )}
+        {/* The other two thirds of the trade. See `promiseLedger.ts`. */}
+        <PromisePanel
+          commitment={commitment}
+          ledger={ledger}
+          meetingIndex={meetingIndex}
+        />
       </fieldset>
 
-      <div className="mt-4 rounded border border-neutral-800 bg-neutral-900 p-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+      {allowsFreeTone && (
+        <fieldset className="mt-4">
+          <legend className="text-sm font-medium text-ink">
+            In what tone?
+          </legend>
+          <p className="mt-1 text-xs text-ink-faint">
+            The decision above implies a{' '}
+            <span className="text-ink-soft">{derivedTone}</span> statement.
+            Departing from it is allowed here, and markets charge for a package
+            that argues with itself.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={chosenTone === null}
+              onClick={() => onTone(null)}
+              className={`${buttonBase} ${chosenTone === null ? selectedClasses : unselectedClasses}`}
+            >
+              Let the decision speak
+            </button>
+            {TONE_OPTIONS.map((option) => {
+              const selected = option.tone === chosenTone
+              return (
+                <button
+                  key={option.tone}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onTone(option.tone)}
+                  className={`${buttonBase} ${selected ? selectedClasses : unselectedClasses}`}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
+          {chosenTone !== null && (
+            <p className="mt-2 text-xs text-ink-faint">
+              {TONE_OPTIONS.find((option) => option.tone === chosenTone)?.detail}
+            </p>
+          )}
+        </fieldset>
+      )}
+
+      <div className="mt-4 rounded border border-edge bg-sunk p-3">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
           As the wire will carry it
         </h4>
-        <p className="mt-1 text-sm italic text-neutral-300">
+        <p className="mt-1 text-sm italic text-ink-soft">
           {buildStatement(move, signal, commitment)}
         </p>
       </div>

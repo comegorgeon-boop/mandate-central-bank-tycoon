@@ -5,10 +5,13 @@ import type { PolicyPackage, PolicyValidation } from '../types/policy.ts'
 import type { EndConditionResult } from '../types/scoring.ts'
 import type { SimulationState } from '../types/state.ts'
 import { applyPolicyPackage } from '../engine/applyPolicyPackage.ts'
-import { advanceTrueState } from '../engine/advanceTrueState.ts'
+import { advanceTrueStateTraced } from '../engine/advanceTrueState.ts'
+import { buildIntervalFrames, type IntervalFrame } from '../observation/interval.ts'
 import { createInitialState } from '../engine/initialState.ts'
 import { isMajorEvent } from '../events/catalog.ts'
 import { resolveEvent } from '../events/resolveEvent.ts'
+import { applyScheduledEvents, isScheduledMajor } from '../scenarios/scheduled.ts'
+import { applyGoldDrain } from '../scenarios/goldStandard.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
@@ -60,6 +63,14 @@ export interface RunSession {
    */
   readonly newswire: readonly string[]
   /**
+   * The records behind those headlines, in the same order.
+   *
+   * The press needs them to name the members an asymmetric event fell on:
+   * which members a structural selector resolves to is only known when the
+   * event fires, so it cannot be written into the wire line in the catalog.
+   */
+  readonly minorEvents: readonly ResolvedEventRecord[]
+  /**
    * The major event resolved since the previous meeting, if any — or, at the
    * first meeting of an easy mandate, the crisis the run opened on. Null
    * otherwise. `events/dispatches.ts` derives the unfolding "story so far"
@@ -69,6 +80,15 @@ export interface RunSession {
   readonly majorEvent: ResolvedEventRecord | null
   /** Warning signals for risks that may materialise. */
   readonly clues: readonly string[]
+  /**
+   * The interval just elapsed, sub-step by sub-step, for the interface to
+   * play. Empty at the first meeting, where no time has passed yet.
+   *
+   * Carries exactly-observed market prices only — never latent state — so a
+   * component can watch the quarter go by without being handed the truth the
+   * rest of the interface is careful to withhold. See `observation/interval.ts`.
+   */
+  readonly interval: readonly IntervalFrame[]
 }
 
 export type MeetingResult =
@@ -123,8 +143,10 @@ export function startRun(config: RunConfig): RunSession {
     outcome,
     decisions: [],
     newswire: [],
+    minorEvents: [],
     majorEvent: opener,
     clues: [],
+    interval: [],
   }
 }
 
@@ -172,17 +194,25 @@ export function submitMeeting(
   // same-day channel observable at all.
   const onTheDay = observe(withRestatedSnapshot(applied.state), [], [])
 
-  // Events happen between meetings, on top of the confirmed decision.
-  const resolution = resolveEvent(applied.state)
-  const advanced = advanceTrueState(resolution.state)
+  // Events happen between meetings, on top of the confirmed decision. The
+  // dated ones first, and without a draw: they are history, not chance. Then
+  // the gold drain, which is not an event at all but the standing price of
+  // holding the rate under the floor — charged after the decision, so what it
+  // charges for is the rate the committee actually voted.
+  const scheduled = applyScheduledEvents(applied.state)
+  const gold = applyGoldDrain(scheduled.state)
+  const resolution = resolveEvent(gold.state)
+  const allResolved = [...scheduled.resolved, ...gold.resolved, ...resolution.resolved]
+  const { state: advanced, steps } = advanceTrueStateTraced(resolution.state)
   const outcome = evaluateEndConditions(advanced, session.outcome.breachCounters)
 
   // Majors get the dedicated banner, not the generic newswire list — see
   // `RunSession.majorEvent`.
-  const majorEvent = resolution.resolved.find((record) => isMajorEvent(record.eventId)) ?? null
-  const newswire = resolution.resolved
-    .filter((record) => !isMajorEvent(record.eventId))
-    .map((record: ResolvedEventRecord) => record.newswire)
+  const isMajor = (record: { readonly eventId: string }): boolean =>
+    isMajorEvent(record.eventId) || isScheduledMajor(applied.state, record.eventId)
+  const majorEvent = allResolved.find(isMajor) ?? null
+  const minorEvents = allResolved.filter((record) => !isMajor(record))
+  const newswire = minorEvents.map((record) => record.newswire)
 
   return {
     ok: true,
@@ -195,8 +225,14 @@ export function submitMeeting(
       outcome,
       decisions: [...session.decisions, { meetingIndex, package: pkg }],
       newswire,
+      minorEvents,
       majorEvent,
       clues: resolution.clues,
+      interval: buildIntervalFrames(
+        steps,
+        resolution.state.timeYears,
+        session.state.config.institution,
+      ),
     },
   }
 }

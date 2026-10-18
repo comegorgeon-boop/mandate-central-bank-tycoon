@@ -15,8 +15,11 @@ export type SeriesId =
   | 'output_gap_estimate'
   | 'consumer_confidence'
   | 'credibility_index'
+  | 'public_approval'
   | 'policy_rate'
   | 'market_expected_rate'
+  | 'long_rate'
+  | 'equity_index'
   | 'market_volatility'
   | 'credit_spread'
   | 'exchange_rate'
@@ -152,11 +155,28 @@ export type ShockKind =
  * mandate's teaching aid; the evidence is the part that has to survive its
  * removal, so both are assembled together and the evidence is never empty.
  */
+/**
+ * The shock in progress: what it is called, and how you could tell.
+ *
+ * The two halves are separately gated, and the ordering is the whole point of
+ * the information ladder. `kind`, `label` and `summary` are the *name*, and
+ * they go null the moment a difficulty stops naming shocks. `evidence` is the
+ * *reading*, and it persists one rung further down, because a player taught
+ * only the label learns to obey a label — "supply shock means do not tighten"
+ * — and is helpless the moment nobody supplies one. A player taught that
+ * headline running far ahead of core, with the output gap opening rather than
+ * closing, *is* a supply shock can still read the economy where nothing is
+ * labelled at all.
+ *
+ * See `DifficultyConfig.namesShocks` and `showsShockEvidence`.
+ */
 export interface ShockDiagnosis {
-  readonly kind: ShockKind
-  readonly label: string
-  /** What this kind of shock does to the two halves of the mandate. */
-  readonly summary: string
+  /** Null where the difficulty withholds the name. */
+  readonly kind: ShockKind | null
+  /** Null likewise: this is the name, not the reading. */
+  readonly label: string | null
+  /** What this kind of shock does to the two halves of the mandate. Null likewise. */
+  readonly summary: string | null
   /** Observable tells, each quoting the published series that shows it. */
   readonly evidence: readonly string[]
 }
@@ -181,7 +201,18 @@ export interface ObservationSet {
    * skill the easy mandate exists to teach.
    */
   readonly diagnosis: ShockDiagnosis | null
+  /**
+   * The members of the currency area, as published.
+   *
+   * Null at a single-sovereign institution, which is the honest answer rather
+   * than an empty structure: the Fed has regions, not members with their own
+   * sovereign borrowing costs, and a panel reporting "dispersion 0.00" for it
+   * would be describing something that does not exist.
+   */
+  readonly area: AreaObservation | null
 }
+
+import type { AreaObservation } from '../observation/memberObservation.ts'
 
 /** Context handed to the observation layer. */
 export interface ObservationContext {

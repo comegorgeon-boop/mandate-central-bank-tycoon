@@ -2,8 +2,10 @@
 
 Recorded after three full Fed/easy mandates. **Nothing here was implemented
 when recorded; point 1 is now built, engine and desk**, **point 2's easy
-column is now built**, and **point 4 is now built** — see "The second
-instrument" and "Violent named events, and markets that answer them" in
+column is now built and hard's is half built**, **point 4 is now built**, and
+**a point 4b has been added for the difficulty work that followed** — see "The
+second instrument", "Violent named events, and markets that answer them" and
+"The three difficulties, and the kind of problem each one sets" in
 docs/BALANCE.md for the mechanisms, the measurements and what each shipped
 against. This file exists so the findings survive while they are fresh; the
 balancing work in docs/BALANCE.md is separate and must not be confused with
@@ -66,10 +68,12 @@ difficulty. **Decision taken: one deliberate opening per difficulty.**
   baseline, sees the cause, and knows what to repair. Full mechanism and
   measurements in docs/BALANCE.md, "Violent named events, and markets that
   answer them."
-- **Hard — not yet built.** An economy already badly damaged. Inflation
-  entrenched, credibility eroded, and **no identifiable culprit**. Medium and
-  hard were explicitly out of scope for the session that built the easy
-  column; this remains open.
+- **Hard — half built.** Hard now has **no identifiable culprit**: no scripted
+  opener (`openingCrisisCharacters` is null there), and neither the shock's
+  name nor the assembled evidence. What is still missing is the *damaged
+  opening state* — inflation entrenched, credibility eroded before the first
+  meeting. `OPENING_PERTURBATION_SCALE` still gives medium and hard the same
+  ambient perturbation this section originally complained about.
 
 Note how well this fits the information ladder already recorded in
 docs/BALANCE.md: easy names the shock, hard does not. This turns that ladder
@@ -125,9 +129,42 @@ demoted to a "Scorecard" section below. Verified in a real browser end to
 end, zero console errors. Full detail in docs/BALANCE.md, "Violent named
 events, and markets that answer them."
 
-## 5. A summary tab is missing
+## 4b. The information ladder, and what difficulty is actually made of — built
+
+Recorded here because it changed what "difficulty" means in this game, not
+just how much of it there is. The session that built it found that the
+structuring axis was missing entirely: the *kind* of shock a mode serves.
+Easy drew its mandate-opening crisis uniformly over six majors, two of which
+are pure cost-push, so a third of tutorials opened on stagflation — and,
+measured, the draw decided more than half the final score before the player's
+first decision.
+
+Every event now declares what it asks of the committee (`shockCharacter`), and
+three difficulty parameters read it: which problems a mode is fed, whether
+they may pile onto one another, and which may open a mandate at all. Easy
+serves the problems that have a right answer; hard is made of the ones that do
+not. Full mechanism and measurements in docs/BALANCE.md, "The three
+difficulties, and the kind of problem each one sets".
+
+The same session implemented the information ladder this file and
+docs/BALANCE.md had both recorded as settled since phase 3 and which the code
+did not have — medium was getting neither the shock's name nor its evidence —
+built hard's divided committee, opened the balance sheet and the facilities
+that had been configured since the toolkit was written but never rendered, and
+gave hard the free tone that makes bluffing possible at all.
+
+## 5. A summary tab is missing — largely answered
 
 The state of the economy at a glance, what to watch, with charts.
+
+**Answered from two directions rather than one tab.** The Markets panel is the
+glance — every number on it is a price, observed exactly and published with no
+lag, so it is where a decision and a crisis both show up first — and the
+standing reading above the tabs says how the mandate is going in a sentence
+and names why. A trend chart now sits under every published indicator, and the
+between-meetings time-lapse shows the fast channel moving in the quarter it
+moves in. What is still missing is a single screen that holds all of it at
+once, which may or may not be worth building now that its contents exist.
 
 ## 6. Too much information
 
@@ -140,9 +177,31 @@ fewer numbers arranged so they answer a question.
 Note also that this cuts against the current `SERIES` list, which publishes
 everything at every difficulty and distinguishes them only by noise and lag.
 
-## 7. The interface will need to look good, but later
+## 7. The interface will need to look good, but later — built
 
-Explicitly not a priority.
+Explicitly not a priority when this was written, and then the priority: the
+player's verdict after the difficulty work was "it is fair, it is measured, it
+is illegible and it is flat".
+
+Built as a two-layer token system — named materials, then semantic roles, so no
+component names a colour — in a boardroom of dark walnut, brass, cream paper,
+deep green and burgundy, with the reading surfaces on paper because that is
+what made it legible. Two directions ship and the choice is in the settings.
+Every text node on every screen clears WCAG AA in both, verified by an audit
+that walks the rendered page rather than by inspection.
+
+The three things that made it a *game* rather than a dressed spreadsheet are
+recorded here because they were design decisions, not styling:
+
+- **The interval between meetings plays out.** Four frames, one per internal
+  sub-step, showing only the exactly-observed market prices — because those are
+  the only series a player could really watch move. Inflation is deliberately
+  absent, and its absence teaches the lag this whole game is built on better
+  than any panel of text.
+- **The confirmation screen projects the whole package**, by running the engine
+  forward twice and differencing, with the counterfactual beside the outcome.
+- **A mandate going well says so, and names why.** The interface used to signal
+  only danger, which made its best outcome the absence of feedback.
 
 ## What this implies for the balance work
 
@@ -248,3 +307,139 @@ reads `contradictionCost`?).
   evaluated automatically): a committee that can vote no confidence gives
   the institution's *other* members a voice, which nothing in the game
   currently has.
+
+---
+
+# Historical scenarios
+
+Designed in this session, one built. **The design, the sources and every
+number are in `docs/SCENARIOS.md`**, which is the authority: the Volcker test
+parses that file and fails if the code disagrees with it.
+
+What belongs here is the decision the scenarios embody, because it applies to
+all five and to anything added later.
+
+## Difficulty is not a setting; it is the year
+
+A historical scenario has **no difficulty chooser**, and this is the design
+rather than a simplification of it. Difficulty is *what was known at the time*,
+and it was different in every year because the statistical system was different
+in every year. A chairman in 1929 had no official national income statistic and
+read bank conditions weeks late. A chairman in 2021 had excellent data,
+released on schedule, and was wrong anyway. Offering to make either of those
+harder would be offering to make the past more uncertain than it was.
+
+So a scenario replaces exactly two things and inherits everything else from an
+ordinary difficulty profile it names:
+
+1. **the opening state**, which becomes a sourced table rather than a seeded
+   draw, and
+2. **the measurement regime**, which becomes the year's — including, where the
+   sources support one, a *systematic bias* in a published series rather than
+   more noise.
+
+Everything that is not measurement — instrument ranges, the information
+ladder, the scoring weights — stays with the named difficulty, so a new
+scenario is a data file and not a second copy of the balance sheet of
+constants. Where a period genuinely needs its own structure (1979-83 needs a
+steeper transmission and a flatter Phillips curve), the scenario carries it as
+a named, argued parameter and `docs/SCENARIOS.md` says whether it is sourced or
+calibrated. Most of them are calibrated, and the document says so in those
+words.
+
+## The honesty rules
+
+Non-negotiable, and they are the reason this took the time it took:
+
+- Opening states and dates are **sourced**, with the series named. Anything
+  derived is labelled a derivation and the derivation is given. Anything
+  approximated is labelled an approximation in the document *and* in the code.
+- **No words in anybody's mouth.** What people did is in the game. What they
+  said is not, unless a sourced quotation carries its citation — and the
+  Volcker scenario has none, by choice, because the cost of getting one wrong
+  is higher than anything a quotation adds. A test forbids quotation marks and
+  attribution verbs in scenario prose.
+- **The documented table is the authority.** `volcker.test.ts` parses
+  `docs/SCENARIOS.md` and compares it to the code row by row. Edit either and
+  the other fails.
+- **The fit is reported, including where it is wrong.** The model's replay of
+  the historical policy path is compared against what happened, with the
+  misses named and quantified.
+
+## The six, all built
+
+1929-33 · 1979-83 · 2008-10 · 2010-12 · 2021-23 twice, once from each seat.
+Six mandates across five periods, every number in `docs/SCENARIOS.md`, every
+calendar generated from the published series by `tools/scenario-data.mjs`
+rather than typed, and every one of them locked to that document by a test
+that parses it.
+
+Two mechanics were added for them and both generalise:
+
+- **A metallic standard**, as a floor on the rate that the player can see on
+  the dial and cross at a price. It is a schedule rather than a constant, and
+  the schedule is the point: it steps up when Britain leaves gold in September
+  1931, which is why the Federal Reserve raised into the third year of a
+  depression and the one moment the 1929 scenario exists to make playable.
+- **A per-scenario objective.** The Federal Reserve of 1929 had no inflation
+  target; what it had was a dollar convertible into a fixed weight of gold,
+  which is a commitment to a stable price *level*. Running that mandate against
+  2 % was not a small anachronism — every expectations block in this engine
+  pulls inflation toward the objective, so a 2 % objective in 1931 pulls a 10 %
+  deflation upward and the scenario stops being a deflation.
+
+And one model defect they exposed, which was general and is now fixed:
+**credibility could be lost but not earned by a chairman who inherited a
+disaster.** The 1979 path fell from 45 to 0 over three years of a real policy
+rate above +3, and since expectations are pulled toward the objective in
+proportion to credibility, the falling credibility raised inflation, which fell
+credibility further. The inflation miss is now charged against a glide path
+from what was inherited, above a four-point deductible so no ordinary mandate
+is touched.
+
+## Deferred
+
+The player **adopting** a doctrine, which was explicitly put off: later, not in
+that chantier.
+
+---
+
+# Political pressure, the public finances, and the scenario that is missing
+
+Built. What is recorded here is the design, because it constrains anything
+added later.
+
+## Political pressure changes three things, and none of them is the economy
+
+Not a tax on growth, not a term in the Phillips curve. It changes **what
+markets anticipate** (a bank suspected of being about to give in has its
+anchor discounted before it has done anything), **the chance of being
+removed**, and **credibility, if you give in** — which is the part that needed
+building, because until now there was no way to give in.
+
+A demand is therefore a question with two answers and no third, both of them
+priced on screen before either is chosen. A dilemma whose two sides are not
+both legible is a trap, and a trap teaches nothing except to reload.
+
+## The public finances are not in the mandate
+
+Nothing in `calculateScore.ts` reads the debt ratio, the deficit or the
+interest bill. They reach the mandate through the event generator — a
+fiscal-dominance episode is drawn more readily as the ratio climbs — and
+through the pressure gauge. A central bank graded on the deficit would be a
+treasury.
+
+What *is* the player's is one line: debt service, which follows the average
+coupon on the stock, which converges on the rate they set at a speed set by
+the average maturity. The panel marks that row and no other.
+
+## The seventh scenario, and why it is not built
+
+**Nixon and Burns, 1972.** The one nameable case of a central bank giving in,
+documented to the tape, and the obvious home for the mechanic above: a mandate
+whose whole subject is a demand that arrives every meeting and a chairman who
+answered it. It is not built, and if it is built the honesty rules apply
+unchanged — what the office did is in the game and what the man said is not,
+even where a recording exists, because a scenario that quoted one person and
+no other would be making an argument about him rather than about the
+institution.

@@ -8,16 +8,16 @@ import type {
   SeriesDefinition,
   SeriesId,
 } from '../types/observation.ts'
-import type { SimulationState } from '../types/state.ts'
+import type { LatentState, SimulationState } from '../types/state.ts'
 import type { DifficultyConfig } from '../config/difficulty.ts'
 import { hashGaussian, hashUnit } from '../rng/prng.ts'
-import { getDifficulty } from '../config/difficulty.ts'
-import { getInstitution } from '../config/institutions.ts'
-import { YEARS_PER_MEETING } from '../config/time.ts'
+import { MEETINGS_PER_YEAR, YEARS_PER_MEETING } from '../config/time.ts'
+import { inflationTargetFor, measurementRegime, scenarioOf } from '../scenarios/scenarios.ts'
 import { taylorBenchmark } from '../engine/indices.ts'
 import { runSeedString } from '../engine/initialState.ts'
 import { FORECAST_SERIES, getSeries, seriesFor } from './series.ts'
 import { diagnoseShock } from './diagnose.ts'
+import { observeMembers } from './memberObservation.ts'
 
 /**
  * The observation layer: everything the player is allowed to see.
@@ -71,6 +71,55 @@ function vintageOf(
 }
 
 /**
+ * What a historical statistical system got systematically wrong.
+ *
+ * Distinct from noise, which averages out and which a player can learn to
+ * discount, and distinct from a revision, which is eventually corrected. This
+ * is a *bias*: the published number is wrong in one direction and stays wrong,
+ * and nobody at the time knows by how much.
+ *
+ * Two kinds, both sourced in `docs/SCENARIOS.md`:
+ *
+ * - a **constant** offset, which is the real-time output gap in 1979-83. It
+ *   read about 3.6 points more negative than it was, so every rule that
+ *   responds to the gap asked for an easier policy than the situation
+ *   required. That is Orphanides's argument about the Great Inflation, and
+ *   here it is arithmetic rather than a paragraph.
+ *
+ * - a **pass-through from the policy rate**, which is the CPI before January
+ *   1983. The index included mortgage interest costs, so tightening raised the
+ *   measure the Fed was judged on. You could make your own number worse by
+ *   doing your job, and for three years you could not see which part of the
+ *   print was that.
+ */
+function historicalBias(
+  state: SimulationState,
+  series: SeriesDefinition,
+  referencePeriod: number,
+): number {
+  const scenario = scenarioOf(state.config)
+  if (scenario === null) return 0
+  const { measurement } = scenario
+
+  let bias = measurement.seriesBias[series.id] ?? 0
+
+  if (
+    series.id === 'headline_inflation' &&
+    measurement.ratePassThrough !== 0 &&
+    state.meetingIndex < measurement.ratePassThroughEndsAt
+  ) {
+    const now = state.history[referencePeriod]
+    const yearAgo = state.history[referencePeriod - MEETINGS_PER_YEAR]
+    if (now !== undefined && yearAgo !== undefined) {
+      bias +=
+        measurement.ratePassThrough * (now.latent.policyRate - yearAgo.latent.policyRate)
+    }
+  }
+
+  return bias
+}
+
+/**
  * The value published for one reference period at one vintage.
  *
  * The first print carries both measurement noise and a revision bias; the
@@ -89,7 +138,7 @@ function publishedValue(
   const snapshot = state.history[referencePeriod]
   if (!snapshot) return null
 
-  const truth = series.read(snapshot.latent)
+  const truth = series.read(snapshot.latent) + historicalBias(state, series, referencePeriod)
   if (series.baseNoiseSd === 0 && series.baseRevisionSd === 0) return truth
 
   const noiseSd =
@@ -230,7 +279,7 @@ function buildForecast(
   const series = getSeries(seriesId)
   if (!series) return null
 
-  const target = getInstitution(state.config.institution).inflationTarget
+  const target = inflationTargetFor(state.config)
   const latent = state.latent
   const horizons = [2, 4, 8]
 
@@ -277,11 +326,38 @@ function buildForecast(
   return { seriesId, label: series.label, bands }
 }
 
+/**
+ * The latent state as the published statistics described it.
+ *
+ * Only the biased series differ, and only in a scenario that declares one: an
+ * ordinary mandate gets the latent state back unchanged. It exists so that
+ * anything derived from the *table* — the Taylor ghost on the rate slider
+ * above all — is derived from the numbers the player can actually see.
+ */
+function asPublished(state: SimulationState): LatentState {
+  const scenario = scenarioOf(state.config)
+  if (scenario === null) return state.latent
+  const gapBias = scenario.measurement.seriesBias.output_gap_estimate ?? 0
+  const headlineBias = historicalBias(
+    state,
+    getSeries('headline_inflation')!,
+    state.meetingIndex,
+  )
+  return {
+    ...state.latent,
+    outputGap: state.latent.outputGap + gapBias,
+    inflationHeadline: state.latent.inflationHeadline + headlineBias,
+  }
+}
+
 export function generateObservation(
   state: SimulationState,
   context: ObservationContext,
 ): ObservationSet {
-  const difficulty = getDifficulty(state.config.difficulty)
+  // The measurement regime is the difficulty's, or — in a historical mandate —
+  // the year's. See `scenarios/scenarios.ts`: this is the whole of "difficulty
+  // is what was known at the time".
+  const difficulty = measurementRegime(state.config)
   const seed = runSeedString(state.config)
 
   const indicators: Partial<Record<SeriesId, IndicatorObservation>> = {}
@@ -301,18 +377,35 @@ export function generateObservation(
     forecasts,
     newswire: context.newswire,
     clues: context.clues,
+    // The rule of thumb reads the published table, not the truth — which is
+    // the whole of Orphanides's point about this period and would be invisible
+    // if the ghost on the slider were computed from the latent state. In an
+    // ordinary mandate the two are the same, because there is no bias to apply.
     taylorBenchmark: round(
-      taylorBenchmark(state.latent, state.config.institution),
+      taylorBenchmark(
+        asPublished(state),
+        state.config.institution,
+        inflationTargetFor(state.config),
+      ),
       2,
     ),
     diagnosis: null,
+    area: observeMembers(state, difficulty, seed),
   }
 
-  // The diagnosis reads the latent state to name the shock, so it is built
+  // The diagnosis reads the latent state to identify the shock, so it is built
   // last, from the published set, and only where the difficulty allows it.
-  if (!difficulty.namesShocks) return published
+  //
+  // The two halves are gated separately, and used not to be. `namesShocks`
+  // alone decided whether the whole panel existed, so medium — which
+  // docs/BALANCE.md's own information ladder describes as "shock not named,
+  // evidence still shown" — was in fact getting neither. The evidence is what
+  // survives down the ladder; the name is what is withdrawn.
+  if (!difficulty.namesShocks && !difficulty.showsShockEvidence) return published
   return {
     ...published,
-    diagnosis: diagnoseShock(state.latent, published, state.config.institution),
+    diagnosis: diagnoseShock(state.latent, published, state.config.institution, {
+      named: difficulty.namesShocks,
+    }),
   }
 }

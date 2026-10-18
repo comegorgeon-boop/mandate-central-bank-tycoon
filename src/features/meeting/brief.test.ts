@@ -42,6 +42,7 @@ function observation(overrides: Partial<ObservationSet> = {}): ObservationSet {
     clues: [],
     taylorBenchmark: 3,
     diagnosis: null,
+  area: null,
     ...overrides,
   }
 }

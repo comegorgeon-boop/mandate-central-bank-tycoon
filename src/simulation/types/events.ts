@@ -1,5 +1,6 @@
 import type { Difficulty, Institution } from './core.ts'
-import type { LatentState } from './state.ts'
+import type { LatentState, MemberLatent } from './state.ts'
+import type { MemberId } from '../config/members.ts'
 
 /** Every field of LatentState is a number, so any of them can be nudged. */
 export type EffectTarget = keyof LatentState
@@ -19,6 +20,9 @@ export type EventFamily =
   | 'market_cycle'
   | 'natural_disaster'
   | 'innovation'
+  // ---- Currency-area families: shocks that fall on part of the area --------
+  | 'sovereign'
+  | 'labour'
   // ---- Major event families ------------------------------------------------
   | 'geopolitical_crisis'
   | 'domestic_political'
@@ -26,6 +30,34 @@ export type EventFamily =
   | 'housing_crash'
   | 'supply_rupture'
   | 'market_panic'
+
+/**
+ * The kind of *decision problem* an event sets, as distinct from its subject.
+ *
+ * The family says what happened; this says what it asks of the committee, and
+ * it is the axis difficulty is built on. A demand shock moves prices and
+ * activity the same way, so one instrument addresses both and there is no
+ * trade-off to manage. A supply shock moves them opposite ways, so every
+ * available move buys one half of the mandate by selling the other — which is
+ * the hardest problem in monetary policy, and exactly what a tutorial must not
+ * open with. A financial shock tightens conditions on its own, doing part of
+ * policy's work uninvited. An institutional one moves standing, politics or the
+ * measurements themselves rather than the economy under them.
+ *
+ * Declared per event rather than derived, because the derivation would have to
+ * guess: a shock is identified by which variables it moves *and* by which way
+ * it moves them together, and several events move three or four at once.
+ * `events/character.test.ts` checks each declaration against the effects the
+ * event actually delivers, so a declaration cannot quietly go stale.
+ */
+export type ShockCharacter = 'demand' | 'supply' | 'financial' | 'institutional'
+
+export const SHOCK_CHARACTERS: readonly ShockCharacter[] = [
+  'demand',
+  'supply',
+  'financial',
+  'institutional',
+]
 
 /** An additive nudge to one latent variable. */
 export interface EventEffect {
@@ -53,6 +85,8 @@ export interface DelayedEffectSpec {
  */
 export interface EventContext {
   readonly latent: LatentState
+  /** The currency area's members. Empty at a single-sovereign institution. */
+  readonly members: readonly MemberLatent[]
   readonly institution: Institution
   readonly difficulty: Difficulty
   readonly meetingIndex: number
@@ -74,6 +108,12 @@ export interface EventContext {
  */
 export interface GameEvent {
   readonly id: string
+  /**
+   * What this asks of the committee. Difficulty is built on this axis: easy
+   * suppresses `supply`, medium opens it, hard amplifies it and lets several
+   * run at once. See `DifficultyConfig.shockMix`.
+   */
+  readonly shockCharacter: ShockCharacter
   readonly family: EventFamily
   readonly title: string
   /** Fictional newswire headline. Always labelled fictional in the UI. */
@@ -123,6 +163,52 @@ export interface GameEvent {
    * at read time from how long ago the event's own record fired.
    */
   readonly dispatchLines?: readonly string[]
+  /**
+   * Effects that fall on one or two members of a currency area rather than on
+   * the area as a whole.
+   *
+   * The thing that makes a single policy rate hard, and the reason it belongs
+   * in the event catalog rather than in the dynamics: a common shock produces
+   * a common problem with a common answer, and it is the *asymmetric* one —
+   * a gas interruption that reaches the exposed economies and not the others,
+   * a sovereign sell-off that finds the indebted one — that puts the chair in
+   * the position of setting one rate for members who need different ones.
+   *
+   * Ignored where the institution has no members, so an event may carry both
+   * and stay valid at both institutions.
+   */
+  readonly memberEffects?: (ctx: EventContext) => readonly MemberShock[]
+}
+
+/**
+ * Which member a shock lands on.
+ *
+ * A structural selector wherever the event is *about* a structural property,
+ * and an id only where it is genuinely about that member. "The most indebted
+ * member" is a description of the economics and stays correct if the profiles
+ * are ever retuned; naming a country to carry a story it has no structural
+ * reason to carry would be characterising it rather than modelling it.
+ */
+export type MemberSelector =
+  | MemberId
+  | 'most_indebted'
+  | 'most_industrial'
+  | 'most_energy_exposed'
+  | 'most_cyclical'
+  | 'largest'
+
+export interface MemberShock {
+  readonly member: MemberSelector
+  /**
+   * Offsets are renormalised so the area aggregate moves by exactly this
+   * member's weight times the shock; `spread` is a level and moves alone.
+   */
+  readonly field:
+    | 'inflationOffset'
+    | 'outputGapOffset'
+    | 'unemploymentOffset'
+    | 'spread'
+  readonly magnitude: number
 }
 
 /** An effect queued to fire at a future internal sub-step. */
@@ -141,6 +227,32 @@ export interface ResolvedEventRecord {
   readonly newswire: string
   readonly immediate: readonly EventEffect[]
   readonly delayedStepDelays: readonly number[]
+  /**
+   * The scaled consequences this event queued, with the step each lands on.
+   *
+   * Recorded so the *same world* can be replayed without the player's policy
+   * in it. A counterfactual whose events were redrawn would not be a
+   * counterfactual: the event draw depends on the state, so the moment the two
+   * arms diverge they meet different weather, and the difference between them
+   * stops being the policy. Replaying these verbatim holds the world fixed and
+   * leaves the decision as the only thing that differs.
+   *
+   * `delayedStepDelays` is kept beside it for the postmortem, which reports
+   * how far ahead an event's consequences reached rather than what they were.
+   */
+  readonly delayed: readonly {
+    readonly fireAtStep: number
+    readonly effects: readonly EventEffect[]
+  }[]
+  /**
+   * Members this event fell on, if it was asymmetric.
+   *
+   * Recorded so the press can report *which* member was hit. An asymmetric
+   * event reported as an area-wide one is worse than no report: half the area
+   * did not experience it, and the whole point of the mechanic is that the
+   * chair has to notice who did.
+   */
+  readonly members?: readonly MemberId[]
 }
 
 /** Outcome of one call to resolveEvent. */

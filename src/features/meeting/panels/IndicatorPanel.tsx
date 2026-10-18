@@ -1,5 +1,6 @@
 import { IndicatorRow } from '../../../components/IndicatorRow.tsx'
 import type { ObservationSet, SeriesId } from '../../../simulation/index.ts'
+import type { Register } from '../register.ts'
 
 /**
  * Shared layout for the information panels.
@@ -17,6 +18,7 @@ export function IndicatorPanel({
   footnote,
   references = {},
   referenceLabel = 'objective',
+  register,
 }: {
   readonly id: string
   readonly title: string
@@ -27,6 +29,8 @@ export function IndicatorPanel({
   /** Per-series line to read the trend against, such as the inflation target. */
   readonly references?: Partial<Record<SeriesId, number>>
   readonly referenceLabel?: string
+  /** Which language this difficulty publishes its numbers in. */
+  readonly register: Register
 }) {
   const rows = seriesIds
     .map((seriesId) => observation.indicators[seriesId])
@@ -34,13 +38,13 @@ export function IndicatorPanel({
 
   return (
     <section aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`} className="text-lg font-semibold text-neutral-50">
+      <h2 id={`${id}-heading`} className="text-lg font-semibold text-ink">
         {title}
       </h2>
-      <p className="mt-1 text-sm text-neutral-400">{intro}</p>
+      <p className="mt-1 text-sm text-ink-soft">{intro}</p>
 
       {rows.length === 0 ? (
-        <p className="mt-4 text-sm text-neutral-400">
+        <p className="mt-4 text-sm text-ink-soft">
           No releases are available for this panel at this meeting.
         </p>
       ) : (
@@ -51,13 +55,14 @@ export function IndicatorPanel({
               observation={row}
               reference={references[row.seriesId] ?? null}
               referenceLabel={referenceLabel}
+              register={register}
             />
           ))}
         </ul>
       )}
 
       {footnote !== undefined && (
-        <p className="mt-4 text-xs text-neutral-600">{footnote}</p>
+        <p className="mt-4 text-xs text-ink-faint">{footnote}</p>
       )}
     </section>
   )

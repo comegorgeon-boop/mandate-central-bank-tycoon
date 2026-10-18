@@ -7,6 +7,11 @@ import type {
   RunSession,
   ScoreBreakdown,
 } from '../../simulation/index.ts'
+import type { ScenarioId } from '../../simulation/index.ts'
+import type { LedgerEntry } from '../policy/instrumentLedger.ts'
+import type { SettledPromise } from '../policy/settledPromise.ts'
+import type { CounterfactualArms } from './counterfactualRun.ts'
+import type { Scoreboard } from './doctrineScoreboard.ts'
 
 /**
  * The run currently being played, held in memory only.
@@ -17,6 +22,36 @@ import type {
 export interface ActiveRun {
   readonly runId: string
   readonly session: RunSession
+  /**
+   * Projections still waiting to be checked against what actually happened.
+   *
+   * Interface state rather than run state: it is derived from decisions the
+   * engine already records, and it exists so a player can be told what the dial
+   * they moved four meetings ago produced. See `policy/instrumentLedger.ts`.
+   */
+  readonly ledger: readonly LedgerEntry[]
+  /**
+   * A promise the last decision settled, if it settled one.
+   *
+   * Derived here rather than in the engine for the same reason as the ledger:
+   * `submitMeeting` is on the path of every sweep and every replay, and none of
+   * them needs to know that a screen would like to say well done.
+   */
+  readonly settled: SettledPromise | null
+  /**
+   * The same mandate with each lever held still, advanced in lockstep.
+   *
+   * What makes "without your rises, inflation would be at 6.2 %" an exact
+   * statement rather than an estimate. See `counterfactualRun.ts`.
+   */
+  readonly arms: CounterfactualArms
+  /**
+   * Which school has been right, and how often.
+   *
+   * Settled by the counterfactual rather than by opinion — see
+   * `doctrineScoreboard.ts`.
+   */
+  readonly scoreboard: Scoreboard
 }
 
 /** A run that has reached its end state, with its score already computed. */
@@ -24,12 +59,24 @@ export interface FinishedRun {
   readonly runId: string
   readonly session: RunSession
   readonly score: ScoreBreakdown
+  /**
+   * The mandate-long record of which school was right when it disagreed.
+   *
+   * Carried across rather than recomputed, because it can only be built
+   * meeting by meeting from the states the decisions were actually taken in.
+   */
+  readonly scoreboard: Scoreboard
 }
 
 export interface StartRunOptions {
   readonly institution: Institution
   readonly difficulty: Difficulty
   readonly seed: string
+  /**
+   * A historical scenario, which then decides the institution, the rules and
+   * the length — and is never accompanied by a difficulty the player chose.
+   */
+  readonly scenario?: ScenarioId | null
 }
 
 export interface RunContextValue {

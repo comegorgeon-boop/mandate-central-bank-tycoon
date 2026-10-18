@@ -64,16 +64,28 @@ const MIN_RATIO = 0.7
 const MAX_RATIO = 1.5
 
 /**
- * Cap on the net delivered impulse per meeting, in the same units.
+ * Cap on the net delivered impulse per meeting, per unit of event severity.
  *
  * The ratio alone is not enough: at hard's event volume a ratio of 1.35 still
  * poured five units of net cost-push into every run, which is how the +0.70pp
  * drift documented in docs/BALANCE.md passed a ratio band. Net delivery is the
  * quantity that becomes drift, and it scales with meetings, so the cap is per
- * meeting. The measured catalog sits at +0.02 to +0.05; the drifting one read
- * +0.09 to +0.16. The band is asymmetric on purpose: what remains above zero
- * is dominated by the wage-round event, which is gated on an economy left to
- * run hot — pressure a player can act against, unlike the old energy skew.
+ * meeting. The band is asymmetric on purpose: what remains above zero is
+ * dominated by the wage-round event, which is gated on an economy left to run
+ * hot — pressure a player can act against, unlike the old energy skew.
+ *
+ * **Per unit of severity**, which it was not until hard's events were made 15 %
+ * more severe to pay for its shorter term. The statistic has the difficulty's
+ * `eventSeverityScale` multiplied into it, so turning that dial moves this
+ * number by construction without the catalog having become one bit more
+ * lopsided — and it moved ecb/hard to -0.083 against a -0.08 band. Dividing it
+ * back out is what makes this suite measure the thing it is named after: the
+ * *catalog's* balance, not the severity setting of the mode it is played at.
+ * Worth noting what that gives up: total drift across a mandate really does
+ * scale with severity, and on hard it is now 1.55 times this figure times 24
+ * meetings. What protects the player there is that the mandate also got eight
+ * meetings shorter, so the cumulative figure fell — -2.0 points against the
+ * -2.3 the four-year term delivered.
  */
 const MIN_NET_PER_MEETING = -0.08
 const MAX_NET_PER_MEETING = 0.08
@@ -193,12 +205,15 @@ describe('the event catalog does not write the inflation outcome by itself', () 
         expect(ratio).toBeGreaterThanOrEqual(MIN_RATIO)
 
         // The quantity that becomes inflation drift: what the ratio hides
-        // whenever the gross volumes are large.
-        const netPerMeeting = (delivered - relieved) / meetings
+        // whenever the gross volumes are large. Divided back by the severity
+        // multiplier the impulses were scaled by, so the statistic reads the
+        // catalog's own balance rather than the mode's severity dial.
+        const netPerMeeting =
+          (delivered - relieved) / meetings / getDifficulty(difficulty).eventSeverityScale
         expect(
           netPerMeeting,
           `${institution}/${difficulty} delivered a net ${netPerMeeting.toFixed(3)} ` +
-            `of inflation impulse per meeting (band ${MIN_NET_PER_MEETING} to ` +
+            `of inflation impulse per meeting per unit of severity (band ${MIN_NET_PER_MEETING} to ` +
             `${MAX_NET_PER_MEETING}). The catalog is writing the inflation ` +
             `outcome by itself. See docs/BALANCE.md.`,
         ).toBeLessThanOrEqual(MAX_NET_PER_MEETING)

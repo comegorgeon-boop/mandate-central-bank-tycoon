@@ -30,6 +30,32 @@ import { readStance } from '../observation/stance.ts'
 const INFLATION_WEIGHT = 0.5
 
 /**
+ * The weights the divided committee argues at, and what each one is.
+ *
+ * docs/BALANCE.md called the split committee "the one genuinely unbuilt piece"
+ * of the information ladder and named the cheapest honest construction: two or
+ * three recommendations from the same rule at different inflation weights,
+ * presented without a resolution. This is it. Nothing here invents a second
+ * model of the economy — that would be a second source of truth to keep
+ * consistent, and the disagreement would be about the model rather than about
+ * the judgement. Two colleagues reading the *same* numbers through different
+ * weights on the same objective is both cheaper and truer to what a real
+ * governing council disagrees about.
+ *
+ * The centre weight is `INFLATION_WEIGHT` itself, so the split brackets the
+ * advice the lower difficulties are given rather than replacing it: a player
+ * moving up from medium meets the colleague they already know, now flanked.
+ */
+const COMMITTEE_WEIGHTS: readonly {
+  readonly weight: number
+  readonly voice: string
+}[] = [
+  { weight: 0.9, voice: 'The hawkish wing' },
+  { weight: INFLATION_WEIGHT, voice: 'The centre' },
+  { weight: 0.2, voice: 'The dovish wing' },
+]
+
+/**
  * Share of the gap to the desired rate closed at a single meeting.
  *
  * Committees move gradually, and so should the advice: recommending the whole
@@ -65,6 +91,7 @@ export function staffRecommendation(
   observation: ObservationSet,
   institution: Institution,
   difficulty: Difficulty,
+  inflationWeight: number = INFLATION_WEIGHT,
 ): StaffRecommendation | null {
   const instrument = getInstrument('policy_rate')
   if (instrument === undefined) return null
@@ -86,7 +113,7 @@ export function staffRecommendation(
   // published assumption is the fallback, which is what a real staff would use.
   const neutral = stance.neutralEstimate ?? getInstitution(institution).initial.neutralRealRate
 
-  const desiredRate = neutral + inflation + INFLATION_WEIGHT * (inflation - target)
+  const desiredRate = neutral + inflation + inflationWeight * (inflation - target)
 
   const rawBp = (desiredRate - stance.nominalRate) * 100 * SMOOTHING
   const steps = Math.round(rawBp / range.increment)
@@ -126,4 +153,53 @@ export function staffRecommendation(
     `${desiredRate.toFixed(2)} % the rule implies.`
 
   return { basisPoints, desiredRate, measure, reasoning }
+}
+
+/** One member's position in a divided committee. */
+export interface CommitteeView extends StaffRecommendation {
+  /** Which wing this is, for attribution. Never a named person. */
+  readonly voice: string
+  /** How heavily this member weights the inflation miss. */
+  readonly inflationWeight: number
+}
+
+/**
+ * The committee, divided, with no resolution offered.
+ *
+ * Returns an empty list where the releases the rule depends on did not
+ * arrive — a committee cannot be split over numbers nobody has.
+ *
+ * Note what this deliberately does *not* do: it does not mark one view as
+ * correct, order them by plausibility, or average them. The player is being
+ * handed a disagreement, and resolving it is the decision. Where the data are
+ * unambiguous the three views converge on their own and the panel says so,
+ * which is the honest outcome rather than a manufactured argument — a
+ * committee that disagrees at every meeting regardless of the evidence is
+ * noise wearing the costume of difficulty.
+ */
+export function committeeViews(
+  observation: ObservationSet,
+  institution: Institution,
+  difficulty: Difficulty,
+): readonly CommitteeView[] {
+  const views: CommitteeView[] = []
+
+  for (const { weight, voice } of COMMITTEE_WEIGHTS) {
+    const recommendation = staffRecommendation(
+      observation,
+      institution,
+      difficulty,
+      weight,
+    )
+    if (recommendation === null) return []
+    views.push({ ...recommendation, voice, inflationWeight: weight })
+  }
+
+  return views
+}
+
+/** True when the divided committee has, in fact, converged on one move. */
+export function committeeAgrees(views: readonly CommitteeView[]): boolean {
+  if (views.length === 0) return false
+  return views.every((view) => view.basisPoints === views[0].basisPoints)
 }

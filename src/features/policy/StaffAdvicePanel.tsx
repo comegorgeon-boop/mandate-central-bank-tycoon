@@ -33,20 +33,20 @@ export function StaffAdvicePanel({
   return (
     <section
       aria-labelledby="staff-heading"
-      className="mt-5 rounded border border-neutral-800 bg-neutral-900 p-4"
+      className="mt-5 rounded border border-edge bg-sunk p-4"
     >
-      <p className="text-xs uppercase tracking-wide text-neutral-500">
+      <p className="text-xs uppercase tracking-wide text-ink-faint">
         Advice of the staff
       </p>
-      <h3 id="staff-heading" className="mt-1 text-base font-semibold text-neutral-100">
+      <h3 id="staff-heading" className="mt-1 text-base font-semibold text-ink">
         The services recommend you {moveText}.
       </h3>
-      <p className="mt-2 text-sm text-neutral-300">{recommendation.reasoning}</p>
+      <p className="mt-2 text-sm text-ink-soft">{recommendation.reasoning}</p>
 
       {!agrees && (
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="mt-2 text-sm text-ink-soft">
           You currently have{' '}
-          <span className="text-neutral-200">
+          <span className="text-ink">
             {selectedMove === 0
               ? 'a hold'
               : `${selectedMove > 0 ? '+' : '−'}${Math.abs(selectedMove)} bp`}
@@ -56,7 +56,7 @@ export function StaffAdvicePanel({
         </p>
       )}
 
-      <p className="mt-3 text-xs text-neutral-500">
+      <p className="mt-3 text-xs text-ink-faint">
         The rule behind this reacts to <em>core</em> inflation, not headline, because
         chasing headline means tightening into energy prices policy cannot influence.
         It weighs nothing else: not financial stability, not transmission, not your

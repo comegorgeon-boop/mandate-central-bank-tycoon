@@ -1,6 +1,6 @@
 import type { Institution } from '../types/core.ts'
 import type { SeriesDefinition, SeriesId } from '../types/observation.ts'
-import { EXCHANGE, VOLATILITY } from '../config/model.ts'
+import { EXCHANGE, SPREADS, VOLATILITY } from '../config/model.ts'
 import { STRESS_PENALTY_FLOOR } from '../config/scoring.ts'
 import { THRESHOLDS } from '../config/thresholds.ts'
 
@@ -44,6 +44,32 @@ const CONFIDENCE_CENTRE = 50
 
 /** Fair value on the asset valuation index: it is a deviation measure. */
 const FAIR_VALUE = 0
+
+/**
+ * The equity index at fair value in a neutral economy.
+ *
+ * A round number on purpose: the index exists so a player can see at a glance
+ * that the market is 8 % down on the quarter, and a base of 1000 makes that
+ * arithmetic free.
+ */
+export const EQUITY_BASE = 1000
+
+/**
+ * How the fictional equity index reads the economy around it.
+ *
+ * Chosen so the index moves the way an equity market visibly does — hard on
+ * credit and fear, more slowly on activity — while remaining a pure function
+ * of latent state. It holds nothing of its own, so it can never drift from the
+ * economy it is supposed to be pricing, and it needs no balance guard.
+ */
+const EQUITY = {
+  /** Per point of output gap. */
+  outputGap: 0.05,
+  /** Per percentage point of credit spread above its base. */
+  creditSpread: 0.14,
+  /** Per index point of volatility above its base. */
+  volatility: 0.004,
+} as const
 
 export const SERIES: readonly SeriesDefinition[] = [
   // ---- Prices -------------------------------------------------------------
@@ -218,11 +244,12 @@ export const SERIES: readonly SeriesDefinition[] = [
   },
   {
     id: 'employment_growth',
-    label: 'Employment momentum',
-    unit: 'index',
+    label: 'Employment growth',
+    unit: '% y/y',
     definition:
-      'Pace of hiring, positive when employment is expanding. Published fast ' +
-      'and revised heavily: the first print is the least reliable number here.',
+      'Change in the number of people employed against a year earlier. ' +
+      'Published fast and revised heavily: the first print is the least ' +
+      'reliable number here.',
     meaning:
       'A rise means hiring is accelerating; a fall means it is stalling. It ' +
       'arrives fast and is revised heavily, so treat the first print with ' +
@@ -304,7 +331,11 @@ export const SERIES: readonly SeriesDefinition[] = [
   },
   {
     id: 'credibility_index',
-    label: 'Institutional credibility',
+    // Named for the instrument that produces it. Both institutions run a
+    // Survey of Professional Forecasters that asks very nearly this question,
+    // so "institutional credibility" named the quantity and left the reader
+    // with no idea who was being asked or how often.
+    label: "Credibility, forecasters' survey",
     unit: 'index',
     definition:
       'Survey of forecasters and market participants on whether this ' +
@@ -330,6 +361,33 @@ export const SERIES: readonly SeriesDefinition[] = [
   },
 
   // ---- Policy and markets. Observed exactly: these are prices. ------------
+  {
+    id: 'public_approval',
+    // Likewise: both institutions are polled on public trust — and the
+    // distinction from the line above is that one asks people who forecast
+    // the economy and the other asks people who live in it.
+    label: 'Public trust, household survey',
+    unit: 'index',
+    definition:
+      'How the public rates the institution. Distinct from credibility, which ' +
+      'is what forecasters and markets think: the public judges the prices ' +
+      'and the jobs they live with, not whether a promise about the rate path ' +
+      'was kept.',
+    meaning:
+      'It rises when inflation is close to the objective and people are in ' +
+      'work, and falls when either slips — and it feels headline inflation, ' +
+      'not core. It buys nothing mechanically and can be ignored for a whole ' +
+      'mandate, which is exactly why watching it climb is the clearest signal ' +
+      'that the mandate is going well rather than merely not going wrong.',
+    read: (latent) => latent.publicTrust,
+    category: 'survey',
+    publicationLagMeetings: 0,
+    revisionLagMeetings: 0,
+    baseNoiseSd: 3.0,
+    baseRevisionSd: 0,
+    decimals: 0,
+    institutions: BOTH,
+  },
   {
     id: 'policy_rate',
     label: 'Policy rate',
@@ -369,11 +427,83 @@ export const SERIES: readonly SeriesDefinition[] = [
     institutions: BOTH,
   },
   {
-    id: 'market_volatility',
-    label: 'Market volatility',
+    id: 'long_rate',
+    label: 'Ten-year government yield',
+    unit: '%',
+    definition:
+      'The yield on ten-year government debt: the expected average policy ' +
+      'rate over the decade, plus a term premium for bearing the risk of ' +
+      'being wrong about it.',
+    meaning:
+      'A rise means borrowing costs are rising for everyone who does not ' +
+      'borrow overnight — mortgages, corporate debt, the government itself. ' +
+      'It can rise because you are expected to tighten, or because the ' +
+      'premium for holding duration has widened, and those are very ' +
+      'different problems.',
+    // A pure function of state the engine already computes: the expected path
+    // out to a year, an inflation-expectations component beyond it, and the
+    // term premium that is already a latent variable in its own right. No new
+    // dynamics — there is nothing here the model was not already tracking.
+    read: (latent) =>
+      0.6 * latent.marketExpectedRate +
+      0.4 * (latent.expectedInflationLong + latent.neutralRealRate) +
+      latent.termPremium,
+    category: 'market_data',
+    publicationLagMeetings: 0,
+    revisionLagMeetings: 0,
+    baseNoiseSd: 0,
+    baseRevisionSd: 0,
+    decimals: 2,
+    institutions: BOTH,
+  },
+  {
+    id: 'equity_index',
+    // A broad equity index, named for what it is.
+    //
+    // It used to carry an invented brand — "Meridian 400" — which is a name
+    // this game has no business teaching anyone. Every other series here is a
+    // real macroeconomic concept a reader can look up afterwards, and an
+    // index of listed shares is one too; giving it a made-up ticker was the
+    // one place the interface asked the player to learn a fiction.
+    label: 'Broad equity index',
     unit: 'index',
     definition:
-      `Implied volatility priced into options. It sits near ${VOLATILITY.base} ` +
+      `A capitalisation-weighted index of listed shares, rebased to ` +
+      `${EQUITY_BASE} at fair value in a neutral economy. It is a price, so ` +
+      'it is observed exactly and moves the instant anything changes.',
+    meaning:
+      'It rises when valuations are rich, activity is strong and financing is ' +
+      'cheap; it falls hardest when credit spreads widen, because that is ' +
+      'both the cost of capital and the market saying it doubts the future. ' +
+      'The fastest thing on this table, and the least patient.',
+    // Derived, deterministically, from four things the engine already tracks:
+    // where valuations sit against fundamentals, how the real economy is
+    // doing, what capital costs, and how frightened the market is. It carries
+    // no state of its own and cannot drift from the economy underneath it.
+    read: (latent) =>
+      EQUITY_BASE *
+      (1 + latent.assetPricePressure / 100) *
+      (1 + EQUITY.outputGap * latent.outputGap) *
+      (1 - EQUITY.creditSpread * Math.max(0, latent.creditSpread - SPREADS.base)) *
+      (1 - EQUITY.volatility * Math.max(0, latent.marketVolatility - VOLATILITY.base)),
+    category: 'market_data',
+    publicationLagMeetings: 0,
+    revisionLagMeetings: 0,
+    baseNoiseSd: 0,
+    baseRevisionSd: 0,
+    decimals: 0,
+    institutions: BOTH,
+  },
+  {
+    id: 'market_volatility',
+    // Named for the instrument it is. Both institutions have one — the
+    // volatility index of their own equity market — and "market volatility"
+    // named a quantity rather than a measure of it.
+    label: 'Implied volatility index',
+    unit: 'index',
+    definition:
+      `Implied volatility priced into equity index options. It sits near ` +
+      `${VOLATILITY.base} ` +
       'in a calm market with no geopolitical risk priced in, and rises from ' +
       'there. The one series that reacts to a decision on the day it is taken, ' +
       'before any statistic can.',

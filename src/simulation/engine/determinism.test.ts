@@ -89,6 +89,7 @@ describe('replay from a decision log', () => {
       institution: config.institution,
       difficulty: config.difficulty,
       mode: config.mode,
+      scenario: null,
       seed: config.seed,
       decisions: original.decisions,
     })

@@ -34,7 +34,11 @@ import { deriveTone } from '../features/policy/statement.ts'
  * from the direct path, the two economies are the same one.
  */
 
-const MEETINGS = MEETING_COUNT.easy
+// Medium, because easy is a tutorial now and ends on its objective rather than
+// after a known number of meetings — and this harness has to know how many
+// meetings to play in advance. What it measures, that the interface and the
+// engine produce identical published numbers, is difficulty-independent.
+const MEETINGS = MEETING_COUNT.medium
 const SEED = 'PARITY'
 
 /** Sustained aggressive tightening: the hardest case for a transmission bug. */
@@ -78,7 +82,7 @@ interface Published {
 function playEngineDirectly(): Published[] {
   const config = createRunConfig({
     institution: 'fed',
-    difficulty: 'easy',
+    difficulty: 'medium',
     seed: SEED,
     simulationVersion: SIMULATION_VERSION,
   })
@@ -147,6 +151,9 @@ function playThroughTheInterface(): {
     </MemoryRouter>,
   )
 
+  // The mode has to be chosen through the interface too, or this compares the
+  // engine on medium against a player on easy.
+  fireEvent.click(screen.getByRole('button', { name: /^Medium/ }))
   fireEvent.change(screen.getByLabelText('Scenario seed', { selector: 'input' }), {
     target: { value: SEED },
   })
@@ -159,14 +166,24 @@ function playThroughTheInterface(): {
   const confirmedRates: number[] = []
 
   for (let meeting = 1; meeting <= MEETINGS; meeting += 1) {
+    // The interval between meetings plays first; skip it, exactly as a
+    // player in a hurry would.
+    const skipInterval = screen.queryByRole('button', { name: 'Skip to the meeting' })
+    if (skipInterval !== null) fireEvent.click(skipInterval)
+
     const reaction = screen.queryByRole('button', {
       name: 'Continue to the next meeting',
     })
     if (reaction !== null) fireEvent.click(reaction)
 
-    expect(
-      screen.getByRole('heading', { name: `Meeting ${meeting} of ${MEETINGS}` }),
-    ).toBeInTheDocument()
+    // The sequence this plays is deliberately extreme, and an extreme sequence
+    // can end a mandate before its last scheduled meeting — which is the
+    // engine working, not a parity failure. Both paths stop at the same point
+    // *because* they are the same game, and that is asserted below.
+    const heading = screen.queryByRole('heading', {
+      name: `Meeting ${meeting} of ${MEETINGS}`,
+    })
+    if (heading === null) break
 
     const rate = policyRateInForce()
 
@@ -180,7 +197,13 @@ function playThroughTheInterface(): {
     published.push({ meeting, policyRate: rate, headline, core, unemployment })
 
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
-    fireEvent.click(screen.getByRole('button', { name: `+${MOVE_BP} bp` }))
+    fireEvent.change(screen.getByRole('slider', { name: /rate|range/i }), {
+      target: { value: String(MOVE_BP) },
+    })
+    // The words are a bench on the desk now: the dial and the rate it lands on
+    // are what stands in front of the chair, and everything else is one click
+    // away. See `PolicyDeskPanel`.
+    fireEvent.click(screen.getByRole('tab', { name: 'The words' }))
     fireEvent.click(
       screen.getByRole('button', { name: /We expect to go materially further/ }),
     )
@@ -204,14 +227,18 @@ describe('the interface and the engine play the same game', () => {
   const { published: viaInterface, confirmedRates } = playThroughTheInterface()
 
   it('plays the same number of meetings', () => {
-    expect(direct).toHaveLength(MEETINGS)
-    expect(viaInterface).toHaveLength(MEETINGS)
+    // Not `MEETINGS`: this sequence is extreme enough to end a mandate early,
+    // and *where* it ends is itself a fact about the engine that both paths
+    // have to agree on. Several meetings in either case, or the comparison
+    // below would be vacuous.
+    expect(viaInterface.length).toBeGreaterThan(3)
+    expect(viaInterface).toHaveLength(direct.length)
   })
 
   it('holds the same policy rate at every meeting', () => {
     // A one-meeting offset between what the player decides and what the engine
     // applies would show up here first, and nowhere else.
-    for (let index = 0; index < MEETINGS; index += 1) {
+    for (let index = 0; index < viaInterface.length; index += 1) {
       expect(viaInterface[index].policyRate).toBeCloseTo(direct[index].policyRate, 5)
     }
   })
@@ -219,13 +246,13 @@ describe('the interface and the engine play the same game', () => {
   it('applies exactly the decision the confirmation screen displayed', () => {
     // The rate the screen promised at meeting N must be the rate in force at
     // meeting N+1 — no rounding drift, no dropped move, no double application.
-    for (let index = 0; index < MEETINGS - 1; index += 1) {
+    for (let index = 0; index < viaInterface.length - 1; index += 1) {
       expect(viaInterface[index + 1].policyRate).toBeCloseTo(confirmedRates[index], 5)
     }
   })
 
   it('publishes the same inflation at every meeting', () => {
-    for (let index = 0; index < MEETINGS; index += 1) {
+    for (let index = 0; index < viaInterface.length; index += 1) {
       expect(
         viaInterface[index].headline,
         `headline inflation differs at meeting ${index + 1}: ` +
@@ -236,14 +263,14 @@ describe('the interface and the engine play the same game', () => {
   })
 
   it('publishes the same unemployment at every meeting', () => {
-    for (let index = 0; index < MEETINGS; index += 1) {
+    for (let index = 0; index < viaInterface.length; index += 1) {
       expect(viaInterface[index].unemployment).toBe(direct[index].unemployment)
     }
   })
 
   it('actually tightened, so the comparison had something to disagree about', () => {
     const first = direct[0].policyRate
-    const last = direct[MEETINGS - 1].policyRate
-    expect(last - first).toBeCloseTo(((MEETINGS - 1) * MOVE_BP) / 100, 5)
+    const last = direct[direct.length - 1].policyRate
+    expect(last - first).toBeCloseTo(((direct.length - 1) * MOVE_BP) / 100, 5)
   })
 })

@@ -46,7 +46,8 @@ function syntheticRun(
     meetingIndex: index,
     timeYears: index * YEARS_PER_MEETING,
     latent,
-  }))
+  members: [],
+    }))
 
   return {
     ...base,
@@ -314,14 +315,39 @@ describe('the conduct gate', () => {
     expect(score.conductGate).toBeLessThan(0.2)
   })
 
-  it('never fires on medium or hard, however bad the conduct', () => {
+  it('fires at every difficulty once conduct is genuinely incoherent', () => {
+    // It used to be scoped to easy, on the finding that medium and hard's
+    // noise makes a committee legitimately jumpier. That finding was right and
+    // the conclusion was wrong: measured, competent play and deliberate
+    // sabotage are six to twenty times apart on every conduct signal at every
+    // difficulty, and what the harder modes needed was a wider allowance, not
+    // an exemption. While they had one, sabotage on ecb/medium outscored
+    // competent play outright.
     for (const difficulty of ['medium', 'hard'] as const) {
       const score = calculateScore(
         withConduct('fed', difficulty, { contradictionCost: 50, brokenPromises: 10 }),
         COMPLETED,
       )
-      expect(score.conductGate).toBe(1)
+      expect(score.conductGate, difficulty).toBeLessThan(0.2)
     }
+  })
+
+  it('leaves the conduct a noisier committee legitimately produces alone', () => {
+    // The allowances are set above what competent play actually generates at
+    // each difficulty — 1.2-1.9 of contradiction cost at medium and hard, and
+    // up to 4.2 broken promises at hard for honest guidance whose target moves
+    // under it. None of that may be billed, or the gate punishes the honest
+    // play it exists to protect.
+    const medium = calculateScore(
+      withConduct('fed', 'medium', { contradictionCost: 1.3, brokenPromises: 2 }),
+      COMPLETED,
+    )
+    const hard = calculateScore(
+      withConduct('fed', 'hard', { contradictionCost: 1.9, brokenPromises: 4 }),
+      COMPLETED,
+    )
+    expect(medium.conductGate).toBe(1)
+    expect(hard.conductGate).toBe(1)
   })
 
   it('multiplies into the final score on top of the weighted components, not instead of them', () => {

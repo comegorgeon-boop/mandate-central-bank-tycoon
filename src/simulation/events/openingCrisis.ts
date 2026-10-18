@@ -35,13 +35,29 @@ import { buildEventContext, eligibleEvents, scaleEffects } from './resolveEvent.
 
 const OPENING_CRISIS_STREAM = 'opening-crisis'
 
-/** The major events eligible to open an easy mandate. */
+/**
+ * The major events eligible to open a mandate at this difficulty.
+ *
+ * Filtered by `openingCrisisCharacters`, and empty when that is null. The
+ * filter is the whole reason this function takes a difficulty into account at
+ * all: an opening crisis is the one shock the player did not choose to face
+ * and cannot have seen coming, so it must be one against which a decision
+ * exists. Drawing it uniformly over every major put a pure cost-push shock at
+ * meeting one of a third of easy mandates and cost, measured, more than half
+ * the final score — before a single decision had been taken. See
+ * `DifficultyConfig.openingCrisisCharacters`.
+ */
 export function openingCandidates(
   state: SimulationState,
   catalog: readonly GameEvent[] = EVENT_CATALOG,
 ): readonly GameEvent[] {
+  const characters = getDifficulty(state.config.difficulty).openingCrisisCharacters
+  if (characters === null) return []
+
   const ctx = buildEventContext(state)
-  return eligibleEvents(ctx, catalog).filter((event) => event.tier === 'major')
+  return eligibleEvents(ctx, catalog).filter(
+    (event) => event.tier === 'major' && characters.includes(event.shockCharacter),
+  )
 }
 
 /**
@@ -86,6 +102,10 @@ export function applyOpeningCrisis(
     newswire: event.newswire,
     immediate,
     delayedStepDelays: delayed.map((spec) => spec.delaySteps),
+    delayed: pending.map((entry) => ({
+      fireAtStep: entry.fireAtStep,
+      effects: entry.effects,
+    })),
   }
 
   return {

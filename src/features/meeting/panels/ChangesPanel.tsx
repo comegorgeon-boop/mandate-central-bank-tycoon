@@ -1,14 +1,19 @@
 import { useMemo } from 'react'
 import type { Institution, ObservationSet } from '../../../simulation/index.ts'
 import { buildChanges, type ChangeSource } from '../changes.ts'
+import type { CounterfactualLine } from '../counterfactualLine.ts'
 
 /**
- * What changed since the last meeting, at the head of every meeting.
+ * What changed since the last meeting.
  *
- * Sits above the tabs because it answers the question the player arrives with,
- * and it has to be answerable in about five seconds. The decision entry leads
- * whenever there is one: "what did my last decision do" is the question that
- * made the previous playthrough feel inert when nothing on screen answered it.
+ * It answers the question the player arrives with, and it has to be answerable
+ * in about five seconds. The decision entry leads whenever there is one: "what
+ * did my last decision do" is the question that made an early playthrough feel
+ * inert when nothing on screen answered it.
+ *
+ * It used to sit above the tabs, permanently, at five items of two lines each
+ * — most of a screen of prose standing between the header and the charts. It
+ * is the meeting brief's own subject and it now runs inside the brief.
  */
 
 const SOURCE_LABEL: Readonly<Record<ChangeSource, string>> = {
@@ -20,51 +25,106 @@ const SOURCE_LABEL: Readonly<Record<ChangeSource, string>> = {
   revision: 'Revision',
 }
 
+/**
+ * Ink colours, because this panel is on paper.
+ *
+ * It was on the walnut of the room until the density pass moved it inside the
+ * brief, and every colour in it was an *on-dark* one — `--onwood-soft` is a
+ * warm off-white, which is 1.59:1 against cream. Moving a panel between the
+ * room and the paper means re-picking every colour in it; nothing else does.
+ * The contrast audit caught all thirteen of these before they shipped, which
+ * is the whole reason it walks every tab at more than one difficulty.
+ */
 const SOURCE_CLASS: Readonly<Record<ChangeSource, string>> = {
-  decision: 'border-emerald-800 text-emerald-300',
-  markets: 'border-sky-800 text-sky-300',
-  expectations: 'border-violet-800 text-violet-300',
-  forecast: 'border-sky-800 text-sky-300',
-  data: 'border-neutral-700 text-neutral-400',
-  revision: 'border-amber-800 text-amber-300',
+  decision: 'border-good text-good-strong',
+  markets: 'border-edge-accent text-accent-strong',
+  expectations: 'border-edge text-ink-soft',
+  forecast: 'border-edge-accent text-accent-strong',
+  data: 'border-edge text-ink-soft',
+  revision: 'border-accent text-accent-strong',
 }
 
 export function ChangesPanel({
   observation,
   previousObservation,
   institution,
+  objective,
+  counterfactual,
+  newSeries,
 }: {
   readonly observation: ObservationSet
   readonly previousObservation: ObservationSet | null
   readonly institution: Institution
+  /** The mandate's own objective. See `standing.ts`. */
+  readonly objective: number
+  /**
+   * What the policy has actually delivered, exactly.
+   *
+   * It *replaces* the derived "your decision" entry rather than joining it.
+   * That entry read the stance decomposition and said what the decision did to
+   * the real rate — true, useful, and one inference short of the question the
+   * player was asking, which is what it did to the economy. This answers that
+   * directly and there is no reason to print both.
+   */
+  readonly counterfactual: CounterfactualLine | null
+  /** Indicators joining the dashboard at this meeting. Easy only. */
+  readonly newSeries: readonly string[]
 }) {
   const changes = useMemo(
-    () => buildChanges(observation, previousObservation, institution),
+    () => buildChanges(observation, previousObservation, institution, objective),
     [observation, previousObservation, institution],
-  )
+  ).filter((item) => counterfactual === null || item.source !== 'decision')
 
   return (
     <section
       aria-labelledby="changes-heading"
-      className="mt-4 rounded border border-neutral-800 bg-neutral-900/60 p-4"
+      className="rounded border border-edge bg-sunk p-4"
     >
       <h2
         id="changes-heading"
-        className="text-sm font-semibold uppercase tracking-wide text-neutral-300"
+        className="text-sm font-semibold uppercase tracking-wide text-ink-soft"
       >
         What changed since the last meeting
       </h2>
 
       <ol className="mt-3 space-y-3">
+        {newSeries.length > 0 && (
+          <li className="border-l-2 border-edge-accent pl-3">
+            <span className="inline-block rounded border border-edge-accent px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-strong">
+              New on the table
+            </span>
+            <p className="mt-1 font-medium text-ink">
+              {newSeries.length === 1
+                ? `${newSeries[0]} joins the dashboard`
+                : `${newSeries.length} indicators join the dashboard`}
+            </p>
+            <p className="mt-0.5 text-sm text-ink-soft">
+              {newSeries.join(', ')}. The learning mandate fills the table in
+              rather than handing you all of it at once — twenty-six series on
+              the first morning is how a reader decides none of them matter.
+            </p>
+          </li>
+        )}
+        {counterfactual !== null && (
+          <li className="border-l-2 border-good pl-3">
+            <span
+              className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${SOURCE_CLASS.decision}`}
+            >
+              {counterfactual.arrived ? 'What you did' : 'The lag'}
+            </span>
+            <p className="mt-1 font-medium text-ink">{counterfactual.headline}</p>
+            <p className="mt-0.5 text-sm text-ink-soft">{counterfactual.detail}</p>
+          </li>
+        )}
         {changes.map((item) => (
-          <li key={item.id} className="border-l-2 border-neutral-800 pl-3">
+          <li key={item.id} className="border-l-2 border-edge pl-3">
             <span
               className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${SOURCE_CLASS[item.source]}`}
             >
               {SOURCE_LABEL[item.source]}
             </span>
-            <p className="mt-1 font-medium text-neutral-100">{item.headline}</p>
-            <p className="mt-0.5 text-sm text-neutral-400">{item.detail}</p>
+            <p className="mt-1 font-medium text-ink">{item.headline}</p>
+            <p className="mt-0.5 text-sm text-ink-soft">{item.detail}</p>
           </li>
         ))}
       </ol>

@@ -47,6 +47,17 @@ export interface InstitutionConfig {
     readonly creditSpread: number
     readonly fragmentation: number
     readonly debtPressure: number
+    /**
+     * General government debt, per cent of GDP.
+     *
+     * The two figures are the real orders of magnitude for the two
+     * institutions at the time the fictional modes are set in: United States
+     * general government gross debt has run near 120 % of GDP and the euro
+     * area aggregate near 90 %. They are starting points for an invented
+     * economy rather than a claim about a date, and the historical scenarios
+     * override them with figures that are.
+     */
+    readonly publicDebt: number
     readonly credibility: number
   }
 }
@@ -79,6 +90,7 @@ export const INSTITUTIONS: Readonly<Record<Institution, InstitutionConfig>> = {
       creditSpread: 1.2,
       fragmentation: 14,
       debtPressure: 38,
+      publicDebt: 118,
       credibility: 72,
     },
   },
@@ -110,6 +122,7 @@ export const INSTITUTIONS: Readonly<Record<Institution, InstitutionConfig>> = {
       creditSpread: 1.1,
       fragmentation: 55,
       debtPressure: 52,
+      publicDebt: 89,
       credibility: 70,
     },
   },

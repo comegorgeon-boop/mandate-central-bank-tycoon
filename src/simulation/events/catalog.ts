@@ -29,6 +29,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Energy and commodities --------------------------------------------
   {
     id: 'energy_price_spike',
+    shockCharacter: 'supply',
     family: 'energy_commodity',
     title: 'Energy price spike',
     newswire:
@@ -63,6 +64,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'energy_price_relief',
+    shockCharacter: 'supply',
     family: 'energy_commodity',
     title: 'Energy prices fall back',
     newswire:
@@ -120,6 +122,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Productivity -------------------------------------------------------
   {
     id: 'productivity_surge',
+    shockCharacter: 'supply',
     family: 'productivity',
     title: 'Productivity surprises to the upside',
     newswire:
@@ -154,6 +157,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Supply chains ------------------------------------------------------
   {
     id: 'supply_chain_disruption',
+    shockCharacter: 'supply',
     family: 'supply_chain',
     title: 'Shipping disruption lengthens delivery times',
     newswire:
@@ -186,6 +190,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'supply_chain_normalisation',
+    shockCharacter: 'supply',
     family: 'supply_chain',
     title: 'Shipping capacity catches up with demand',
     newswire:
@@ -229,6 +234,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Fiscal -------------------------------------------------------------
   {
     id: 'fiscal_expansion',
+    shockCharacter: 'demand',
     family: 'fiscal',
     title: 'Legislature passes a large spending package',
     newswire:
@@ -264,6 +270,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'fiscal_consolidation',
+    shockCharacter: 'demand',
     family: 'fiscal',
     title: 'Legislature agrees a deficit reduction package',
     newswire:
@@ -302,6 +309,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Banking ------------------------------------------------------------
   {
     id: 'bank_funding_scare',
+    shockCharacter: 'financial',
     family: 'banking',
     title: 'Funding scare at a mid-sized lender',
     newswire:
@@ -338,6 +346,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'deposit_flight',
+    shockCharacter: 'financial',
     family: 'banking',
     title: 'Deposits leave the weakest lenders',
     newswire:
@@ -374,6 +383,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Housing ------------------------------------------------------------
   {
     id: 'housing_correction',
+    shockCharacter: 'financial',
     family: 'housing',
     title: 'House prices turn down sharply',
     newswire:
@@ -409,6 +419,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Geopolitics --------------------------------------------------------
   {
     id: 'geopolitical_escalation',
+    shockCharacter: 'supply',
     family: 'geopolitical',
     title: 'Geopolitical tensions escalate',
     newswire:
@@ -442,6 +453,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'geopolitical_dealescalation',
+    shockCharacter: 'supply',
     family: 'geopolitical',
     title: 'Negotiated settlement eases a long-running dispute',
     newswire:
@@ -486,6 +498,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Exchange rate ------------------------------------------------------
   {
     id: 'currency_pressure',
+    shockCharacter: 'demand',
     family: 'exchange_rate',
     title: 'Currency comes under sustained pressure',
     newswire:
@@ -507,6 +520,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? 6 : 3.5 },
       { variable: 'marketVolatility', delta: 5 },
     ],
+    // Pass-through is a *tail*, not a quarter. The old version delivered one
+    // inflation bump a meeting later and was finished; measured against a
+    // control with every other draw held fixed, it changed a competent
+    // committee's package in four meetings out of forty-eight, which is the
+    // floor `consequence.test.ts` sets and not a currency crisis. Contracts
+    // reprice on renewal, so a slide keeps arriving in shelf prices for a year
+    // and more — which is also what makes it a decision rather than a
+    // headline: the committee has to judge whether to look through it.
     delayed: (ctx) => [
       {
         delaySteps: ONE_MEETING,
@@ -514,13 +535,27 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
           { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? 0.35 : 0.15 },
         ],
       },
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? 3.4 : 2 },
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? 0.22 : 0.1 },
+        ],
+      },
       { delaySteps: THREE_MEETINGS, effects: [{ variable: 'outputGap', delta: 0.2 }] },
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? 0.16 : 0.07 },
+        ],
+      },
     ],
     followUps: [],
     requires: [],
   },
   {
     id: 'currency_appreciation',
+    shockCharacter: 'demand',
     family: 'exchange_rate',
     title: 'Currency rallies on safe-haven inflows',
     newswire:
@@ -548,6 +583,10 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? -6 : -3.5 },
       { variable: 'marketVolatility', delta: -3 },
     ],
+    // Paired with `currency_pressure` term for term, including its tail: the
+    // same repricing that carries a slide into shelf prices for a year carries
+    // a rally into them, and a pair that is only symmetric on impact is a
+    // one-sided inflation tilt hiding behind a matched name.
     delayed: (ctx) => [
       {
         delaySteps: ONE_MEETING,
@@ -555,7 +594,20 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
           { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? -0.35 : -0.15 },
         ],
       },
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [
+          { variable: 'importPriceInflation', delta: ctx.institution === 'ecb' ? -3.4 : -2 },
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? -0.22 : -0.1 },
+        ],
+      },
       { delaySteps: THREE_MEETINGS, effects: [{ variable: 'outputGap', delta: -0.2 }] },
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [
+          { variable: 'inflationHeadline', delta: ctx.institution === 'ecb' ? -0.16 : -0.07 },
+        ],
+      },
     ],
     followUps: [],
     requires: [],
@@ -564,6 +616,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Wages --------------------------------------------------------------
   {
     id: 'wage_round_breakout',
+    shockCharacter: 'supply',
     family: 'wages',
     title: 'Wage round settles well above expectations',
     newswire:
@@ -598,6 +651,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Data revisions -----------------------------------------------------
   {
     id: 'benchmark_revision',
+    shockCharacter: 'institutional',
     family: 'data_revision',
     title: 'Benchmark revision rewrites the recent past',
     newswire:
@@ -628,6 +682,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Communication ------------------------------------------------------
   {
     id: 'communication_leak',
+    shockCharacter: 'institutional',
     family: 'communication',
     title: 'Deliberations leak before the statement',
     newswire:
@@ -642,20 +697,62 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     isEligible: () => true,
     // Leaks are more likely when the committee is under political pressure.
     weight: (ctx) => 0.5 + ctx.latent.politicalPressure / 60,
+    // Rebuilt. Measured against a control with every other draw held fixed,
+    // the old version changed a competent committee's package in **zero**
+    // meetings out of 120 — the only entry in the catalog that changed
+    // nothing at all, ever. It moved credibility by 4 and volatility by 6,
+    // which the dynamics absorb inside a quarter, and it moved nothing a
+    // decision reads.
+    //
+    // What a leak actually costs is the thing the old version did not touch:
+    // the committee's *word*. If the press has the argument before the
+    // statement does, the statement is no longer news — the announcement
+    // channel, which is the fastest instrument on the desk, is spent before it
+    // is used. That is `marketTrust`, which sets how much of a published path
+    // markets price, and it is the anchor, because a committee that cannot
+    // hold a discussion in private is one whose commitments are discounted.
     immediate: () => [
-      { variable: 'credibility', delta: -4 },
-      { variable: 'marketTrust', delta: -7 },
-      { variable: 'marketVolatility', delta: 6 },
-      { variable: 'politicalPressure', delta: 6 },
+      { variable: 'credibility', delta: -7 },
+      { variable: 'marketTrust', delta: -22 },
+      { variable: 'marketVolatility', delta: 11 },
+      { variable: 'politicalPressure', delta: 14 },
+      { variable: 'anchoring', delta: -0.09 },
     ],
-    delayed: () => [],
+    // The dissent, once public, is argued over for a quarter and then fades.
+    // Market trust returns; the anchor keeps most of the damage, because what
+    // was lost is not this quarter's news but the presumption that what the
+    // committee says is what the committee decided.
+    delayed: () => [
+      {
+        delaySteps: ONE_MEETING,
+        effects: [
+          { variable: 'marketVolatility', delta: 4 },
+          { variable: 'politicalPressure', delta: 6 },
+        ],
+      },
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'marketTrust', delta: 14 },
+          { variable: 'politicalPressure', delta: -14 },
+          { variable: 'anchoring', delta: 0.04 },
+        ],
+      },
+    ],
     followUps: [],
     requires: [],
+    dispatchLines: [
+      'The dissenting member has declined to comment; the committee has opened ' +
+        'an internal review of how the account reached the press.',
+      'The review closed without naming a source. Markets have stopped pricing ' +
+        'the leak, though the committee is being read more sceptically than before.',
+    ],
   },
 
   // ---- Market cycle -------------------------------------------------------
   {
     id: 'market_melt_up',
+    shockCharacter: 'financial',
     family: 'market_cycle',
     title: 'Risk assets melt up',
     newswire:
@@ -684,6 +781,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'market_crash',
+    shockCharacter: 'financial',
     family: 'market_cycle',
     title: 'Leveraged positions unwind',
     newswire:
@@ -719,6 +817,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Natural disasters --------------------------------------------------
   {
     id: 'natural_disaster',
+    shockCharacter: 'supply',
     family: 'natural_disaster',
     title: 'Severe weather disrupts a major region',
     newswire:
@@ -758,6 +857,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // ---- Innovation and confidence ------------------------------------------
   {
     id: 'investment_boom',
+    shockCharacter: 'demand',
     family: 'innovation',
     title: 'Investment boom in a new general-purpose technology',
     newswire:
@@ -793,15 +893,21 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
 
   // ===== Major events ========================================================
   //
-  // Mandate-defining crises rather than background noise: `tier: 'major'`,
-  // scoped to `minDifficulty`/`maxDifficulty` 'easy' only (medium/hard are out
-  // of scope for this batch — their catalog and balance stay untouched, since
-  // `eligibleEvents` filters these out entirely once `ctx.difficulty` is above
-  // the ceiling). Rare (`baseWeight` well under the minors' 0.7-1.2) and
-  // singular (`maxOccurrences: 1`) as *random* draws — one of them also fires
-  // unconditionally at the first meeting of every easy mandate, via
+  // Mandate-defining crises rather than background noise: `tier: 'major'`.
+  // Rare (`baseWeight` well under the minors' 0.7-1.2) and singular
+  // (`maxOccurrences: 1`) as *random* draws — one of them also fires
+  // unconditionally at the first meeting of an easy mandate, via
   // `events/openingCrisis.ts`, which is not gated by weight or probability at
-  // all. Each carries a real multi-sentence `newswire` and 2-3 `dispatchLines`
+  // all.
+  //
+  // These were briefly scoped `maxDifficulty: 'easy'`, from the session that
+  // added them with medium and hard explicitly out of scope. That ceiling is
+  // gone: a mode whose whole subject is stagflation and tail risk cannot be
+  // the one mode with no mandate-defining crisis in it, and the difficulty
+  // work now lives on the axis that belongs to it — `shockMix` decides which
+  // *kind* of crisis each mode is fed, `costPushCeiling` decides whether they
+  // may pile onto one another, and `openingCrisisCharacters` decides which may
+  // open a mandate at all. Each carries a real multi-sentence `newswire` and 2-3 `dispatchLines`
   // so the story keeps developing over the meetings after it breaks, without
   // needing any new persisted state: `events/dispatches.ts` derives what's
   // been revealed so far from `meetingIndex - record.meetingIndex` alone.
@@ -824,6 +930,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   // correctly — both are free or cheap against the balance guard.
   {
     id: 'geopolitical_crisis_outbreak',
+    shockCharacter: 'supply',
     family: 'geopolitical_crisis',
     title: 'War breaks out along a key trade corridor',
     newswire:
@@ -834,7 +941,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Naval insurers have quietly widened war-risk premiums across the corridor for three straight weeks.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -848,7 +954,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'importPriceInflation', delta: 10 * (ctx.institution === 'ecb' ? 1.3 : 1) },
       { variable: 'confidenceShock', delta: -2.2 },
     ],
-    delayed: () => [
+    delayed: (ctx) => [
       // The fighting spreads before it settles.
       {
         delaySteps: ONE_MEETING,
@@ -859,10 +965,20 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       },
       // A ceasefire holds, but re-routed shipping and the risk premium it
       // carries do not fully unwind — this is stabilisation, not resolution.
+      //
+      // The give-back is sized to leave a *premium*, not a permanent tax. At
+      // -3.6 this arc netted +2.1 of outstanding cost-push and +6.95 of
+      // lifetime inflation impulse — the largest one-directional source in the
+      // whole catalog, unmirrored, against the energy spike's +5.58 which the
+      // energy relief cancels at -6.59. It was invisible while the majors were
+      // scoped to easy and rare; unlocking them above easy put three of the six
+      // buckets outside `events/balance.test.ts`'s net-per-meeting band and is
+      // what caught it.
       {
         delaySteps: THREE_MEETINGS,
         effects: [
-          { variable: 'supplyShock', delta: -3.6 },
+          { variable: 'supplyShock', delta: -5.5 },
+          { variable: 'importPriceInflation', delta: -9 * (ctx.institution === 'ecb' ? 1.3 : 1) },
           { variable: 'geopoliticalRisk', delta: -38 },
           { variable: 'outputGap', delta: -0.7 },
         ],
@@ -879,6 +995,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'domestic_political_shock',
+    shockCharacter: 'demand',
     family: 'domestic_political',
     title: "Government loses its majority in a snap vote",
     newswire:
@@ -889,7 +1006,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: "Coalition whips have failed to guarantee the numbers for next week's budget vote.",
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -905,6 +1021,19 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       // policy has actually changed — a demand-shaped shock, not a supply one.
       { variable: 'demandShock', delta: -1.4 },
       { variable: 'confidenceShock', delta: -1.4 },
+      // The anchor takes the hit on the day, not two quarters later.
+      //
+      // The standing `anchoringIndependence` channel is the *sustained* cost
+      // of elevated pressure, and it is slow by construction — the anchoring
+      // index moves at 0.6 a year, so over the two or three meetings this
+      // event keeps pressure elevated it barely moves at all. Measured, the
+      // event changed a competent committee's package in 31 meetings out of
+      // 120 with the channel and 20 without it, which is not the difference
+      // between a political crisis and an ordinary quarter. Openly questioning
+      // who will run the central bank is *news*: households and markets
+      // reprice the institution's commitment the same week, and the direct hit
+      // is what represents that.
+      { variable: 'anchoring', delta: -0.18 },
     ],
     delayed: () => [
       // A first attempt at forming a government fails.
@@ -913,15 +1042,20 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
         effects: [
           { variable: 'politicalPressure', delta: 16 },
           { variable: 'marketVolatility', delta: 9 },
+          { variable: 'anchoring', delta: -0.08 },
         ],
       },
       // An interim arrangement holds. The institution is not out of the
-      // spotlight, but the immediate threat to it has receded.
+      // spotlight, but the immediate threat to it has receded. The anchor
+      // comes back by less than it lost: a bank that has been publicly
+      // threatened once is discounted afterwards, and re-earning that is the
+      // chair's job rather than the calendar's.
       {
         delaySteps: THREE_MEETINGS,
         effects: [
           { variable: 'politicalPressure', delta: -30 },
           { variable: 'marketTrust', delta: 8 },
+          { variable: 'anchoring', delta: 0.16 },
         ],
       },
     ],
@@ -936,6 +1070,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'banking_failure',
+    shockCharacter: 'financial',
     family: 'banking_failure',
     title: 'A major regional lender collapses overnight',
     newswire:
@@ -946,7 +1081,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Overnight funding costs for mid-sized lenders have detached sharply from the rest of the banking system.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -995,6 +1129,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'housing_market_crash',
+    shockCharacter: 'financial',
     family: 'housing_crash',
     title: 'Property markets seize up nationwide',
     newswire:
@@ -1005,7 +1140,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Mortgage applications have fallen for five consecutive months while completed-but-unsold inventory keeps building.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -1052,6 +1186,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'supply_rupture',
+    shockCharacter: 'supply',
     family: 'supply_rupture',
     title: 'Export ban cuts off a critical input overnight',
     newswire:
@@ -1062,7 +1197,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: 'Buyers have reported abrupt cancellations of scheduled cargoes with no replacement offered.',
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -1073,10 +1207,19 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'supplyShock', delta: 4.0 },
       { variable: 'importPriceInflation', delta: 10 * (ctx.institution === 'ecb' ? 1.3 : 1) },
     ],
-    delayed: () => [
+    delayed: (ctx) => [
       { delaySteps: ONE_MEETING, effects: [{ variable: 'supplyShock', delta: 1.6 }] },
-      // Alternate suppliers ramp up, at a lasting premium to the old price.
-      { delaySteps: THREE_MEETINGS, effects: [{ variable: 'supplyShock', delta: -3.6 }] },
+      // Alternate suppliers ramp up, at a lasting premium to the old price —
+      // a premium, which is what the newswire says, rather than the permanent
+      // +2.0 of outstanding cost-push a -3.6 give-back actually left. See the
+      // geopolitical crisis above for how that was caught.
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [
+          { variable: 'supplyShock', delta: -5.4 },
+          { variable: 'importPriceInflation', delta: -9 * (ctx.institution === 'ecb' ? 1.3 : 1) },
+        ],
+      },
     ],
     followUps: [],
     requires: [],
@@ -1089,6 +1232,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
   },
   {
     id: 'market_panic',
+    shockCharacter: 'financial',
     family: 'market_panic',
     title: 'Leveraged trades unwind in a disorderly rout',
     newswire:
@@ -1101,7 +1245,6 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     clue: null,
     institutions: ['fed', 'ecb'],
     minDifficulty: 'easy',
-    maxDifficulty: 'easy',
     tier: 'major',
     baseWeight: 0.15,
     cooldownMeetings: 8,
@@ -1145,6 +1288,234 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       'Circuit breakers and emergency liquidity have restored orderly trading, ' +
         'though positioning across the market remains far lighter than before.',
     ],
+  },
+  // ---- Asymmetric: shocks that fall on part of a currency area ------------
+  //
+  // The mechanic that makes one policy rate a genuine problem rather than an
+  // arithmetic one. A common shock has a common answer; these do not. Each
+  // finds its member by *structure* — the most indebted, the most
+  // energy-exposed — so the economics chooses the country rather than a story
+  // choosing it. See `events/memberShocks.ts`.
+  {
+    id: 'sovereign_repricing',
+    shockCharacter: 'financial',
+    family: 'sovereign',
+    title: 'Sovereign spreads reprice across the area',
+    newswire:
+      'Investors have repriced the debt of the most heavily indebted member ' +
+      'sharply wider against the area benchmark, citing a financing programme ' +
+      'larger than the market had assumed. Other members are little changed.',
+    clue: 'Auction cover ratios have thinned at the long end for the area\'s largest debt issuers.',
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.9,
+    cooldownMeetings: 4,
+    maxOccurrences: 3,
+    isEligible: () => true,
+    // More likely when the common rate is already high and risk appetite thin,
+    // which is when a debt burden stops being a background fact.
+    weight: (ctx) =>
+      0.5 +
+      Math.max(0, ctx.latent.policyRate) / 4 +
+      Math.max(0, ctx.latent.marketVolatility - VOLATILITY.base) / 30,
+    immediate: () => [
+      { variable: 'fragmentation', delta: 60 },
+      { variable: 'marketVolatility', delta: 8 },
+    ],
+    // The area's *own* numbers barely move. That is the lesson: a member can
+    // be in serious trouble while the aggregate the committee targets says
+    // almost nothing is happening.
+    memberEffects: () => [
+      { member: 'most_indebted', field: 'spread', magnitude: 190 },
+      { member: 'most_indebted', field: 'outputGapOffset', magnitude: -1.2 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: TWO_MEETINGS,
+        effects: [{ variable: 'fragmentation', delta: 25 }],
+      },
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [{ variable: 'fragmentation', delta: -55 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'gas_supply_interruption',
+    shockCharacter: 'supply',
+    family: 'energy_commodity',
+    title: 'Pipeline outage hits the gas-dependent economies',
+    newswire:
+      'An unplanned interruption on a major import route has cut deliveries to ' +
+      'the members that rely on it most. Economies with other supply routes are ' +
+      'largely unaffected, and area-wide wholesale prices have moved much less ' +
+      'than national ones.',
+    clue: 'Storage levels have diverged sharply between members on the same wholesale market.',
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.85,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + ctx.latent.geopoliticalRisk / 60,
+    immediate: () => [{ variable: 'supplyShock', delta: 0.5 }],
+    // Two members, which is what the story is about: gas-intensive industry
+    // and the economies that import through the interrupted route. The most
+    // energy-exposed member is small, so on its own the area would barely
+    // register an event whose whole point is that it is felt unevenly.
+    memberEffects: () => [
+      { member: 'most_energy_exposed', field: 'inflationOffset', magnitude: 2.4 },
+      { member: 'most_energy_exposed', field: 'outputGapOffset', magnitude: -0.8 },
+      { member: 'most_industrial', field: 'inflationOffset', magnitude: 1.6 },
+      { member: 'most_industrial', field: 'outputGapOffset', magnitude: -0.6 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [{ variable: 'supplyShock', delta: -0.5 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'gas_supply_restored',
+    shockCharacter: 'supply',
+    family: 'energy_commodity',
+    title: 'Import route reopens and national gas prices retrace',
+    newswire:
+      'Deliveries have resumed through the interrupted route, and alternative ' +
+      'terminal capacity commissioned in the meantime has left the most exposed ' +
+      'members better supplied than before. National price differentials across ' +
+      'the area have narrowed sharply.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.85,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    // The counterpart, and paired with the interruption term for term. The
+    // catalog's standing rule is that no event writes the inflation outcome by
+    // itself: an asymmetric impulse with no mirror is a one-sided inflation
+    // tax that `events/balance.test.ts` catches in the aggregate — which is
+    // exactly how this one was found, at 0.086 of net impulse per meeting
+    // against a band of 0.08.
+    //
+    // Free to fire rather than gated on an interruption having happened. Good
+    // news that needs permission is good news the player will rarely meet, and
+    // the same mistake once left `energy_price_relief` landing six times
+    // against the spike's sixty-two.
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, 50 - ctx.latent.geopoliticalRisk) / 60,
+    immediate: () => [{ variable: 'supplyShock', delta: -0.5 }],
+    memberEffects: () => [
+      { member: 'most_energy_exposed', field: 'inflationOffset', magnitude: -2.4 },
+      { member: 'most_energy_exposed', field: 'outputGapOffset', magnitude: 0.8 },
+      { member: 'most_industrial', field: 'inflationOffset', magnitude: -1.6 },
+      { member: 'most_industrial', field: 'outputGapOffset', magnitude: 0.6 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: THREE_MEETINGS,
+        effects: [{ variable: 'supplyShock', delta: 0.5 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'regional_labour_shock',
+    shockCharacter: 'demand',
+    family: 'labour',
+    title: 'Construction and tourism employment falls in one member',
+    newswire:
+      'A sharp contraction in construction and seasonal services has pushed ' +
+      'unemployment up in the member whose labour market moves most over the ' +
+      'cycle. Area-wide employment is close to unchanged.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.75,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, ctx.latent.policyRate - 2) / 4,
+    immediate: () => [],
+    memberEffects: () => [
+      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: 3.0 },
+      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: -1.8 },
+      { member: 'most_cyclical', field: 'inflationOffset', magnitude: -0.8 },
+    ],
+    delayed: () => [],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'industrial_export_slump',
+    shockCharacter: 'demand',
+    family: 'innovation',
+    title: 'External demand for capital goods falls away',
+    newswire:
+      'Order books at machinery and vehicle manufacturers have thinned as ' +
+      'export markets slow. The effect is concentrated in the area\'s ' +
+      'industrial core; service-led members report little change.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.8,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    weight: (ctx) => 0.7 + Math.max(0, -ctx.latent.outputGap) / 3,
+    immediate: () => [{ variable: 'confidenceShock', delta: -0.4 }],
+    memberEffects: () => [
+      { member: 'most_industrial', field: 'outputGapOffset', magnitude: -2.4 },
+      { member: 'most_industrial', field: 'unemploymentOffset', magnitude: 1.1 },
+      { member: 'most_industrial', field: 'inflationOffset', magnitude: -0.9 },
+    ],
+    delayed: () => [
+      {
+        delaySteps: FOUR_MEETINGS,
+        effects: [{ variable: 'confidenceShock', delta: 0.4 }],
+      },
+    ],
+    followUps: [],
+    requires: [],
+  },
+  {
+    id: 'convergence_upswing',
+    shockCharacter: 'demand',
+    family: 'innovation',
+    title: 'Investment flows narrow the gap between members',
+    newswire:
+      'Cross-border investment into the area\'s smaller and higher-yielding ' +
+      'economies has picked up sharply, lifting activity where it had been ' +
+      'weakest and narrowing the dispersion across the area.',
+    clue: null,
+    institutions: ['ecb'],
+    minDifficulty: 'medium',
+    baseWeight: 0.8,
+    cooldownMeetings: 5,
+    maxOccurrences: 2,
+    isEligible: () => true,
+    // The counterpart the asymmetric family needs. Without it the area could
+    // only ever come apart: every asymmetric event would widen dispersion,
+    // convergence would be a slow decay and nothing else, and cohesion would
+    // be a score that only falls. Convergence happens, and it happens for the
+    // ordinary reason — capital goes where returns are higher.
+    weight: (ctx) => 0.6 + Math.max(0, 60 - ctx.latent.fragmentation) / 60,
+    immediate: () => [{ variable: 'confidenceShock', delta: 0.3 }],
+    memberEffects: () => [
+      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: -2.2 },
+      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: 1.2 },
+      { member: 'most_indebted', field: 'spread', magnitude: -110 },
+      { member: 'most_indebted', field: 'outputGapOffset', magnitude: 0.8 },
+    ],
+    delayed: () => [],
+    followUps: [],
+    requires: [],
   },
 ]
 

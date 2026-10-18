@@ -39,6 +39,8 @@ export {
   availableInstruments,
   getInstrument,
   getInstrumentRange,
+  setsStandingLevel,
+  standingLevel,
 } from './config/instruments.ts'
 export { LATENT_BOUNDS, isWithinBounds } from './config/bounds.ts'
 export {
@@ -49,12 +51,20 @@ export {
   SUBSTEPS_PER_MEETING,
   YEARS_PER_MEETING,
 } from './config/time.ts'
-export { MAX_SCORE } from './config/scoring.ts'
+export { MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
+export { FISCAL } from './config/model.ts'
+export { fanReference, livingFan } from './policy/livingFan.ts'
+export type { LivingBand, LivingFan } from './policy/livingFan.ts'
 export {
   GUIDANCE_DELIVERY_TOLERANCE,
   GUIDANCE_HORIZON_MEETINGS,
   THRESHOLDS,
 } from './config/thresholds.ts'
+// The two blocks the Policy Desk's guidance preview is derived from, so the
+// estimate the player is shown cannot drift from the mechanism behind it.
+// `INSTITUTIONAL` joins them for the promise ledger: what a broken promise
+// costs on screen has to be the number the dynamics actually charge.
+export { COMMUNICATION, EXPECTATIONS, INSTITUTIONAL } from './config/model.ts'
 
 // ---- Engine ---------------------------------------------------------------
 export {
@@ -88,8 +98,33 @@ export { revealedDispatches, type RevealedDispatch } from './events/dispatches.t
 
 // ---- Observation ----------------------------------------------------------
 export { generateObservation } from './observation/generateObservation.ts'
-export { FORECAST_SERIES, SERIES, getSeries, seriesFor } from './observation/series.ts'
+export { EQUITY_BASE, FORECAST_SERIES, SERIES, getSeries, seriesFor } from './observation/series.ts'
+export {
+  LIVE_SERIES,
+  buildIntervalFrames,
+  calendarLabel,
+  type IntervalDispatch,
+  type IntervalFrame,
+} from './observation/interval.ts'
 export { diagnoseShock } from './observation/diagnose.ts'
+export { isUnlocked, unlockedAt } from './observation/unlock.ts'
+export {
+  observeMembers,
+  type AreaObservation,
+  type MemberObservation,
+} from './observation/memberObservation.ts'
+export {
+  MEMBERS,
+  MEMBER_DYNAMICS,
+  getMember,
+  type MemberId,
+  type MemberProfile,
+} from './config/members.ts'
+export {
+  dispersion,
+  memberLevel,
+  memberTransmission,
+} from './engine/members.ts'
 export {
   readStance,
   readStanceChange,
@@ -101,12 +136,105 @@ export {
 
 // ---- Policy ---------------------------------------------------------------
 export {
+  PROJECTION_HORIZON,
+  projectPackage,
+  projectSeries,
+  projectionTarget,
+  type PackageProjection,
+  type ProjectedSeries,
+} from './policy/projection.ts'
+export {
+  projectInstrument,
+  type InstrumentEffect,
+  type InstrumentEffectLine,
+} from './policy/instrumentEffect.ts'
+export {
+  committeeAgrees,
+  committeeViews,
   staffRecommendation,
+  type CommitteeView,
   type StaffRecommendation,
 } from './policy/staffRule.ts'
 
+// ---- The doctrines ---------------------------------------------------------
+export {
+  DOCTRINES,
+  doctrineContext,
+  doctrineViews,
+  getDoctrine,
+  type Doctrine,
+  type DoctrineContext,
+  type DoctrineId,
+  type DoctrineView,
+} from './doctrines/doctrines.ts'
+export {
+  openDebate,
+  type Debate,
+  type DoctrineSpeaker,
+} from './doctrines/debate.ts'
+
+// ---- Historical scenarios --------------------------------------------------
+export {
+  SCENARIOS,
+  getScenario,
+  instrumentRangesFor,
+  inflationTargetFor,
+  measurementRegime,
+  rateInstrumentLabel,
+  sustainableRateFor,
+  meetingLabel,
+  thresholdsFor,
+  scenarioOf,
+} from './scenarios/scenarios.ts'
+export { VOLCKER_1979 } from './scenarios/volcker.ts'
+export { goldFloorAt, goldLabel } from './scenarios/goldStandard.ts'
+export { isScheduledMajor } from './scenarios/scheduled.ts'
+export {
+  DEMAND_THRESHOLDS,
+  demandConsequences,
+  politicalDemand,
+} from './politics/demands.ts'
+export type { DemandResponse, PoliticalDemand } from './politics/demands.ts'
+export type {
+  OperatingProcedure,
+  Scenario,
+  ScenarioEvent,
+  ScenarioId,
+  ScenarioMeeting,
+} from './types/scenario.ts'
+
+// ---- The counterfactual ----------------------------------------------------
+export {
+  FROZEN_LABEL,
+  advanceArm,
+  attribute,
+  withoutGroup,
+  type FrozenSet,
+  type SeriesAttribution,
+} from './counterfactual/counterfactual.ts'
+
+// ---- The press ------------------------------------------------------------
+export {
+  decisionFrontPages,
+  type DecisionSummary,
+  type FrontPage,
+  type Stance,
+} from './press/frontPage.ts'
+export {
+  buildPressPage,
+  type PressDesk,
+  type PressPage,
+  type PressStory,
+  type Prominence,
+} from './press/pressPage.ts'
+
 // ---- Scoring --------------------------------------------------------------
 export { calculateScore, scoreBucketKey } from './scoring/calculateScore.ts'
+export {
+  tutorialExhausted,
+  tutorialProgress,
+  type TutorialProgress,
+} from './scoring/tutorialGoal.ts'
 export { evaluateEndConditions } from './scoring/endConditions.ts'
 
 // ---- Replay ---------------------------------------------------------------

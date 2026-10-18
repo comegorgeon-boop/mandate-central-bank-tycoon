@@ -3,6 +3,7 @@ import {
   type IndicatorObservation,
   type ReleaseCategory,
 } from '../simulation/index.ts'
+import { plainHeadline, type Register } from '../features/meeting/register.ts'
 import { TrendChart } from './TrendChart.tsx'
 
 /**
@@ -15,6 +16,12 @@ import { TrendChart } from './TrendChart.tsx'
  *
  * The trend chart is not decoration. A single reading shows no direction, and
  * in macroeconomics the direction usually decides the policy.
+ *
+ * What leads the row is the difficulty's `Register`. On the learning mandate a
+ * plain sentence is the headline and the figure is the note underneath it; from
+ * medium the figure leads; at hard the plain-language reading of what a move
+ * means is withdrawn entirely and only the technical definition remains. See
+ * `features/meeting/register.ts`.
  */
 
 const CATEGORY_LABEL: Readonly<Record<ReleaseCategory, string>> = {
@@ -48,25 +55,45 @@ function formatChange(
 export function IndicatorRow({
   observation,
   reference = null,
-  referenceLabel,
+  referenceLabel = 'objective',
+  register = 'plain',
 }: {
   readonly observation: IndicatorObservation
   /** A line to read the series against, such as the inflation objective. */
   readonly reference?: number | null
   readonly referenceLabel?: string
+  /** Which language this difficulty publishes its numbers in. */
+  readonly register?: Register
 }) {
   const decimals = getSeries(observation.seriesId)?.decimals ?? 2
   const change = formatChange(observation.value, observation.previous, decimals)
+  const figure = (
+    <span className="tabular-nums text-lg text-ink">
+      {formatValue(observation.value, decimals)}
+      <span className="ml-1 text-xs text-ink-soft">{observation.unit}</span>
+    </span>
+  )
 
   return (
-    <li className="border-b border-neutral-800 py-4 last:border-b-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="font-medium text-neutral-100">{observation.label}</span>
-        <span className="tabular-nums text-lg text-neutral-50">
-          {formatValue(observation.value, decimals)}
-          <span className="ml-1 text-xs text-neutral-400">{observation.unit}</span>
-        </span>
-      </div>
+    <li className="border-b border-edge py-4 last:border-b-0">
+      {register === 'plain' ? (
+        <div>
+          <p className="font-medium text-ink">
+            {plainHeadline(observation, reference, referenceLabel)}
+          </p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="text-xs uppercase tracking-wide text-ink-faint">
+              {observation.label}
+            </span>
+            {figure}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <span className="font-medium text-ink">{observation.label}</span>
+          {figure}
+        </div>
+      )}
 
       <TrendChart
         label={observation.label}
@@ -76,11 +103,9 @@ export function IndicatorRow({
         referenceLabel={referenceLabel}
       />
 
-      <p className="mt-2 text-sm text-neutral-400">{observation.meaning}</p>
-
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-ink-faint">
         {observation.missing ? (
-          <span className="text-amber-400">
+          <span className="text-accent-strong">
             This release did not arrive in time for the meeting.
           </span>
         ) : (
@@ -98,7 +123,7 @@ export function IndicatorRow({
       </p>
 
       {observation.revision !== null && (
-        <p className="mt-1 text-xs text-amber-400">
+        <p className="mt-1 text-xs text-accent-strong">
           Revision: the reading {observation.revision.periodsAgo} period
           {observation.revision.periodsAgo === 1 ? '' : 's'} ago was first published at{' '}
           {observation.revision.firstPrint.toFixed(decimals)} and now reads{' '}
@@ -106,7 +131,42 @@ export function IndicatorRow({
         </p>
       )}
 
-      <p className="mt-1 text-xs text-neutral-600">{observation.definition}</p>
+      {/* What a move means, and what the series is.
+       *
+       * Both fold, and this is the single largest density change in the
+       * interface. Each row used to carry three paragraphs — the reading, the
+       * provenance, and the dictionary entry — so a panel of six indicators
+       * was about eighteen hundred characters of prose wrapped around six
+       * numbers, at every meeting, on four of the seven tabs. The player's
+       * standing complaint is that the game reads like an accounting
+       * document, and this is most of where that came from.
+       *
+       * Nothing is removed. What a move means is a *reading*, needed when a
+       * number surprises you; what a series is is a *definition*, needed once.
+       * Neither is needed in the two seconds it takes to check that core
+       * inflation is where you left it, and both are one click away — keyboard
+       * included, and findable by the browser's own search, which a tooltip is
+       * not.
+       *
+       * The provenance line above does *not* fold: how late a number is and
+       * how wide its error bar is are properties of this reading rather than
+       * of the series, and the whole game is about not trusting a number more
+       * than it deserves.
+       */}
+      <details className="group mt-1">
+        <summary className="cursor-pointer list-none text-2xs text-ink-faint underline decoration-dotted underline-offset-2 marker:content-none">
+          <span className="group-open:hidden">
+            {register === 'technical' ? 'What this series is' : 'What it means, and what it is'}
+          </span>
+          <span className="hidden group-open:inline">Close</span>
+        </summary>
+        {/* Hard reads nothing for you: the technical register keeps the
+            definition and drops the reading, exactly as before. */}
+        {register !== 'technical' && (
+          <p className="mt-1.5 text-sm text-ink-soft">{observation.meaning}</p>
+        )}
+        <p className="mt-1 text-xs text-ink-faint">{observation.definition}</p>
+      </details>
     </li>
   )
 }

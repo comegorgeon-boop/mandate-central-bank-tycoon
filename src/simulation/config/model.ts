@@ -60,6 +60,27 @@ export const HEADLINE = {
   supplyAmplifier: 2.4,
 } as const
 
+/**
+ * When a cost-push shock is large enough that the inflation target stops being
+ * available at any policy the desk could run.
+ *
+ * One band, read in two places that must agree: `engine/dynamics.ts` uses it to
+ * decide how much of an inflation miss the institution's standing should be
+ * charged for, and `scoring/calculateScore.ts` uses it to decide what objective
+ * the mandate is judged on. They were separate judgements once and disagreed —
+ * the score forgave a miss the end conditions were still ending the mandate
+ * over.
+ *
+ * A linear ramp rather than a threshold, so there is no cliff a player could
+ * park under.
+ */
+export const SUPPLY_REGIME_BAND = {
+  /** Below this, ordinary weather: nothing is forgiven. */
+  floor: 0.8,
+  /** At and above this, the target was not available at all. */
+  full: 3.0,
+} as const
+
 /** Adaptive, partly anchored inflation expectations. */
 export const EXPECTATIONS = {
   /** Speed of one-year expectations. */
@@ -90,8 +111,60 @@ export const EXPECTATIONS = {
   anchoringAdjustment: 0.6,
   /** How much a persistent expectations miss erodes anchoring. */
   anchoringMissSensitivity: 0.16,
+  /**
+   * Where the miss stops eroding the anchor linearly, in points.
+   *
+   * Same argument as `INSTITUTIONAL.credibility.missKnee`, on the variable
+   * where it actually traps the model. Linear, a six-point expectations miss
+   * drives the anchoring target below zero however hard policy is being run,
+   * and since expectations only fall when the anchor holds, an economy that
+   * once lost its anchor could never recover it — which is a claim about
+   * 1979-83 that history falsifies. Ordinary mandates run a miss pressure
+   * around 1.25, so nothing below four is touched.
+   */
+  anchoringMissKnee: 4.0,
+  anchoringMissCompression: 0.3,
+  /**
+   * What holding real rates above neutral buys back of the anchor.
+   *
+   * See `INSTITUTIONAL.credibility.resolve` for the argument; this is the
+   * same mechanism on the variable it is really about. Zero unless long-run
+   * expectations are already more than a point from target, so an ordinary
+   * mandate never sees it and nothing rebalances.
+   */
+  anchoringResolve: 1.7,
+  /** Ex-post real-rate gap, in points, that earns the whole of it. */
+  anchoringResolveFullAt: 4.0,
   /** How much credibility supports anchoring. */
   anchoringCredibility: 0.25,
+  /**
+   * How much a visible threat to the institution's independence erodes the
+   * anchor, at full political pressure above the tolerance below.
+   *
+   * The channel that makes political pressure a variable rather than a
+   * readout. Until this existed, `politicalPressure` was written by the
+   * dynamics, written by events, and read by nothing except a warning label —
+   * so an event that raised it by 45 points changed the economy not at all,
+   * which is exactly what a player reported about the one event in the catalog
+   * whose whole subject is political.
+   *
+   * The mechanism is the real one: an anchor is a belief that the institution
+   * will keep doing what it says, and a bank whose leadership is publicly in
+   * question is one markets and households discount — independently of
+   * anything that bank has actually done. Sized against the credibility term,
+   * which spans ±0.25: a political crisis should cost roughly what a large
+   * swing in the institution's own record costs.
+   */
+  anchoringIndependence: 0.9,
+  /**
+   * Political pressure below which nothing is read into it.
+   *
+   * Every central bank is criticised, and criticism is not a threat to
+   * independence. The base target is 22 and ordinary tightening into an
+   * inflation overshoot reaches about 40, so this sits above the noise of
+   * doing the job and below where a genuine institutional crisis lands.
+   */
+  independenceTolerance: 55,
   /** Strength of the pull from published guidance, before credibility. */
   guidancePull: 1.6,
 } as const
@@ -336,8 +409,117 @@ export const INSTITUTIONAL = {
     ceiling: 90,
     /** Penalty per percentage point of average inflation miss. */
     inflationMiss: 8.0,
+    /**
+     * How much of the headline-miss penalty is forgiven when the miss is
+     * cost-push pushed in from outside domestic demand.
+     *
+     * A central bank's standing does not collapse because headline inflation is
+     * high during an oil shock. It collapses when people stop believing
+     * inflation will be brought back — which is the anchoring term below, and
+     * which is left at full strength. Charging the full headline miss on top
+     * was the same error the score made and, unlike the score, it *ends
+     * mandates*: measured over 100 hard runs, a competent toolkit-playing
+     * policy was dismissed 34-35 times, and loosening every failure threshold
+     * only converted banking crises into dismissals (34 -> 48) because this
+     * term, not the thresholds, was the binding constraint.
+     *
+     * Not one. A committee that lets a supply shock run into the price level
+     * indefinitely does lose standing — but through the anchor slipping, which
+     * is the channel that means it.
+     */
+    supplyMissForgiveness: 0.75,
+    /**
+     * Where the miss penalty stops being linear, in percentage points.
+     *
+     * Below the knee, nothing changes: 8 points of standing per point of
+     * miss, exactly as calibrated. Above it the penalty compresses, because
+     * the linear form extended far enough says something false. At a
+     * ten-point miss it charges 79 points of standing against a ceiling of
+     * 90 and a floor of nought, which is the model asserting that the Federal
+     * Reserve of 1979 had no credibility at all — while the dollar was the
+     * reserve currency and its auctions cleared. What a very large miss means
+     * is *they have lost control*, and that is a state, not a quantity that
+     * keeps doubling.
+     *
+     * Six points is above anything the fictional modes produce in practice,
+     * so this changes no existing balance; it exists for the historical
+     * scenarios, where a double-digit miss is the situation rather than a
+     * catastrophe.
+     */
+    missKnee: 6.0,
+    /** Slope beyond the knee, as a fraction of the linear one. */
+    missCompression: 0.3,
+    /**
+     * How much of the inflation a chairman *inherited* is forgiven, and for
+     * how long.
+     *
+     * The mechanism this model was missing, and the one that made the Volcker
+     * scenario unplayable on its own historical path. Measured on the rate
+     * path that actually prevailed in 1979-83: credibility fell monotonically
+     * from 45 to 0 and anchoring from 0.45 to 0.05, over three years in which
+     * the real policy rate averaged above +3. The institution was being
+     * destroyed for the *level* of inflation rather than for what it was doing
+     * about it — and because expectations in this model are pulled toward the
+     * objective in proportion to credibility, a collapsing credibility made
+     * inflation rise, which collapsed credibility further. The historical path
+     * disinflated in two of twelve seeds and ended the other ten in a spiral
+     * or a capitulation.
+     *
+     * A new chairman is judged on the trajectory they establish, not on the
+     * number they walked into. So the miss is charged against a **glide path**:
+     * at the first meeting the whole inherited miss is forgiven, at the last
+     * none of it is, and in between the forgiveness falls linearly. A committee
+     * that stays on the glide pays nothing; one above it pays for the
+     * difference; one below it is already earning.
+     *
+     * In an ordinary mandate the inherited miss is small — a fraction of a
+     * point — so this term is nearly inert, which is the right behaviour: it
+     * is a rule about inheriting a disaster, and the fictional modes do not.
+     * The cap stops it forgiving a mandate that opens on an inflation nobody
+     * could have inherited.
+     */
+    inheritedForgivenessCap: 10.0,
+    /**
+     * The part of an inherited miss that is *not* forgiven, in points.
+     *
+     * A deductible, and it is what keeps the glide path above from being a
+     * general softening. Every mandate inherits something — the tutorial opens
+     * 2.4 points above its objective by design — and forgiving that too made
+     * an idle player's credibility hold up as well as an active one's.
+     * Measured: the tutorial's "competent beats passive" guard, which exists
+     * because an earlier opening healed itself, went to a dead tie the moment
+     * the glide path applied to ordinary openings.
+     *
+     * Four points is above anything the fictional modes produce and well below
+     * what 1979 (9.8) or 2021 (0.7, so nothing) or 1929 (1.2, so nothing)
+     * hand over. It makes this a rule about inheriting a disaster rather than
+     * a discount on having a job.
+     */
+    inheritedDeductible: 4.0,
     /** Penalty for unanchored long-run expectations. */
     anchoring: 35.0,
+    /**
+     * Credit for bearing the cost of getting the anchor back.
+     *
+     * The mechanism the model did not have, and the one this whole project's
+     * credibility hawk is about: in Barro and Gordon a central bank
+     * establishes its type by *paying* — holding real rates above neutral
+     * through the recession that follows. Nothing in this file used to let a
+     * committee earn standing that way; the only route up was keeping
+     * guidance promises, which is a theory of announcements rather than of
+     * resolve.
+     *
+     * Deliberately gated on the anchor having slipped, and worth nothing when
+     * it has not: when expectations are pinned there is nothing to prove, and
+     * paying a premium to prove it would be a policy error rather than a
+     * demonstration. So in an ordinary mandate this term is zero and nothing
+     * rebalances; in 1979 it is the whole of how the disinflation is won.
+     */
+    resolve: 46.0,
+    /** Real-rate gap, in points above neutral, that earns the full credit. */
+    resolveFullAt: 4.0,
+    /** Expectations miss, in points beyond one, at which it is fully live. */
+    resolveLiveAt: 4.0,
     /** Penalty per guidance reversal not justified by a large shock. */
     brokenPromise: 6.0,
     /** Credit per meeting whose action matched the published guidance. */
@@ -368,12 +550,56 @@ export const INSTITUTIONAL = {
   politicalPressure: {
     base: 22,
     unemployment: 10.0,
+    /** Resentment per point of real policy rate above the tolerance. */
     policyRate: 4.0,
-    policyRateTolerance: 3.0,
+    /**
+     * Where resentment of the cost of credit starts, as a **real** rate.
+     *
+     * Read on the real rate rather than the nominal one, because the previous
+     * form double-counted inflation: it charged pressure for a nominal rate
+     * above 3 % *and*, on the line below, for the inflation that was the
+     * reason the nominal rate was there. In a 2 %-target world the two are
+     * nearly the same thing and the error is invisible. In August 1979 it is
+     * not: a funds rate of 10.94 % against inflation of 11.84 % — credit free
+     * in real terms, and nobody in Congress writing letters about it yet —
+     * scored 32 points of resentment on the rate term alone and opened the
+     * mandate at maximum political pressure, before a single decision.
+     *
+     * On the real rate, that opening scores nothing, and 1981 — a funds rate
+     * of 19 % against inflation of 9 % — scores 34. Which is the right shape:
+     * the builders posting lumber to the Board did it in 1981 and 1982, not
+     * in 1979.
+     */
+    realRateTolerance: 1.5,
     publicTrust: 0.6,
     inflation: 5.0,
     adjustment: 1.8,
   },
+} as const
+
+/**
+ * Targeting reserves instead of the rate.
+ *
+ * The October 1979 reform, as a mechanism. The Committee stopped defending a
+ * funds-rate range and set a path for nonborrowed reserves instead, and the
+ * rate went where the path sent it: between October 1979 and the end of 1980
+ * the effective funds rate ranged from 8.5 % to 20 %, and it reached 19 %
+ * without anybody having to vote for 19 %.
+ *
+ * Both numbers are calibrated rather than measured. The standing is what the
+ * reform is usually credited with — a committee that has stopped defending a
+ * number is read as one that will not blink — and it is deliberately smaller
+ * than the swings it costs you, so the choice is a trade and not a free gift.
+ */
+export const RESERVE_TARGETING = {
+  /** Standard deviation of the realised rate around the voted midpoint, pp. */
+  bandSd: 1.3,
+  /** Hard limit on that offset, pp. */
+  bandLimit: 3.2,
+  /** Credit to the credibility target while the anchor is adrift. */
+  credibility: 7.0,
+  /** Credit to the anchoring target on the same condition. */
+  anchoring: 0.1,
 } as const
 
 /** How the market forms its expected policy path. */
@@ -385,6 +611,33 @@ export const MARKET_EXPECTATIONS = {
   /** Weight always retained on the current setting. */
   currentWeight: 0.25,
   adjustment: 2.8,
+  /**
+   * How far below the institution's own effective lower bound markets will
+   * price a policy path, in points.
+   *
+   * Markets do not price a rate the central bank cannot set. They will price
+   * a little *through* a floor — a bank that has gone to −0.50 might go to
+   * −0.75, and short rates traded through the ECB's deposit rate more than
+   * once — but not by much and not for long, because the floor is a fact about
+   * cash and the banking system rather than a preference.
+   *
+   * This exists because the Taylor benchmark has no floor at all. In a
+   * deflation of −7 % the rule prescribes about −11, the priced path followed
+   * it down, and the only thing stopping it was the safety rail at −2 in
+   * `config/bounds.ts` — which is how `marketExpectedRate` came to be the one
+   * standing clamp warning in `npm run sim:sweep`, carried in docs/BALANCE.md
+   * as "not diagnosed" for several sessions. Diagnosed: not an inflation
+   * spiral reaching the upper rail, as the bounds file guessed, but *deflation
+   * reaching the lower one*.
+   *
+   * Making it a modelled floor rather than a rail also matters for what the
+   * model can teach. A nominal path that cannot fall below zero while prices
+   * fall is the *entire* mechanism of 1929-33: the expected real rate rises
+   * exactly when the economy needs it to fall, and policy is tightening while
+   * doing nothing. A model whose priced path happily went to −11 could not
+   * produce that, and the number it produced instead was a clamp warning.
+   */
+  belowFloorAllowance: 0.5,
 } as const
 
 /**
@@ -491,7 +744,7 @@ export const COMMUNICATION = {
    * toward dismissal territory on its own. See docs/BALANCE.md, "Conduct has
    * to cost, independent of the economy".
    */
-  inconsistencyCost: { easy: 15, medium: 4.5, hard: 4.5 },
+  inconsistencyCost: { easy: 15, medium: 12, hard: 12 },
   /**
    * Credibility and market-trust cost of sharply reversing the *previous*
    * meeting's rate move, per point of the smaller of the two moves reversed,
@@ -528,8 +781,27 @@ export const COMMUNICATION = {
    * independent of the economy".
    */
   reversalCost: 10.0,
-  /** Reversals per mandate before `reversalCost` starts charging for them. */
-  freeReversals: 2,
+  /**
+   * Reversals per mandate before `reversalCost` starts charging for them,
+   * per difficulty.
+   *
+   * A per-difficulty record, and measured rather than guessed. The cost used to
+   * be gated off above easy entirely, on the finding that medium and hard's
+   * observation noise makes a rule's own target jump legitimately far more
+   * often — which is true, and which a single allowance tuned for easy's much
+   * quieter data read as sabotage. The answer is a bigger allowance where the
+   * data are noisier and the mandate longer, not no allowance at all: sixty
+   * seeds per bucket, mean reversals per mandate,
+   *
+   *            competent (toolkit rule)   deliberate sabotage
+   *   easy               0.0                      9.0
+   *   medium             0.6 - 0.8               14.5 - 14.9
+   *   hard               2.1 - 3.4               13.8 - 15.2
+   *
+   * so a bar set between the two columns bills a pattern of whiplash at every
+   * difficulty and never bills a committee reacting to genuinely noisy data.
+   */
+  freeReversals: { easy: 2, medium: 3, hard: 6 },
   /** Public trust gained by an earned reassurance, per unit of crisis intensity, before reach. */
   reassuranceTrust: 6.0,
   /** Market volatility added by an alarmed tone, before the crisis amplifier. */
@@ -600,4 +872,80 @@ export const FISCAL = {
   debtFromImpulse: 2.2,
   debtFromRealRate: 1.8,
   debtDecay: 0.35,
+
+  /**
+   * The public finances, as arithmetic rather than as an index.
+   *
+   * ## Why this exists
+   *
+   * The unpleasant monetarist arithmetic (Sargent and Wallace, 1981). A
+   * central bank that raises rates raises the interest bill of the government
+   * it serves, and if that government will not or cannot close the gap, the
+   * bill is eventually paid by the central bank — which is to say by
+   * inflation. The whole argument turns on a *lag*: the rate rises today and
+   * the bill rises over the years it takes the debt stock to roll over.
+   *
+   * So the model integrates the stock rather than indexing it:
+   *
+   *     effectiveRate → longRate, at 1/maturity a year
+   *     debtService   = debt × effectiveRate / 100
+   *     deficit       = debtService − primaryBalance
+   *     debt          += deficit − debt × nominal growth / 100
+   *
+   * The last term is the one people forget and it is why debt ratios fall in
+   * an inflation: the denominator grows. It is also why this scenario's own
+   * 1979 chairman was accused of making the deficit worse and 1983's was not.
+   *
+   * ## What it is *not*
+   *
+   * Not in the score. Nothing in `calculateScore.ts` reads any of these. They
+   * reach the player through the event generator — a high debt ratio makes a
+   * fiscal-dominance episode more likely to be drawn — and through the panel
+   * that shows them. A central bank scored on the deficit would be a treasury.
+   */
+  publicFinances: {
+    /**
+     * Average maturity of the debt stock, in years, per institution.
+     *
+     * The United States Treasury's weighted average maturity has run near six
+     * years for most of the past two decades; the euro area's aggregate is
+     * longer, nearer eight, because its members issue further out. These are
+     * the real orders of magnitude and they are the single number that
+     * decides how long a rate rise takes to show up in the interest bill.
+     */
+    maturityYears: { fed: 6, ecb: 8 },
+    /**
+     * How far the primary balance moves with the cycle, per point of output
+     * gap.
+     *
+     * Automatic stabilisers: revenue falls and transfers rise in a recession
+     * without anybody deciding anything. Half a point of balance per point of
+     * gap is the standard estimate for an advanced economy.
+     */
+    cyclicalBalance: 0.5,
+    /** And how far it moves with a discretionary fiscal impulse. */
+    impulseBalance: 0.9,
+    /** The structural primary balance each institution reverts to. */
+    structuralBalance: { fed: -2.5, ecb: -1.0 },
+    /** Speed at which the primary balance returns to that. */
+    balanceAdjustment: 0.8,
+    /**
+     * Index points of fiscal pressure per point of debt ratio **above where
+     * the mandate opened**.
+     *
+     * The link between the two notions, and it is additive rather than a
+     * substitution. `debtPressure` is not a debt ratio: it is how much the
+     * public finances constrain *this* central bank, and the engine opens the
+     * Fed at 38 and the ECB at 52 although the United States carries the
+     * larger debt — because the euro area's debt is a monetary problem in a
+     * way a sovereign borrowing in its own currency at depth is not.
+     *
+     * What the ratio contributes is therefore its *rise*. At 0.45, a debt
+     * ratio twenty points higher than it opened adds nine points of pressure,
+     * which is about a quarter of the Fed's opening level: enough to move the
+     * term premium and to make a fiscal-dominance episode visibly likelier,
+     * and not enough to swamp everything else in the block.
+     */
+    pressurePerDebtPoint: 0.45,
+  },
 } as const

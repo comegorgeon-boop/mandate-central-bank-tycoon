@@ -185,9 +185,16 @@ function seriesChanges(current: ObservationSet, previous: ObservationSet): Candi
       weight,
       headline:
         `${indicator.label} ${direction} to ${now.toFixed(decimals)} ${indicator.unit}`,
+      // The move, and nothing else. This used to append the series' own
+      // `meaning` — "a rise means prices are running further from the
+      // objective and the public is feeling it; a fall means the pressure is
+      // easing" — for every changed series, so a meeting in which five things
+      // moved printed five paragraphs of generic definition into the panel
+      // whose whole subject is *what changed*. The same sentence is one click
+      // away under the series itself, on the tab where it belongs.
       detail:
         `A move of ${Math.abs(change).toFixed(decimals)} ${indicator.unit} since the ` +
-        `last meeting. ${indicator.meaning}`,
+        'last meeting.',
     })
   }
 
@@ -205,6 +212,8 @@ function forecastChange(
   current: ObservationSet,
   previous: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): Candidate | null {
   const now = current.forecasts.find((fan) => fan.seriesId === 'headline_inflation')
   const before = previous.forecasts.find((fan) => fan.seriesId === 'headline_inflation')
@@ -215,7 +224,7 @@ function forecastChange(
   const change = nowBand.central - beforeBand.central
   if (Math.abs(change) < 0.05) return null
 
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
   const distance = nowBand.central - target
 
   return {
@@ -271,9 +280,11 @@ function revisionChanges(current: ObservationSet): Candidate[] {
 function standingFacts(
   current: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly ChangeItem[] {
   const facts: ChangeItem[] = []
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
 
   const policyRate = reading(current, 'policy_rate')
   if (policyRate !== null) {
@@ -333,6 +344,8 @@ function standingFacts(
 function openingPosition(
   current: ObservationSet,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly ChangeItem[] {
   const opening: ChangeItem[] = [
     {
@@ -344,21 +357,23 @@ function openingPosition(
         'meeting on, this panel leads with what your decision did.',
     },
   ]
-  return [...opening, ...standingFacts(current, institution)].slice(0, MAX_CHANGES)
+  return [...opening, ...standingFacts(current, institution, objective)].slice(0, MAX_CHANGES)
 }
 
 export function buildChanges(
   current: ObservationSet,
   previous: ObservationSet | null,
   institution: Institution,
+  /** See `readStanding` in `standing.ts`. */
+  objective?: number,
 ): readonly ChangeItem[] {
-  if (previous === null) return openingPosition(current, institution)
+  if (previous === null) return openingPosition(current, institution, objective)
 
   const ranked: Candidate[] = [
     ...seriesChanges(current, previous),
     ...revisionChanges(current),
   ]
-  const forecast = forecastChange(current, previous, institution)
+  const forecast = forecastChange(current, previous, institution, objective)
   if (forecast !== null) ranked.push(forecast)
 
   ranked.sort((a, b) => b.weight - a.weight)
@@ -381,7 +396,7 @@ export function buildChanges(
   // than hand the player a meeting that looks like nothing happened.
   if (items.length < MIN_CHANGES) {
     const seen = new Set(items.map((item) => item.id))
-    for (const fact of standingFacts(current, institution)) {
+    for (const fact of standingFacts(current, institution, objective)) {
       if (items.length >= MIN_CHANGES) break
       if (seen.has(fact.id)) continue
       items.push(fact)

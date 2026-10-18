@@ -1,6 +1,7 @@
 import {
   getInstitution,
   isMajorEvent,
+  isScheduledMajor,
   type EndConditionResult,
   type Institution,
   type ResolvedEventRecord,
@@ -39,8 +40,23 @@ function meetingLabel(meetingIndex: number): string {
   return `meeting ${meetingIndex + 1}`
 }
 
-function majorEventsIn(eventLog: readonly ResolvedEventRecord[]): ResolvedEventRecord[] {
-  return eventLog.filter((record) => isMajorEvent(record.eventId)).slice()
+/**
+ * The majors a mandate had to answer, procedural and scripted alike.
+ *
+ * `isMajorEvent` only knows the procedural catalogue, so a historical mandate
+ * — whose crises are *all* scripted — came out of this with none. The written
+ * report of the euro-area scenario opened with "served 24 of 24 scheduled
+ * meetings without a single major crisis to answer", over a mandate containing
+ * the Greek programme, the Irish banking collapse, the Italian spread, the
+ * three-year refinancing operations and the announcement of September 2012.
+ */
+function majorEventsIn(state: SimulationState): ResolvedEventRecord[] {
+  return state.eventLog
+    .filter(
+      (record) =>
+        isMajorEvent(record.eventId) || isScheduledMajor(state, record.eventId),
+    )
+    .slice()
 }
 
 function describeWhatHappened(
@@ -50,7 +66,7 @@ function describeWhatHappened(
 ): readonly string[] {
   const paragraphs: string[] = []
   const name = getInstitution(institution).name
-  const majors = majorEventsIn(state.eventLog)
+  const majors = majorEventsIn(state)
   const minorCount = state.eventLog.length - majors.length
   const meetingsServed = state.meetingIndex
 
@@ -164,6 +180,16 @@ function describeWhatWentWrong(state: SimulationState, score: ScoreBreakdown): r
 /** Below this, the conduct gate is treated as the dominant story, not a footnote. */
 const CONDUCT_GATE_DOMINANT = 0.5
 
+/**
+ * Above this share of the mandate under cost-push pressure, the moved objective
+ * is worth a paragraph.
+ *
+ * A brush with a supply shock at one meeting out of thirty-two does not change
+ * what the mandate was about, and saying so would be noise. A tenth of the
+ * mandate does.
+ */
+const SUPPLY_REGIME_WORTH_SAYING = 0.1
+
 function describeWhyThisScore(
   state: SimulationState,
   score: ScoreBreakdown,
@@ -194,6 +220,24 @@ function describeWhyThisScore(
     )
   }
 
+  // Said before the components are ranked, because it changes what the ranking
+  // means: under a cost-push regime the mandate was not judged on the standing
+  // objective at all, and a player who is told that only implicitly — by
+  // noticing price stability carries less weight than they expected — has been
+  // judged by a rule nobody stated.
+  if (score.supplyRegimeShare > SUPPLY_REGIME_WORTH_SAYING) {
+    paragraphs.push(
+      `Costs were being pushed up from outside domestic demand for much of this mandate, ` +
+        `so returning inflation to ${inst.inflationTarget.toFixed(1)} % inside it was not ` +
+        `available at any policy the desk could have run: the tightening required would have ` +
+        `worked by destroying output rather than by removing the shock. The mandate was ` +
+        `therefore judged on the objective that regime actually sets — holding the ` +
+        `expectations anchor, and keeping the total damage down — with ` +
+        `${(score.supplyRegimeShare * 100).toFixed(0)} % of the shift applied. Price stability ` +
+        `still counts; it counts for less than it would have in ordinary weather.`,
+    )
+  }
+
   const biggestGap = [...score.components].sort(
     (a, b) => b.weight * (1 - b.raw) - a.weight * (1 - a.raw),
   )[0]
@@ -203,6 +247,49 @@ function describeWhyThisScore(
       `single gap between this mandate and a perfect one was ${biggestGap.label.toLowerCase()}: ` +
       biggestGap.explanation,
   )
+
+  // The currency area's own line, and only where there is one.
+  //
+  // A single policy rate for members whose inflation, unemployment and
+  // borrowing costs differ is the ECB's problem and nobody else's, so a
+  // mandate that held the area together should be told it did — and one that
+  // let it come apart should be told that the aggregate it was steering by had
+  // stopped describing anything. Neither is visible from the area-wide numbers,
+  // which is the whole difficulty.
+  const cohesion = score.components.find((component) => component.id === 'cohesion')
+  if (cohesion !== undefined) {
+    paragraphs.push(
+      cohesion.raw >= 0.7
+        ? `The area held together: ${(cohesion.raw * 100).toFixed(0)} % on cohesion, ` +
+            `carrying ${(cohesion.weight * 100).toFixed(0)} % of the scorecard. ` +
+            `${cohesion.explanation} A single rate is only a coherent instrument ` +
+            `while that stays true.`
+        : `The area came apart under this mandate: ${(cohesion.raw * 100).toFixed(0)} % ` +
+            `on cohesion, carrying ${(cohesion.weight * 100).toFixed(0)} % of the ` +
+            `scorecard. ${cohesion.explanation} The area-wide figures this desk ` +
+            `steered by were averages of members living very different economies, ` +
+            `and an average is exactly the statistic that hides that.`,
+    )
+  }
+
+  // Said explicitly, always, whichever way it went. The player who asked for
+  // this watched the equity index halve and could not tell whether it had
+  // counted — and it had not, so a component that is *sometimes* mentioned
+  // when it happens to rank badly would leave the same question open on every
+  // mandate where it did not.
+  const prosperity = score.components.find(
+    (component) => component.id === 'market_prosperity',
+  )
+  if (prosperity !== undefined) {
+    const share = (prosperity.weight * 100).toFixed(0)
+    paragraphs.push(
+      `Financial markets counted, and here is exactly how much: ` +
+        `${(prosperity.raw * 100).toFixed(0)} % on market prosperity, carrying ` +
+        `${share} % of the scorecard — below both halves of the mandate, on ` +
+        `purpose, because a central bank that maximised asset prices would be ` +
+        `doing the wrong job. ${prosperity.explanation}`,
+    )
+  }
 
   paragraphs.push(inst.mandateSummary)
 

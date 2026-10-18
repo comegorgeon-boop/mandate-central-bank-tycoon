@@ -8,21 +8,31 @@ import type {
 } from '../types/scoring.ts'
 import { SCORING_VERSION } from '../version.ts'
 import { clamp } from '../config/bounds.ts'
+import { inflationTargetFor, scenarioOf } from '../scenarios/scenarios.ts'
 import { getDifficulty } from '../config/difficulty.ts'
-import { getInstitution } from '../config/institutions.ts'
 import { SPREADS, VOLATILITY } from '../config/model.ts'
 import { YEARS_PER_MEETING } from '../config/time.ts'
 import {
+  COHESION_TOLERANCE,
   CONDUCT_GATE,
   MAX_SCORE,
+  MISSED_OBJECTIVE_CREDIT,
   POLICY_VOLATILITY_ALLOWANCE_PER_YEAR,
   PRICE_STABILITY_GATE,
   SCORE_SCALES,
   SCORE_WEIGHTS,
   SHOCK_RESPONSE,
   STRESS_PENALTY_FLOOR,
+  COHESION_BLEND,
+  SUPPLY_REGIME,
+  VALUATION_TOLERANCE,
 } from '../config/scoring.ts'
-import { unemploymentGap } from '../engine/indices.ts'
+import { supplyRegimePressure, unemploymentGap } from '../engine/indices.ts'
+import { dispersion } from '../engine/members.ts'
+// The equity index is read through its own series definition rather than
+// recomputed here, so the number the scorecard judges is the number the player
+// watched all mandate.
+import { EQUITY_BASE, getSeries } from '../observation/series.ts'
 
 /**
  * Scoring, from 0 to 10,000.
@@ -59,6 +69,7 @@ function rootMeanSquare(values: readonly number[]): number {
   for (const value of values) total += value * value
   return Math.sqrt(total / values.length)
 }
+
 
 function mean(values: readonly number[]): number {
   if (values.length === 0) return 0
@@ -135,6 +146,42 @@ function shockResponseScore(state: SimulationState): {
   }
 }
 
+/**
+ * The component weights this mandate is actually judged on.
+ *
+ * Under cost-push pressure, weight moves out of price stability and into
+ * anchoring and shock response — the objective a committee is really held to
+ * when returning inflation to target is not available. See `SUPPLY_REGIME`.
+ *
+ * The moved weight is redistributed rather than discarded, so the set still
+ * sums to one and a supply-shocked mandate is judged on the same total as any
+ * other. It is a different question, not an easier one.
+ */
+function regimeWeights(
+  base: Readonly<Record<ScoreComponentId, number>>,
+  history: readonly LatentSnapshot[],
+): { readonly weights: Readonly<Record<ScoreComponentId, number>>; readonly share: number } {
+  const pressure =
+    history.length === 0 ? 0 : mean(history.map((s) => supplyRegimePressure(s.latent)))
+  // Saturating, not linear: a mandate cannot spend all of itself at the peak of
+  // a shock, so the raw mean tops out around a third even when cost-push was
+  // the whole story. See `SUPPLY_REGIME.shareAtFullShift`.
+  const share = clamp(pressure / SUPPLY_REGIME.shareAtFullShift, 0, 1)
+  if (share <= 0) return { weights: base, share: 0 }
+
+  const moved = base.price_stability * SUPPLY_REGIME.maxShift * share
+  return {
+    share,
+    weights: {
+      ...base,
+      price_stability: base.price_stability - moved,
+      anchoring: base.anchoring + moved * SUPPLY_REGIME.anchoringShare,
+      shock_response:
+        base.shock_response + moved * (1 - SUPPLY_REGIME.anchoringShare),
+    },
+  }
+}
+
 /** Cumulative rate churn and direction reversals over the run. */
 function policyChurn(state: SimulationState): {
   readonly churn: number
@@ -162,13 +209,21 @@ export function calculateScore(
   state: SimulationState,
   outcome: EndConditionResult,
 ): ScoreBreakdown {
-  const institution = getInstitution(state.config.institution)
   const difficulty = getDifficulty(state.config.difficulty)
-  const weights = SCORE_WEIGHTS[state.config.institution]
-  const target = institution.inflationTarget
+  const target = inflationTargetFor(state.config)
   const history = state.history
+  // What the mandate is judged on, which is not fixed: under a cost-push
+  // regime the objective itself moves. See `SUPPLY_REGIME`.
+  const { weights, share: supplyRegimeShare } = regimeWeights(
+    SCORE_WEIGHTS[state.config.institution],
+    history,
+  )
 
   // ---- Price stability ----------------------------------------------------
+  //
+  // Measured honestly and in full, in every regime. What a cost-push shock
+  // changes is not how far inflation sat from target — that is a fact — but
+  // how much of the verdict the fact carries. See `SUPPLY_REGIME`.
   const headlineMisses = history.map((s) => s.latent.inflationHeadline - target)
   const coreMisses = history.map((s) => s.latent.inflationCore - target)
   const priceRmse =
@@ -186,6 +241,74 @@ export function calculateScore(
   const stress = mean(history.map((s) => stressPenalty(s, state.config.institution)))
   const financialRaw = performance(stress, SCORE_SCALES.financialStress)
 
+  // ---- Market prosperity --------------------------------------------------
+  //
+  // Distinct from financial *stability*, which scores stress: banking strain,
+  // spreads, volatility, fragmentation. None of those is the value of the
+  // assets households actually own, so an index that halved over a mandate
+  // moved nothing in this scorecard at all — which is what a player watching
+  // it fall from 1000 to 500 correctly suspected.
+  //
+  // Two terms, deliberately asymmetric. Wealth destroyed is charged in full;
+  // froth is charged at a fraction, because a market above fair value is a
+  // risk that has not happened yet while a market below its base is a loss
+  // that has. Charging them alike would say a bubble and a crash are the same
+  // mistake. Charging froth at zero would make this a component that rewards
+  // inflating one, which is the failure mode a "market prosperity" line in a
+  // central bank's scorecard invites and the reason it is weighted below both
+  // halves of the mandate.
+  const dislocation = mean(
+    history.map((snapshot) =>
+      Math.max(
+        0,
+        Math.abs(snapshot.latent.assetPricePressure) - VALUATION_TOLERANCE,
+      ),
+    ),
+  )
+  const prosperityRaw = performance(dislocation, SCORE_SCALES.marketProsperity)
+  // What the player actually watched, for the explanation. The index is a
+  // financial-conditions proxy and the score is not read off it directly —
+  // rewarding a high one would reward loose policy, in this model and in the
+  // world — but "the index halved" is the observation that prompted the
+  // component and the report has to speak to it.
+  const equitySeries = getSeries('equity_index')
+  const equityLevel =
+    equitySeries === undefined
+      ? EQUITY_BASE
+      : mean(history.map((snapshot) => equitySeries.read(snapshot.latent)))
+  const equityShortfall = Math.max(0, 1 - equityLevel / EQUITY_BASE) * 100
+
+  // ---- Cohesion -----------------------------------------------------------
+  //
+  // The ECB's problem and nobody else's: one rate for members whose inflation,
+  // unemployment and borrowing costs differ. An area held together is one
+  // where the objective means something; an area two points apart on inflation
+  // has no single rate of inflation for a target to be about.
+  //
+  // Read off the latent members rather than the published national statistics,
+  // for the same reason the tutorial's goal is: this is a fact about the
+  // economy the mandate produced, not about how well it was measured. A
+  // scorecard that graded dispersion on noisy releases would reward a mandate
+  // for a quiet quarter of measurement error.
+  const cohesionPenalty = mean(
+    history.map((snapshot) => {
+      const members = snapshot.members
+      if (members.length === 0) return 0
+      const spreads = members.map((member) => member.spread)
+      const range = Math.max(...spreads) - Math.min(...spreads)
+      return (
+        COHESION_BLEND.inflation * dispersion(members, 'inflationOffset') +
+        COHESION_BLEND.unemployment * dispersion(members, 'unemploymentOffset') +
+        range / COHESION_BLEND.spreadRange
+      )
+    }),
+  )
+  // Only the part the chair could have done something about. See
+  // `COHESION_TOLERANCE`: the area is structurally dispersed and always will
+  // be, and scoring that is scoring the weather.
+  const cohesionCharged = Math.max(0, cohesionPenalty - COHESION_TOLERANCE)
+  const cohesionRaw = performance(cohesionCharged, SCORE_SCALES.cohesion)
+
   // ---- Expectations anchoring --------------------------------------------
   const anchorMisses = history.map((s) => s.latent.expectedInflationLong - target)
   const anchoringRmse = rootMeanSquare(anchorMisses)
@@ -202,15 +325,34 @@ export function calculateScore(
   const shock = shockResponseScore(state)
 
   // ---- Policy volatility --------------------------------------------------
+  const difficultyId = state.config.difficulty
   const { churn, reversals } = policyChurn(state)
   const yearsServed = Math.max(YEARS_PER_MEETING, state.timeYears)
-  const allowance = POLICY_VOLATILITY_ALLOWANCE_PER_YEAR * yearsServed
+  // A historical scenario sets its own, from the path that actually prevailed:
+  // the modern allowance describes a committee that is not doing what this one
+  // is doing, and against it every mandate here — the real one included —
+  // scores a steadiness gate of 0.03 and the score stops measuring anything.
+  const allowancePerYear =
+    scenarioOf(state.config)?.churnAllowancePerYear ??
+    POLICY_VOLATILITY_ALLOWANCE_PER_YEAR[difficultyId]
+  const allowance = allowancePerYear * yearsServed
   const excess = Math.max(0, churn - allowance) + 0.25 * reversals
   const volatilityRaw = performance(excess, SCORE_SCALES.policyVolatility)
 
   // ---- Survival and completion -------------------------------------------
+  //
+  // A tutorial that ran its length without reaching its objective has
+  // *finished* but has not *succeeded*, and the two must not score alike. Both
+  // return `status: 'completed'` — nothing collapsed, the run simply ended —
+  // so reading the status alone gave a player who never repaired the economy
+  // the same full marks as one who repaired it in twelve meetings.
   const served = clamp(state.meetingIndex / state.config.meetingCount, 0, 1)
-  const completionRaw = outcome.status === 'completed' ? 1 : served * 0.6
+  const completionRaw =
+    outcome.triggered === 'objective_missed'
+      ? MISSED_OBJECTIVE_CREDIT
+      : outcome.status === 'completed'
+        ? 1
+        : served * 0.6
 
   const definitions: readonly {
     id: ScoreComponentId
@@ -222,7 +364,22 @@ export function calculateScore(
       id: 'price_stability',
       label: 'Price stability',
       raw: priceRaw,
-      explanation: `Inflation sat ${priceRmse.toFixed(2)} points from the ${target.toFixed(1)} % objective on average over the mandate, measured across headline and core.`,
+      explanation:
+        `Inflation sat ${priceRmse.toFixed(2)} points from the ${target.toFixed(1)} % objective on average over the mandate, measured across headline and core.` +
+        (supplyRegimeShare > 0.05
+          ? ` Costs were being pushed up from outside domestic demand for much of the mandate, so this counts for less than usual here — ${(supplyRegimeShare * 100).toFixed(0)} % of the way toward the regime's own objective, which is the anchor and the total damage rather than the target itself.`
+          : '') +
+        // Said plainly rather than left to be inferred from a small number.
+        // Measured over 150 mandates a bucket, the median hard mandate scores
+        // 0.02 here and a rule reading the latent state directly and closing
+        // the whole Taylor gap every meeting improves the inflation RMSE by
+        // only 8 %: the miss is the shocks, not the policy. That is the mode's
+        // character and it is kept, so the one thing it must not be is a
+        // silent haircut. See docs/BALANCE.md, "price stability at hard is out
+        // of reach".
+        (supplyRegimeShare >= 0.999 && priceRaw < 0.2
+          ? ' Nobody returns inflation to the objective through this much cost-push pressure, and the weight that can move out of this component has already moved. What separates mandates here is how far from target they sat, not whether they got back.'
+          : ''),
     },
     {
       id: 'employment_output',
@@ -235,6 +392,31 @@ export function calculateScore(
       label: 'Financial stability',
       raw: financialRaw,
       explanation: `Average financial stress penalty of ${stress.toFixed(1)} index points across banking stress, spreads, volatility and transmission.`,
+    },
+    {
+      id: 'market_prosperity',
+      label: 'Financial market prosperity',
+      raw: prosperityRaw,
+      explanation:
+        `The ${equitySeries?.label ?? 'equity index'} averaged ` +
+        `${equityShortfall < 1 ? 'at or above' : `${equityShortfall.toFixed(0)} % below`} ` +
+        `its neutral level. Scored on how far valuations sat from what the ` +
+        `economy underneath them could support: ` +
+        (dislocation < 0.5
+          ? 'they stayed within the band, so nothing was charged here.'
+          : `${dislocation.toFixed(1)} points outside that band on average.`),
+    },
+    {
+      id: 'cohesion',
+      label: 'Cohesion of the currency area',
+      raw: cohesionRaw,
+      explanation:
+        `Members sat ${cohesionPenalty.toFixed(2)} points apart on average across ` +
+        `inflation, unemployment and sovereign spreads` +
+        (cohesionCharged < 0.05
+          ? ', which is no wider than the area is structurally, so nothing was charged here.'
+          : `, of which ${cohesionCharged.toFixed(2)} was beyond what the area's own structure produces.`) +
+        ' One rate has to serve all of them.',
     },
     {
       id: 'anchoring',
@@ -268,24 +450,34 @@ export function calculateScore(
       label: 'Mandate completion',
       raw: completionRaw,
       explanation:
-        outcome.status === 'completed'
-          ? 'The full mandate was served.'
-          : `The mandate ended after ${state.meetingIndex} of ${state.config.meetingCount} meetings.`,
+        outcome.triggered === 'objective_met'
+          ? `The objective was reached and held, after ${state.meetingIndex} meetings.`
+          : outcome.triggered === 'objective_missed'
+            ? `${state.meetingIndex} meetings were served without the objective being reached.`
+            : outcome.status === 'completed'
+              ? 'The full mandate was served.'
+              : `The mandate ended after ${state.meetingIndex} of ${state.config.meetingCount} meetings.`,
     },
   ]
 
-  const components: ScoreComponent[] = definitions.map((definition) => {
-    const weight = weights[definition.id]
-    const raw = clamp(definition.raw, 0, 1)
-    return {
-      id: definition.id,
-      label: definition.label,
-      raw,
-      weight,
-      contribution: raw * weight,
-      explanation: definition.explanation,
-    }
-  })
+  const components: ScoreComponent[] = definitions
+    // A component this institution does not have is dropped, not shown at
+    // nought. The Fed has regions, not members with their own sovereign
+    // borrowing costs, and a scorecard line reading "cohesion 0 %" would be
+    // reporting a failure at something that does not exist.
+    .filter((definition) => weights[definition.id] > 0)
+    .map((definition) => {
+      const weight = weights[definition.id]
+      const raw = clamp(definition.raw, 0, 1)
+      return {
+        id: definition.id,
+        label: definition.label,
+        raw,
+        weight,
+        contribution: raw * weight,
+        explanation: definition.explanation,
+      }
+    })
 
   const weightedTotal = components.reduce(
     (total, component) => total + component.contribution,
@@ -293,40 +485,48 @@ export function calculateScore(
   )
 
   // The ECB safeguard. The Fed's mandate is coequal, so its gate is always 1.
+  //
+  // Its floor rises with the cost-push regime, for the same reason the weights
+  // move: the gate exists so that strong employment cannot buy past a *failure*
+  // on inflation, and a price level pushed up by a shock no instrument reaches
+  // is not that failure. Softened, never removed — the gate still bites hardest
+  // on the mandates that let the anchor go with it.
   let priceStabilityGate = 1
   if (state.config.institution === 'ecb' && priceRaw < PRICE_STABILITY_GATE.threshold) {
-    priceStabilityGate =
+    const floor =
       PRICE_STABILITY_GATE.floor +
-      (1 - PRICE_STABILITY_GATE.floor) * (priceRaw / PRICE_STABILITY_GATE.threshold)
+      (1 - PRICE_STABILITY_GATE.floor) * SUPPLY_REGIME.maxShift * supplyRegimeShare
+    priceStabilityGate =
+      floor + (1 - floor) * (priceRaw / PRICE_STABILITY_GATE.threshold)
   }
 
-  // The conduct gate. Both institutions: erratic, self-contradictory policy
-  // guts the score independent of how the real economy absorbed it — see
-  // CONDUCT_GATE's own doc comment for why this has to be a gate on the
-  // decisions themselves rather than trusted to the weighted blend above.
-  // Easy only, for the same reason `COMMUNICATION.reversalCost` is: tuned
-  // against easy's own calm observation noise, and the inputs it reads
-  // (contradictions, reversals) are legitimately far more frequent at
-  // medium/hard's noise levels for reasons that have nothing to do with
-  // incoherent conduct. Medium and hard are out of scope for the session
-  // that built this.
-  let conductGate = 1
-  if (state.config.difficulty === 'easy') {
-    const billedContradictionCost = Math.max(
-      0,
-      state.contradictionCost - CONDUCT_GATE.freeContradictionCost,
-    )
-    const billedBrokenPromises = Math.max(
-      0,
-      state.guidance.brokenPromises - CONDUCT_GATE.freeBrokenPromises,
-    )
-    conductGate = Math.max(
-      CONDUCT_GATE.floor,
-      Math.exp(-Math.max(0, churn - allowance) / CONDUCT_GATE.churnScale) *
-        Math.exp(-billedContradictionCost / CONDUCT_GATE.contradictionScale) *
-        Math.exp(-billedBrokenPromises / CONDUCT_GATE.brokenPromiseScale),
-    )
-  }
+  // The conduct gate. Both institutions, and now every difficulty: erratic,
+  // self-contradictory policy guts the score independent of how the real
+  // economy absorbed it — see CONDUCT_GATE's own doc comment for why this has
+  // to be a gate on the decisions themselves rather than trusted to the
+  // weighted blend above.
+  //
+  // It applied at easy alone until the two populations were measured at every
+  // difficulty. They separate by six to twenty times everywhere; what medium
+  // and hard needed was not exemption but a free allowance matched to the
+  // conduct their own noise legitimately produces. Until then, sabotage was
+  // very nearly free above easy: measured on this build before the change, a
+  // deliberately sabotaging mandate scored 6331 against competent play's 7446
+  // on fed/medium, and on ecb/medium it beat competent play outright.
+  const billedContradictionCost = Math.max(
+    0,
+    state.contradictionCost - CONDUCT_GATE.freeContradictionCost[difficultyId],
+  )
+  const billedBrokenPromises = Math.max(
+    0,
+    state.guidance.brokenPromises - CONDUCT_GATE.freeBrokenPromises[difficultyId],
+  )
+  const conductGate = Math.max(
+    CONDUCT_GATE.floor,
+    Math.exp(-Math.max(0, churn - allowance) / CONDUCT_GATE.churnScale) *
+      Math.exp(-billedContradictionCost / CONDUCT_GATE.contradictionScale) *
+      Math.exp(-billedBrokenPromises / CONDUCT_GATE.brokenPromiseScale),
+  )
 
   const scaled = clamp(
     weightedTotal * priceStabilityGate * conductGate * difficulty.scoreMultiplier,
@@ -340,6 +540,7 @@ export function calculateScore(
     weightedTotal,
     priceStabilityGate,
     conductGate,
+    supplyRegimeShare,
     difficultyMultiplier: difficulty.scoreMultiplier,
     bucketKey: scoreBucketKey(
       state.config.institution,

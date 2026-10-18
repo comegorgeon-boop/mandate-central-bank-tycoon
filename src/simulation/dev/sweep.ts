@@ -26,6 +26,7 @@ import { calculateScore } from '../scoring/calculateScore.ts'
 import { playRun } from '../replay/replayRun.ts'
 import { staffRecommendation } from '../policy/staffRule.ts'
 import { guidedStaffPackage } from '../policy/guidedStaffRule.ts'
+import { toolkitPackage } from '../policy/toolkitRule.ts'
 
 /** Seeded runs per institution and difficulty. */
 const RUNS_PER_BUCKET = 150
@@ -131,6 +132,7 @@ function main(): void {
       const passiveScores: number[] = []
       const staffScores: number[] = []
       const guidedScores: number[] = []
+      const toolkitScores: number[] = []
       const outcomes = new Map<EndConditionId, number>()
       const clampedVariables = new Map<string, number>()
       let completed = 0
@@ -138,6 +140,7 @@ function main(): void {
       let passiveCompleted = 0
       let staffCompleted = 0
       let guidedCompleted = 0
+      let toolkitCompleted = 0
 
       for (let index = 0; index < RUNS_PER_BUCKET; index += 1) {
         const config = createRunConfig({
@@ -153,13 +156,27 @@ function main(): void {
         const score = calculateScore(session.state, session.outcome)
 
         scores.push(score.score)
-        for (const diagnostic of session.state.diagnostics) {
-          clampedVariables.set(
-            diagnostic.variable,
-            (clampedVariables.get(diagnostic.variable) ?? 0) + 1,
-          )
+        // Two exclusions, both about telling a defect apart from the model
+        // working. `saturated` is a 0-100 index reaching the top of its own
+        // scale, which is a state the game has opinions about rather than an
+        // integrator failing — reporting it is what kept a phantom
+        // `geopoliticalRisk` warning in docs/BALANCE.md for several sessions.
+        // And a run that has *already failed* is by construction outside the
+        // plausible envelope the rails are drawn around: an inflation spiral
+        // ends the mandate at 12 %, and the priced path diverging in the
+        // meeting after that is the spiral, not a bug. A mandate that ran to
+        // term and still touched a rail is the case worth hearing about, and
+        // it is the case this still reports.
+        if (session.outcome.status === 'completed') {
+          completed += 1
+          for (const diagnostic of session.state.diagnostics) {
+            if (diagnostic.kind === 'saturated') continue
+            clampedVariables.set(
+              diagnostic.variable,
+              (clampedVariables.get(diagnostic.variable) ?? 0) + 1,
+            )
+          }
         }
-        if (session.outcome.status === 'completed') completed += 1
 
         // The same rule, but ignoring the real-time gap estimate entirely.
         const smoothed = playRun(config, (current) =>
@@ -190,6 +207,16 @@ function main(): void {
         guidedScores.push(calculateScore(guided.state, guided.outcome).score)
         if (guided.outcome.status === 'completed') guidedCompleted += 1
 
+        // The same rule playing the whole toolkit rather than the rate alone.
+        // Every benchmark above moves one instrument, which stopped being an
+        // honest measure of a difficulty the moment the desk opened the balance
+        // sheet and the facilities to the player.
+        const toolkit = playRun(config, (current) =>
+          toolkitPackage(current, institution, difficulty),
+        )
+        toolkitScores.push(calculateScore(toolkit.state, toolkit.outcome).score)
+        if (toolkit.outcome.status === 'completed') toolkitCompleted += 1
+
         const outcome = session.outcome.triggered
         if (outcome) outcomes.set(outcome, (outcomes.get(outcome) ?? 0) + 1)
       }
@@ -199,6 +226,7 @@ function main(): void {
       passiveScores.sort((a, b) => a - b)
       staffScores.sort((a, b) => a - b)
       guidedScores.sort((a, b) => a - b)
+      toolkitScores.sort((a, b) => a - b)
       const completionRate = completed / RUNS_PER_BUCKET
 
       const summary = [...outcomes.entries()]
@@ -226,6 +254,8 @@ function main(): void {
       const passiveMedian = quantile(passiveScores, 0.5)
       const staffMedian = quantile(staffScores, 0.5)
       const guidedMedian = quantile(guidedScores, 0.5)
+      const toolkitMedian = quantile(toolkitScores, 0.5)
+      const toolkitRate = toolkitCompleted / RUNS_PER_BUCKET
 
       console.log(
         `${' '.repeat(14)} ignoring the noisy gap: ${String(smoothedMedian).padEnd(6)}` +
@@ -238,13 +268,30 @@ function main(): void {
           ` (${(guidedRate * 100).toFixed(0)} %)`,
       )
 
+      console.log(
+        `${' '.repeat(14)} whole toolkit:          ${String(toolkitMedian).padEnd(6)}` +
+          ` (${(toolkitRate * 100).toFixed(0)} %)`,
+      )
+
       // A difficulty must be winnable when played well and losable when not.
-      if (completionRate === 0 && smoothedRate === 0 && staffRate === 0 && guidedRate === 0) {
+      if (
+        completionRate === 0 &&
+        smoothedRate === 0 &&
+        staffRate === 0 &&
+        guidedRate === 0 &&
+        toolkitRate === 0
+      ) {
         console.log(`      ! ${institution}/${difficulty}: never survived under any rule. Unwinnable as configured.`)
         warnings += 1
       }
       if (
-        Math.max(activeMedian, smoothedMedian, staffMedian, guidedMedian) <= passiveMedian
+        Math.max(
+          activeMedian,
+          smoothedMedian,
+          staffMedian,
+          guidedMedian,
+          toolkitMedian,
+        ) <= passiveMedian
       ) {
         console.log(`      ! ${institution}/${difficulty}: no rule scores better than doing nothing.`)
         warnings += 1

@@ -28,13 +28,17 @@ import {
   WAGES,
 } from '../config/model.ts'
 import { INSTRUMENT_EFFECTS } from '../config/instruments.ts'
+import { RESERVE_TARGETING } from '../config/model.ts'
 import { FISCAL_SHOCK, FX_SHOCK_VOLATILITY, SHOCK_PROCESSES } from '../config/shocks.ts'
 import { convolve, pushLag, tighteningSpeed } from './lags.ts'
 import {
   financialConditionsIndex,
+  pricedPathFloor,
   purchaseEffectiveness,
+  expostRealRateGap,
   realPolicyRate,
   realRateGap,
+  supplyRegimePressure,
   taylorBenchmark,
   transmissionEfficiency,
   unemploymentGap,
@@ -73,6 +77,40 @@ export interface SubstepContext {
   readonly guidance: GuidanceState
   /** Distributed-lag kernel for this difficulty. */
   readonly kernel: readonly number[]
+  /**
+   * Multiplier on the IS curve's response to the rate, 1 in an ordinary
+   * mandate. See `Scenario.rateTransmission`.
+   */
+  readonly rateTransmission: number
+  /** Slope of the Phillips curve on the output gap, for this mandate. */
+  readonly phillipsGapSlope: number
+  /** How fast the output gap closes on its own, for this mandate. */
+  readonly gapMeanReversion: number
+  /**
+   * How much unemployment an output gap produces, for this mandate.
+   *
+   * The engine's 0.42 everywhere but in the two deepest historical scenarios,
+   * whose recessions it understates by two points and twelve respectively.
+   * See `Scenario.okun`.
+   */
+  readonly okun: number
+  /**
+   * The objective this mandate is run to.
+   *
+   * On the context rather than read off the institution, because 1929-33 was
+   * not run to 2 % and the expectations block pulls inflation toward whatever
+   * this says. See `inflationTargetFor`.
+   */
+  readonly inflationTarget: number
+  /**
+   * How far the inflation this mandate inherited sat from its objective, in
+   * points, and how much of the mandate has elapsed.
+   *
+   * Together they are the glide path the institution's standing is judged
+   * against. See `INSTITUTIONAL.credibility.inheritedForgivenessCap`.
+   */
+  readonly inheritedMiss: number
+  readonly mandateElapsed: number
   readonly dt: number
 }
 
@@ -99,7 +137,7 @@ export function advanceSubstep(
   prng: Prng,
 ): SubstepResult {
   const { dt, institution: inst, difficulty: diff, stance } = ctx
-  const target = inst.inflationTarget
+  const target = ctx.inflationTarget
   const sqrtDt = Math.sqrt(dt)
   const next: LatentState = { ...latent }
 
@@ -209,13 +247,47 @@ export function advanceSubstep(
     latent.expectedInflationLong +
     EXPECTATIONS.longAdjustment * (longTarget - latent.expectedInflationLong) * dt
 
-  const missPressure =
+  const rawMissPressure =
     Math.abs(latent.expectedInflationLong - target) +
     0.5 * Math.abs(latent.inflationHeadline - target)
+  // Linear below the knee, compressed above it: see `anchoringMissKnee`.
+  const missPressure =
+    rawMissPressure <= EXPECTATIONS.anchoringMissKnee
+      ? rawMissPressure
+      : EXPECTATIONS.anchoringMissKnee +
+        (rawMissPressure - EXPECTATIONS.anchoringMissKnee) *
+          EXPECTATIONS.anchoringMissCompression
+  // A visible threat to the institution's independence weakens the anchor on
+  // its own, whatever the bank's record: the anchor is a belief about what the
+  // bank will be *allowed* to do as much as about what it wants to do.
+  const independencePressure =
+    Math.max(0, latent.politicalPressure - EXPECTATIONS.independenceTolerance) / 100
+  // What a sustained restrictive stance buys back, and the mechanism without
+  // which an anchor that has slipped can never be recovered: the miss term
+  // above is large precisely when the anchor is gone, so with nothing on the
+  // other side the target sits at zero for ever and the disinflation is a
+  // trap rather than a decision. Zero when the anchor is where it should be —
+  // there is nothing to rebuild, and paying a premium to rebuild it would be
+  // an error rather than a demonstration.
+  const anchorAdriftShare = clamp(
+    Math.abs(latent.expectedInflationLong - target) - 1,
+    0,
+    1,
+  )
+  const anchorResolve =
+    EXPECTATIONS.anchoringResolve *
+      clamp(expostRealRateGap(latent) / EXPECTATIONS.anchoringResolveFullAt, 0, 1) *
+      anchorAdriftShare +
+    (stance.operatingProcedure === 'reserve_target'
+      ? RESERVE_TARGETING.anchoring * anchorAdriftShare
+      : 0)
+
   const anchoringTarget = clamp(
     1 -
       EXPECTATIONS.anchoringMissSensitivity * missPressure +
-      EXPECTATIONS.anchoringCredibility * ((latent.credibility - 50) / 50),
+      EXPECTATIONS.anchoringCredibility * ((latent.credibility - 50) / 50) +
+      anchorResolve -
+      EXPECTATIONS.anchoringIndependence * independencePressure,
     0,
     1,
   )
@@ -228,7 +300,7 @@ export function advanceSubstep(
     latent.wageGrowth - latent.potentialGrowth - latent.inflationCore
   const coreTarget =
     latent.expectedInflationShort +
-    PHILLIPS.gapSlope * latent.outputGap +
+    ctx.phillipsGapSlope * latent.outputGap +
     PHILLIPS.wagePressure * unitLabourCost +
     latent.supplyShock
   next.inflationCore =
@@ -384,7 +456,7 @@ export function advanceSubstep(
   const efficiency = transmissionEfficiency(latent, inst.id)
 
   const gapDelta =
-    (-IS_CURVE.rateSensitivity * efficiency * rateImpulse -
+    (-IS_CURVE.rateSensitivity * ctx.rateTransmission * efficiency * rateImpulse -
       IS_CURVE.financialConditions * financialImpulse +
       IS_CURVE.balanceSheet * balanceSheetImpulse * efficiency +
       IS_CURVE.fiscal * latent.fiscalImpulse +
@@ -395,12 +467,12 @@ export function advanceSubstep(
       IS_CURVE.confidence * latent.confidenceShock -
       IS_CURVE.supply * latent.supplyShock +
       latent.demandShock -
-      IS_CURVE.meanReversion * latent.outputGap) *
+      ctx.gapMeanReversion * latent.outputGap) *
     dt
   next.outputGap = latent.outputGap + gapDelta
 
   // ---- 12. Okun: unemployment and employment momentum ---------------------
-  const unemploymentTarget = latent.naturalUnemployment - LABOR.okun * latent.outputGap
+  const unemploymentTarget = latent.naturalUnemployment - ctx.okun * latent.outputGap
   const unemploymentDelta =
     LABOR.adjustment * (unemploymentTarget - latent.unemployment) * dt
   next.unemployment = latent.unemployment + unemploymentDelta
@@ -425,11 +497,69 @@ export function advanceSubstep(
       (boundTarget('reserves', reservesTarget) - latent.reserves) *
       dt
 
-  // ---- 14. Fiscal ---------------------------------------------------------
+  // ---- 14. The public finances --------------------------------------------
+  //
+  // Sargent and Wallace's unpleasant arithmetic, integrated rather than
+  // indexed. See `FISCAL.publicFinances` for the whole argument; the short
+  // version is that a rate rise reaches the interest bill at a speed set by
+  // the average maturity of the debt, and that lag is the mechanism.
+  const pf = FISCAL.publicFinances
+  const maturity = pf.maturityYears[inst.id]
+
+  // The stock rolls over. A share 1/maturity of it reprices each year, at the
+  // long rate the market is charging — which is the policy rate plus the term
+  // premium plus whatever the sovereign's own credit is worth, and is
+  // therefore where the committee's decision actually enters.
+  const marketRate = latent.policyRate + latent.termPremium
+  next.effectiveDebtRate =
+    latent.effectiveDebtRate + (1 / maturity) * (marketRate - latent.effectiveDebtRate) * dt
+
+  next.debtService = (latent.publicDebt * next.effectiveDebtRate) / 100
+
+  // The primary balance: structural, plus the automatic stabilisers, plus
+  // whatever the government has decided to do. Not the player's doing in any
+  // of its three parts, which is the point of showing it separately from the
+  // interest bill, which is.
+  const balanceTarget =
+    pf.structuralBalance[inst.id] +
+    pf.cyclicalBalance * latent.outputGap -
+    pf.impulseBalance * latent.fiscalImpulse
+  next.primaryBalance =
+    latent.primaryBalance +
+    pf.balanceAdjustment * (balanceTarget - latent.primaryBalance) * dt
+
+  // And the ratio itself. The last term is the one people forget and it is
+  // why debt ratios fall in an inflation: the denominator grows in nominal
+  // terms, so a government that inflates its way through pays less of its
+  // income in interest even as the rate rises.
+  const nominalGrowth = latent.realGrowth + latent.inflationHeadline
+  const deficit = next.debtService - next.primaryBalance
+  next.publicDebt =
+    latent.publicDebt + (deficit - (latent.publicDebt * nominalGrowth) / 100) * dt
+
+  // And the index six other blocks read — the term premium, the
+  // fiscal-dominance adviser, the event weights — kept, and now fed by the
+  // ratio rather than replaced by it.
+  //
+  // **Additive, not substituted**, and that distinction is measured rather
+  // than aesthetic. `debtPressure` is not a debt ratio: it is how much the
+  // public finances constrain *this* central bank, and the engine opens the
+  // Fed at 38 and the ECB at 52 although the United States carries the
+  // larger debt — because the euro area's debt is a monetary problem in a way
+  // a sovereign borrowing in its own currency at depth is not. Deriving the
+  // index from the ratio inverted that ordering and moved the Fed's opening
+  // by twenty points, which shifted the tutorial's balance enough to flip a
+  // test that had been stable for sessions.
+  //
+  // So what the ratio contributes is its *rise above where the mandate
+  // started*. A government whose debt is going up because the central bank
+  // raised rates presses on the central bank; a government whose debt is
+  // merely large does not press any harder today than it did yesterday.
   const debtTarget =
     inst.initial.debtPressure +
     FISCAL.debtFromImpulse * latent.fiscalImpulse * 3 +
-    FISCAL.debtFromRealRate * Math.max(0, realPolicyRate(latent)) * 3
+    FISCAL.debtFromRealRate * Math.max(0, realPolicyRate(latent)) * 3 +
+    pf.pressurePerDebtPoint * Math.max(0, latent.publicDebt - inst.initial.publicDebt)
   next.debtPressure =
     latent.debtPressure +
     FISCAL.debtDecay *
@@ -437,26 +567,91 @@ export function advanceSubstep(
       dt
 
   // ---- 15. Institutional standing -----------------------------------------
+  //
+  // `credibilitySensitivity` scales what the committee *did*, not what happened
+  // to it. That distinction is load-bearing and was not made here before.
+  //
+  // A harder difficulty should be less forgiving of your own errors — a broken
+  // promise, a contradictory package, a whipsawed rate — and it is: the
+  // conduct terms below and in `applyPolicyPackage` all carry the multiplier.
+  // But the *economic* terms are already larger at a harder difficulty, because
+  // its shocks are 1.45x bigger and 1.35x more severe, so multiplying the
+  // resulting inflation miss and banking stress by 1.35 on top charged twice
+  // for the same violence. Measured over 100 mandates played identically well
+  // at each difficulty, with zero broken promises and zero contradictions in
+  // both: the credibility trough sat at 60 on medium and **34 on hard**,
+  // against a dismissal bar of 25 — so competent play at hard spent its whole
+  // mandate nine points from revocation for reasons that had nothing to do
+  // with how it was played. It is the same mistake `thresholdLeniency` was
+  // making next door, and it dismissed 23-28 % of otherwise sound mandates.
   const sensitivity = diff.credibilitySensitivity
   const cred = INSTITUTIONAL.credibility
+  // The headline miss is discounted by how much of it is cost-push pushed in
+  // from outside domestic demand. A central bank's standing does not collapse
+  // because headline is high during an oil shock; it collapses when people stop
+  // believing inflation will be brought back — which is the anchoring term
+  // immediately below. See `supplyMissForgiveness`.
+  const missCharged =
+    1 - cred.supplyMissForgiveness * supplyRegimePressure(latent)
+  // Linear up to the knee and compressed beyond it: see `missKnee`. The
+  // fictional modes never reach the knee, so this is the identity function
+  // everywhere except in a historical scenario.
+  // The glide path. What was inherited is forgiven at the first meeting and
+  // not at the last; what is charged is the distance above the glide. See
+  // `INSTITUTIONAL.credibility.inheritedForgivenessCap`.
+  const forgiven =
+    Math.min(
+      cred.inheritedForgivenessCap,
+      Math.max(0, ctx.inheritedMiss - cred.inheritedDeductible),
+    ) *
+    (1 - ctx.mandateElapsed)
+  const rawMiss = Math.max(0, Math.abs(latent.inflationHeadline - target) - forgiven)
+  const chargedMiss =
+    rawMiss <= cred.missKnee
+      ? rawMiss
+      : cred.missKnee + (rawMiss - cred.missKnee) * cred.missCompression
+
+  // What a committee earns by bearing the cost of getting the anchor back —
+  // zero whenever the anchor is where it should be, because then there is
+  // nothing to prove. See `resolve` in config/model.ts.
+  const anchorAdrift = Math.abs(latent.expectedInflationLong - target)
+  const adriftShare = clamp((anchorAdrift - 1) / cred.resolveLiveAt, 0, 1)
+  const resolveEarned =
+    cred.resolve *
+    clamp(expostRealRateGap(latent) / cred.resolveFullAt, 0, 1) *
+    adriftShare +
+    // A committee that has stopped defending a number is read as one that
+    // will not blink. Worth nothing when the anchor is fine, for the same
+    // reason as the term above: there is nothing to prove.
+    (stance.operatingProcedure === 'reserve_target'
+      ? RESERVE_TARGETING.credibility * adriftShare
+      : 0)
+
   const credibilityTarget =
     cred.ceiling -
-    cred.inflationMiss * Math.abs(latent.inflationHeadline - target) * sensitivity -
-    cred.anchoring * (1 - latent.anchoring) * sensitivity -
+    // What happened to you: unscaled, because the difficulty is already in the
+    // size of the miss and of the stress.
+    cred.inflationMiss * chargedMiss * missCharged +
+    resolveEarned -
+    cred.anchoring * (1 - latent.anchoring) -
+    cred.bankingStress * latent.bankingStress -
+    // What you did: scaled, because a harder mandate judges your own errors
+    // more harshly.
     cred.brokenPromise * ctx.guidance.brokenPromises * sensitivity +
-    Math.min(cred.keptPromiseCap, cred.keptPromise * ctx.guidance.keptPromises) -
-    cred.bankingStress * latent.bankingStress * sensitivity
+    Math.min(cred.keptPromiseCap, cred.keptPromise * ctx.guidance.keptPromises)
   next.credibility =
     latent.credibility +
     cred.adjustment *
       (boundTarget('credibility', credibilityTarget) - latent.credibility) *
       dt
 
+  // The public judges outcomes and nothing else — there is no conduct term
+  // here at all — so none of it is scaled, for the same reason.
   const pub = INSTITUTIONAL.publicTrust
   const publicTrustTarget =
     pub.ceiling -
-    pub.inflation * Math.max(0, latent.inflationHeadline - target) * sensitivity -
-    pub.unemployment * Math.max(0, unemploymentGap(latent)) * sensitivity -
+    pub.inflation * Math.max(0, latent.inflationHeadline - target) -
+    pub.unemployment * Math.max(0, unemploymentGap(latent)) -
     pub.policyRate * Math.max(0, latent.policyRate - pub.policyRateTolerance)
   next.publicTrust =
     latent.publicTrust +
@@ -479,7 +674,11 @@ export function advanceSubstep(
   const politicalTarget =
     pol.base +
     pol.unemployment * Math.max(0, unemploymentGap(latent)) +
-    pol.policyRate * Math.max(0, latent.policyRate - pol.policyRateTolerance) +
+    pol.policyRate *
+      Math.max(
+        0,
+        latent.policyRate - latent.inflationHeadline - pol.realRateTolerance,
+      ) +
     pol.publicTrust * Math.max(0, 60 - latent.publicTrust) +
     pol.inflation * Math.max(0, latent.inflationHeadline - target) +
     INSTRUMENT_EFFECTS.transmissionProtection.politicalCost *
@@ -491,7 +690,7 @@ export function advanceSubstep(
       dt
 
   // ---- 16. Market-implied policy path -------------------------------------
-  const benchmark = taylorBenchmark(latent, inst.id)
+  const benchmark = taylorBenchmark(latent, inst.id, target)
   const guided = ctx.guidance.impliedRatePath
   const commitmentShare =
     guided === null ? 0 : COMMUNICATION.commitmentWeight[ctx.guidance.commitment]
@@ -502,11 +701,19 @@ export function advanceSubstep(
     MARKET_EXPECTATIONS.taylorWeightBase * (1 - guidanceCredibility)
   const currentWeight = MARKET_EXPECTATIONS.currentWeight
   const totalWeight = guidanceWeight + benchmarkWeight + currentWeight
-  const marketRateTarget =
+  // The Taylor benchmark has no floor: in a deflation it prescribes a deeply
+  // negative rate, and markets will not price a rate the bank cannot set. The
+  // floor is modelled rather than left to the safety rail in `bounds.ts`,
+  // because a nominal path that stops falling while prices keep falling is the
+  // mechanism by which doing nothing becomes a tightening. See
+  // `MARKET_EXPECTATIONS.belowFloorAllowance`.
+  const marketRateTarget = Math.max(
+    pricedPathFloor(inst.id),
     (guidanceWeight * (guided ?? latent.policyRate) +
       benchmarkWeight * benchmark +
       currentWeight * latent.policyRate) /
-    totalWeight
+      totalWeight,
+  )
   next.marketExpectedRate =
     latent.marketExpectedRate +
     MARKET_EXPECTATIONS.adjustment *

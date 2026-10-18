@@ -2,6 +2,8 @@ export type ScoreComponentId =
   | 'price_stability'
   | 'employment_output'
   | 'financial_stability'
+  | 'market_prosperity'
+  | 'cohesion'
   | 'anchoring'
   | 'credibility'
   | 'shock_response'
@@ -39,6 +41,15 @@ export interface ScoreBreakdown {
    * it. See `config/scoring.ts`'s `CONDUCT_GATE`.
    */
   readonly conductGate: number
+  /**
+   * Share of the mandate spent under cost-push pressure, 0..1.
+   *
+   * Above zero, the objective the mandate was judged on has moved: weight
+   * leaves `price_stability` for `anchoring` and `shock_response`, because
+   * returning inflation to target was not available. See `config/scoring.ts`'s
+   * `SUPPLY_REGIME`. The postmortem reads this to say so in words.
+   */
+  readonly supplyRegimeShare: number
   readonly difficultyMultiplier: number
   /** institution:difficulty:simulationVersion. Records never mix buckets. */
   readonly bucketKey: string
@@ -48,6 +59,10 @@ export interface ScoreBreakdown {
 
 export type EndConditionId =
   | 'mandate_completed'
+  /** Easy only: the tutorial's two objectives, held long enough. */
+  | 'objective_met'
+  /** Easy only: the tutorial ran its length without the objectives being met. */
+  | 'objective_missed'
   | 'inflation_spiral'
   | 'deflation_spiral'
   | 'depression'
@@ -56,6 +71,15 @@ export type EndConditionId =
   | 'currency_dysfunction'
   | 'loss_of_monetary_control'
   | 'dismissed'
+  /**
+   * Scenario only: the disinflation was abandoned before it had worked.
+   *
+   * Not unpopularity and not a bad quarter. The real policy rate back below
+   * zero while long-run expectations are still far above target, held long
+   * enough that it is a policy rather than a slip — which is the trap of 1980
+   * and the one thing Volcker did not do twice.
+   */
+  | 'gave_in'
 
 export type RunStatus = 'active' | 'completed' | 'failed'
 

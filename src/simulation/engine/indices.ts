@@ -6,10 +6,14 @@ import {
   EXCHANGE,
   FINANCIAL_CONDITIONS,
   FRAGMENTATION,
+  MARKET_EXPECTATIONS,
   SPREADS,
+  SUPPLY_REGIME_BAND,
   TAYLOR,
 } from '../config/model.ts'
+import { clamp } from '../config/bounds.ts'
 import { getInstitution } from '../config/institutions.ts'
+import { POLICY_RATE_FLOOR } from '../config/instruments.ts'
 
 /** Derived quantities shared by several blocks of the model. */
 
@@ -21,6 +25,29 @@ export function realPolicyRate(latent: LatentState): number {
 /** Real policy rate relative to neutral. Positive means restrictive. */
 export function realRateGap(latent: LatentState): number {
   return realPolicyRate(latent) - latent.neutralRealRate
+}
+
+/**
+ * Restrictiveness measured against *realised* inflation, not expected.
+ *
+ * The gauge the anchor and the institution's standing are rebuilt against, and
+ * deliberately a different one from `realRateGap`.
+ *
+ * `realRateGap` deflates by one-year expectations, which is the right reading
+ * for demand: what borrowers think they will repay in. It is the wrong reading
+ * for *resolve*, because expectations are exactly the variable being rebuilt.
+ * Deflating by them makes the measure circular — an unanchored economy reports
+ * a low real rate however hard policy is actually being run, so nothing the
+ * committee does registers as restrictive and the anchor can never come back.
+ * Measured on this build: holding the funds rate at 9 % with realised
+ * inflation at 4 % read as a real rate of 1.4 %, because expectations were
+ * still sitting at 7.5 %.
+ *
+ * Against realised inflation the same stance reads +3.4 and the trap opens.
+ * It also tracks the history it has to: 1979 reads negative, 1981 reads +9.
+ */
+export function expostRealRateGap(latent: LatentState): number {
+  return latent.policyRate - latent.inflationHeadline - latent.neutralRealRate
 }
 
 /** Unemployment above its natural rate. Positive means slack. */
@@ -109,12 +136,53 @@ export function purchaseEffectiveness(latent: LatentState): {
 export function taylorBenchmark(
   latent: LatentState,
   institution: Institution,
+  // The objective the rule is written against. Optional so that the dozen
+  // callers who are in an ordinary mandate stay unchanged, and explicit so
+  // that a scenario with an objective of its own — 1929's gold standard is a
+  // commitment to a price *level* — cannot be given the institution's 2 % by
+  // accident. See `inflationTargetFor`.
+  objective?: number,
 ): number {
-  const target = getInstitution(institution).inflationTarget
+  const target = objective ?? getInstitution(institution).inflationTarget
   return (
     latent.neutralRealRate +
     latent.inflationHeadline +
     TAYLOR.inflationWeight * (latent.inflationCore - target) +
     TAYLOR.gapWeight[institution] * latent.outputGap
   )
+}
+
+/**
+ * The lowest policy path markets will price for this institution.
+ *
+ * Lives here rather than in either config file because it is the one place
+ * where the instrument's floor (`POLICY_RATE_FLOOR`, a fact about cash) and
+ * the market block's willingness to price through it
+ * (`MARKET_EXPECTATIONS.belowFloorAllowance`, a fact about traders) have to
+ * agree — and three separate blocks write to `marketExpectedRate`, so if they
+ * do not all read the same floor one of them will walk the variable into the
+ * safety rail. One of them did; see `belowFloorAllowance`.
+ */
+export function pricedPathFloor(institution: Institution): number {
+  return POLICY_RATE_FLOOR[institution] - MARKET_EXPECTATIONS.belowFloorAllowance
+}
+
+/**
+ * How far a cost-push shock has pushed the inflation target out of reach, 0 to 1.
+ *
+ * Zero in ordinary weather; one where no policy the desk could run would have
+ * returned inflation to target inside a mandate, because the pressure comes
+ * from outside domestic demand and the only trajectories that reach target get
+ * there by destroying output.
+ *
+ * Lives here, alongside the other derived readings, because two very different
+ * parts of the game have to agree on it: `dynamics.ts` charges the
+ * institution's standing for an inflation miss, and `calculateScore.ts` decides
+ * what objective the mandate is judged on. A version of this that lived in only
+ * one of them would let the score forgive a miss the end conditions were still
+ * ending the mandate over — which is exactly what happened.
+ */
+export function supplyRegimePressure(latent: LatentState): number {
+  const { floor, full } = SUPPLY_REGIME_BAND
+  return clamp((latent.supplyShock - floor) / (full - floor), 0, 1)
 }

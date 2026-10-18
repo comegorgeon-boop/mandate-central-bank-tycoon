@@ -18,13 +18,36 @@ import {
   getInstrument,
   getInstrumentRange,
 } from '../config/instruments.ts'
-import { BANKING, COMMUNICATION, INSTITUTIONAL, SPREADS, VOLATILITY } from '../config/model.ts'
+import {
+  BANKING,
+  COMMUNICATION,
+  INSTITUTIONAL,
+  RESERVE_TARGETING,
+  SPREADS,
+  VOLATILITY,
+} from '../config/model.ts'
 import {
   GUIDANCE_DELIVERY_TOLERANCE,
   GUIDANCE_HORIZON_MEETINGS,
   GUIDANCE_REVERSAL_JUSTIFICATION,
 } from '../config/thresholds.ts'
-import { effectivePolicyRate } from './initialState.ts'
+import { hashGaussian } from '../rng/prng.ts'
+import { scenarioOf } from '../scenarios/scenarios.ts'
+import { effectivePolicyRate, runSeedString } from './initialState.ts'
+import { pricedPathFloor } from './indices.ts'
+import { repriceMembers } from './members.ts'
+import { demandConsequences, politicalDemand } from '../politics/demands.ts'
+
+/**
+ * How much of a stated refusal a silent one is worth.
+ *
+ * A committee that lets a public request go unanswered has refused it, and
+ * the engine prices that as resisting at a discount rather than as a third
+ * option. The pressure still rises in full — the government did not get what
+ * it asked for — and only the credit for holding is reduced, because standing
+ * up in public and saying no is the part that is worth something.
+ */
+const SILENCE_DISCOUNT = 0.35
 
 /**
  * Validating and applying a confirmed policy package.
@@ -74,7 +97,7 @@ function magnitudeOf(
  * whether the words matched the moment they were said into, not the moment
  * the decision itself just created.
  */
-function crisisIntensity(latent: LatentState): number {
+export function crisisIntensity(latent: LatentState): number {
   const volatility = Math.max(0, latent.marketVolatility - VOLATILITY.base) / 25
   const banking = Math.max(0, latent.bankingStress - BANKING.base) / 30
   const spread = Math.max(0, latent.creditSpread - SPREADS.base) / 1.5
@@ -116,6 +139,7 @@ export function validatePolicyPackage(
   pkg: PolicyPackage,
 ): PolicyValidation {
   const { institution, difficulty } = state.config
+  const scenario = scenarioOf(state.config)
   const rejections: PolicyRejection[] = []
   const seen = new Set<string>()
 
@@ -159,6 +183,19 @@ export function validatePolicyPackage(
       continue
     }
 
+    // A historical scenario withholds what had not been invented yet. Checked
+    // in the engine rather than only in the desk, because a package assembled
+    // anywhere — a replay, a doctrine's alternative mandate, a sweep — must
+    // not be able to reach for a tool the year did not have.
+    if (scenario !== null && scenario.withheldInstruments.includes(definition.id)) {
+      rejections.push({
+        instrument: action.instrument,
+        code: 'unavailable_in_scenario',
+        message: `${definition.label[institution]} did not exist in ${scenario.subtitle}.`,
+      })
+      continue
+    }
+
     if (!Number.isFinite(action.magnitude)) {
       rejections.push({
         instrument: action.instrument,
@@ -168,7 +205,7 @@ export function validatePolicyPackage(
       continue
     }
 
-    const range = getInstrumentRange(definition, difficulty)
+    const range = getInstrumentRange(definition, difficulty, scenario?.instrumentRanges)
     if (action.magnitude < range.min) {
       rejections.push({
         instrument: action.instrument,
@@ -207,9 +244,50 @@ export function validatePolicyPackage(
     }
   }
 
+  // The operating procedure: a decision about what the dial means, offered
+  // once, by one scenario, at one meeting.
+  if (pkg.procedure != null) {
+    const offeredAt = scenario?.procedureChoiceAt ?? null
+    if (offeredAt === null) {
+      rejections.push({
+        instrument: null,
+        code: 'unavailable_in_scenario',
+        message: 'This committee does not choose its operating procedure.',
+      })
+    } else if (state.meetingIndex !== offeredAt) {
+      rejections.push({
+        instrument: null,
+        code: 'unavailable_in_scenario',
+        message:
+          'The operating procedure is decided once, at the meeting that ' +
+          'decides it, and stands for the rest of the mandate.',
+      })
+    }
+  }
+
   const availability = COMMUNICATION_AVAILABILITY[difficulty]
   const communication = pkg.communication
   if (communication) {
+    // Volcker's Fed communicated constantly and committed to nothing: the
+    // FOMC did not announce its policy decisions until 1994, and after
+    // October 1979 it was not targeting the rate it would have been
+    // announcing. Withholding `forward_guidance` covers the instrument; this
+    // covers the words, which are still available at every strength short of
+    // a promise. See `docs/SCENARIOS.md`.
+    if (
+      scenario !== null &&
+      scenario.withheldInstruments.includes('forward_guidance') &&
+      (communication.commitment === 'conditional_path' ||
+        communication.commitment === 'strong_commitment')
+    ) {
+      rejections.push({
+        instrument: null,
+        code: 'unavailable_in_scenario',
+        message:
+          'This committee does not announce its decisions, and cannot promise ' +
+          'a path for a rate it is not announcing.',
+      })
+    }
     if (!availability.channels.includes(communication.channel)) {
       rejections.push({
         instrument: null,
@@ -342,6 +420,10 @@ export function detectContradictions(
 function deriveStance(state: SimulationState, pkg: PolicyPackage): PolicyStance {
   const stance = { ...state.stance }
 
+  // Taken once and standing thereafter. Validation has already refused it
+  // anywhere but the meeting the scenario names.
+  if (pkg.procedure != null) stance.operatingProcedure = pkg.procedure
+
   for (const action of pkg.actions) {
     switch (action.instrument) {
       case 'policy_rate':
@@ -411,6 +493,7 @@ export function applyPolicyPackage(
   const difficulty = getDifficulty(state.config.difficulty)
   const sensitivity = difficulty.credibilitySensitivity
   const stance = deriveStance(state, pkg)
+  const { institution } = state.config
 
   // How keyed-up markets already are, judged from what the committee
   // inherited walking in — see `crisisIntensity`. Governs how hard every word
@@ -419,7 +502,29 @@ export function applyPolicyPackage(
   const crisisAmplifier = 1 + COMMUNICATION.crisisAmplifier * crisis
 
   const previousRate = state.latent.policyRate
-  const newRate = effectivePolicyRate(stance, state.config.institution)
+  // Under reserve targeting the voted rate is a *midpoint* and the market
+  // finds the rest. The offset is drawn from a stateless hash rather than the
+  // run's own generator, so a mandate played with and without the reform
+  // consumes the same random sequence and the two remain comparable — which
+  // is the whole premise of the counterfactual arms elsewhere in this build.
+  const band =
+    stance.operatingProcedure === 'reserve_target'
+      ? clamp(
+          hashGaussian(
+            0,
+            RESERVE_TARGETING.bandSd,
+            runSeedString(state.config),
+            'reserve_band',
+            state.meetingIndex,
+          ),
+          -RESERVE_TARGETING.bandLimit,
+          RESERVE_TARGETING.bandLimit,
+        )
+      : 0
+  const newRate = Math.max(
+    POLICY_RATE_FLOOR[institution],
+    effectivePolicyRate(stance, state.config.institution) + band,
+  )
   const actualMove = newRate - previousRate
 
   const latent: LatentState = {
@@ -441,6 +546,22 @@ export function applyPolicyPackage(
   latent.marketTrust -=
     INSTITUTIONAL.marketTrust.surprise * Math.abs(surprise) * 0.25 * sensitivity
 
+  // ---- Sovereign spreads, on the day --------------------------------------
+  //
+  // Sovereign debt reprices within minutes of a decision, not at the next
+  // quarter. Until now member spreads only moved inside `advanceMembers`,
+  // which runs a sub-step later, so the one channel that makes a currency
+  // area's problem visible *immediately* was the one channel that waited.
+  //
+  // Loaded by debt, which is the whole mechanism: a surprise tightening is a
+  // larger shock to the member paying the most to roll its stock than to the
+  // member paying the least, and it is why a single decision reprices six
+  // sovereigns by six different amounts within the hour.
+  const members =
+    state.members.length === 0
+      ? state.members
+      : repriceMembers(state.members, surprise, crisis)
+
   // ---- Communication ------------------------------------------------------
   const communication = pkg.communication
   if (communication) {
@@ -448,8 +569,17 @@ export function applyPolicyPackage(
     const credibilityShare = latent.credibility / 100
     const tone = COMMUNICATION.toneSignal[communication.tone]
 
-    latent.marketExpectedRate +=
-      COMMUNICATION.toneMarketImpact * tone * reach * credibilityShare * crisisAmplifier
+    // Floored, because a dovish statement cannot talk the priced path below a
+    // rate the bank is unable to set. This is the write that walked the
+    // variable into the safety rail in `bounds.ts` during deflationary hard
+    // mandates: `dynamics.ts` had already settled the path at its bottom, and
+    // the statement pushed it through. See
+    // `MARKET_EXPECTATIONS.belowFloorAllowance`.
+    latent.marketExpectedRate = Math.max(
+      pricedPathFloor(institution),
+      latent.marketExpectedRate +
+        COMMUNICATION.toneMarketImpact * tone * reach * credibilityShare * crisisAmplifier,
+    )
     latent.expectedInflationShort -=
       COMMUNICATION.toneExpectationImpact * tone * reach * credibilityShare * crisisAmplifier
     latent.anchoring = clamp(
@@ -605,8 +735,42 @@ export function applyPolicyPackage(
       0,
       1,
     )
-    latent.marketExpectedRate +=
-      jump * (guidance.impliedRatePath - latent.marketExpectedRate)
+    // Floored for the same reason as the statement above: an announced path
+    // below the floor is not a path markets can price.
+    latent.marketExpectedRate = Math.max(
+      pricedPathFloor(institution),
+      latent.marketExpectedRate +
+        jump * (guidance.impliedRatePath - latent.marketExpectedRate),
+    )
+  }
+
+  // ---- Answering the government -------------------------------------------
+  //
+  // A demand is a question put to the committee from outside it, and the
+  // answer lands in the institution's standing rather than in the economy.
+  // See `politics/demands.ts` for the whole design and for why there is no
+  // third answer.
+  //
+  // **No answer is an answer.** A committee that leaves a public request
+  // unanswered has declined it, quietly, and the engine treats that as
+  // resisting at a discount: it earns less back than a committee that says no
+  // out loud, and it still raises the pressure. A demand that could be
+  // ignored for free would not be a demand.
+  const demand = politicalDemand(state)
+  if (demand !== null) {
+    const answered = pkg.demandResponse ?? null
+    const effect = demandConsequences(demand, answered ?? 'resist')
+    const quiet = answered === null ? SILENCE_DISCOUNT : 1
+    latent.politicalPressure += effect.politicalPressure
+    latent.credibility += effect.credibility * quiet
+    latent.anchoring = clamp(latent.anchoring + effect.anchoring * quiet, 0, 1)
+    latent.publicTrust += effect.publicTrust
+    if (effect.marketExpectedRate !== 0) {
+      latent.marketExpectedRate = Math.max(
+        pricedPathFloor(institution),
+        latent.marketExpectedRate + effect.marketExpectedRate,
+      )
+    }
   }
 
   // ---- Cost of an internally contradictory package ------------------------
@@ -627,9 +791,12 @@ export function applyPolicyPackage(
   // so the last two entries are exactly "walking into this meeting" and
   // "walking into the previous one" — their difference is last meeting's move.
   //
-  // The count itself is tracked at every difficulty (cheap, and a natural
-  // extension point later), but the credibility/trust cost is easy-only —
-  // see `COMMUNICATION.reversalCost`'s doc comment for why.
+  // Billed at every difficulty, against a free allowance that widens with the
+  // noise and the mandate length — see `COMMUNICATION.freeReversals`. It used
+  // to be billed on easy alone, because one allowance tuned for easy's quiet
+  // data read medium and hard's legitimately jumpier committees as sabotage.
+  // Measured, the two are nowhere near each other at any difficulty: competent
+  // play reverses 0.0 to 3.4 times a mandate, deliberate sabotage 9 to 15.
   const sinceLast = state.history.at(-1)
   const sinceTwoAgo =
     state.history.length >= 2 ? state.history[state.history.length - 2] : undefined
@@ -642,15 +809,14 @@ export function applyPolicyPackage(
       Math.sign(previousMove) !== Math.sign(actualMove)
     ) {
       reversalCount += 1
-      if (state.config.difficulty === 'easy') {
-        // The first `freeReversals` are a genuine pivot's benefit of the
-        // doubt; the cost escalates with how many have already happened.
-        const billedAt = reversalCount - COMMUNICATION.freeReversals
-        if (billedAt > 0) {
-          const reversed = Math.min(Math.abs(actualMove), Math.abs(previousMove))
-          latent.credibility -= COMMUNICATION.reversalCost * reversed * billedAt * sensitivity
-          latent.marketTrust -= COMMUNICATION.reversalCost * reversed * billedAt
-        }
+      // The first `freeReversals` are a genuine pivot's benefit of the doubt;
+      // the cost escalates with how many have already happened.
+      const billedAt =
+        reversalCount - COMMUNICATION.freeReversals[state.config.difficulty]
+      if (billedAt > 0) {
+        const reversed = Math.min(Math.abs(actualMove), Math.abs(previousMove))
+        latent.credibility -= COMMUNICATION.reversalCost * reversed * billedAt * sensitivity
+        latent.marketTrust -= COMMUNICATION.reversalCost * reversed * billedAt
       }
     }
   }
@@ -664,6 +830,7 @@ export function applyPolicyPackage(
     state: {
       ...state,
       latent: clamped,
+      members,
       stance,
       guidance,
       // Accumulated across the mandate, never reset — see

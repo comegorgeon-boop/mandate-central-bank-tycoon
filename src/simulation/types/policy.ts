@@ -1,3 +1,5 @@
+import type { OperatingProcedure } from './scenario.ts'
+import type { DemandResponse } from '../politics/demands.ts'
 import type { Difficulty, Institution } from './core.ts'
 
 /**
@@ -88,6 +90,27 @@ export interface CommunicationChoice {
 export interface PolicyPackage {
   readonly actions: readonly PolicyAction[]
   readonly communication: CommunicationChoice | null
+  /**
+   * A change of operating procedure, if this is the meeting that offers one.
+   *
+   * Not an instrument, which is why it is not in `actions`: an instrument has
+   * a level you set every meeting, and this is a decision about *what the dial
+   * means* that is taken once and stands. Only a historical scenario offers
+   * it, and only at the meeting it names. See `types/scenario.ts`.
+   */
+  readonly procedure?: OperatingProcedure | null
+  /**
+   * The answer to a demand from the government, where one has been made.
+   *
+   * Not an instrument and not a communication: it is a question put to the
+   * committee from outside it, and the answer has consequences in the
+   * institution's standing rather than in the economy. Null or absent means
+   * the committee did not answer, which the engine treats as resisting
+   * quietly — a demand that could be ignored for free would not be a demand.
+   *
+   * See `politics/demands.ts`.
+   */
+  readonly demandResponse?: DemandResponse | null
 }
 
 /**
@@ -99,6 +122,15 @@ export interface PolicyPackage {
  * package alone.
  */
 export interface PolicyStance {
+  /**
+   * What the rate the committee votes actually is.
+   *
+   * `rate_target`: the dial is the rate, and what is voted is what prevails.
+   * `reserve_target`: the dial is a midpoint, and the realised rate is left to
+   * the market around it — which is how the funds rate reached 19 % in 1981
+   * without the Committee ever having to vote for 19 %.
+   */
+  readonly operatingProcedure: OperatingProcedure
   /**
    * The policy rate the committee has voted, %, before administered-rate
    * adjustments. The latent `policyRate` is this plus the effect of the
@@ -155,6 +187,8 @@ export type PolicyRejectionCode =
   | 'effective_rate_below_floor'
   | 'communication_unavailable_at_difficulty'
   | 'channel_unavailable_at_difficulty'
+  /** The instrument had not been invented yet in this historical scenario. */
+  | 'unavailable_in_scenario'
 
 /** A rejected action, with enough detail for the confirmation screen. */
 export interface PolicyRejection {
@@ -213,4 +247,35 @@ export interface InstrumentDefinition extends InstrumentRange {
   readonly label: Readonly<Record<Institution, string>>
   /** One-line description of the implementation channel, for the Policy Desk. */
   readonly description: string
+  /**
+   * What this instrument is *for*, in one sentence a reader who has never met
+   * it can act on. No jargon, no channel names, no acronyms.
+   *
+   * Separate from `description`, which says how it works. A player raised
+   * targeted refinancing by one point and had, in their words, no idea what it
+   * had done — and `description` was on screen at the time. Saying what a lever
+   * is for and saying what mechanism it uses are two different sentences, and
+   * this build was only ever writing the second one.
+   */
+  readonly purpose: string
+  /**
+   * What the numbers on the dial mean, and where the historically ordinary
+   * range sits inside the allowed one.
+   *
+   * The bounds alone answer "what may I type"; they never answered "how much
+   * is a lot", which is the question a player entering a figure in % of GDP is
+   * actually asking.
+   */
+  readonly rangeNote: string
+  /** What goes wrong when this instrument is overused. */
+  readonly abuseRisk: string
+  /**
+   * The top of the historically ordinary range, in the instrument's own unit.
+   *
+   * The allowed range is deliberately wider — a mandate should be able to do
+   * something unprecedented, because sometimes the situation is — but crossing
+   * this is worth saying out loud at the moment it happens. Omitted where the
+   * whole allowed range is ordinary.
+   */
+  readonly plausibleMax?: number
 }
