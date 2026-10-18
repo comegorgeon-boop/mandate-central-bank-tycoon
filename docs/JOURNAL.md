@@ -253,3 +253,28 @@ was looking for it; I would not bet on catching the fifth one the same way.
 And the Meeting Brief is still the heaviest tab at 4392 characters, because
 what is on it is content rather than gloss — that one needs editing, not
 folding, and I have not done it.
+
+## Merged to `main` — and the one thing I could not do
+
+`main` now carries all four chantiers and is pushed. **The deploy is the one
+step I could not complete**: `npm run deploy` needs a Cloudflare credential
+that is not in this environment, and wrangler has no stored login here —
+
+```
+✘ [ERROR] In a non-interactive environment, it's necessary to set a
+CLOUDFLARE_API_TOKEN environment variable for wrangler to work.
+```
+
+So the live site is still on the previous `main`. To put this week's work up,
+run it yourself from the prompt with a leading `!`:
+
+```
+! npx wrangler login     # once, opens a browser
+! npm run deploy
+```
+
+Everything else in the merge gate passed before merging: 1010 tests, build
+clean, `npm run sim:sweep` with no balance warnings, the contrast audit clean
+across 456 states with every disclosure opened, the board rebuilt, and I
+played all six scenarios and both new panels myself and looked at the
+captures.
