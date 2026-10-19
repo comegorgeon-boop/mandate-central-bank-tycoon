@@ -632,3 +632,61 @@ The second is what the Okun work exposed rather than fixed. 2008-10 and
 −3.6 where the real recessions were deeper. Their unemployment is tracking the
 gap faithfully; the gap is the defect. That is the IS block, not the labour
 block, and it is the next thing I would open.
+
+---
+
+## 15 — Three kinds of turn, and something to hope for
+
+**Did.** The diagnosis was yours and it was better than mine. I had measured
+that screen three times and asked each time whether the blocks earned their
+pixels. They did. The question I never asked was whether the *gesture* varies,
+and it did not: twenty-four identical turns, which is invisible to every
+measurement this project owns.
+
+**Removed**, from what is now most meetings: the tab strip, the objective
+restated for the twentieth time, the chart panel, the stance strip, the
+newspaper as the landing surface, the button to a desk that is now the screen,
+and the settings row. **2,900 px and 2,510 characters → 844 px and 570.** A
+meeting is one phone screen. Nothing left the game; it is behind one gesture,
+and the gesture is optional.
+
+**Added**, three things and only three. A tempo, decided in the engine so it
+replays — quick, full, decisive — where *full* means something **changed**
+rather than something is true. A wager on the published forecast, with the
+band chosen and the stake on screen before the commitment. And a verdict in
+colour on the reaction screen.
+
+**Measured**, against the criteria you set:
+
+| criterion | result |
+| --- | --- |
+| quick meeting under ten seconds | **24 compulsory words ≈ 7 s** |
+| full meeting over a minute | **425 words ≈ 128 s** |
+| easy playable on two lines alone | **40 of 40 served, 24 objectives met** |
+| tell a meeting apart without reading | **three colour states**, verified reading no text |
+| contrast across every state | **664 clean**, up from 604 |
+| no network call | **12 same-origin, 0 attempted after load** |
+
+The two-line criterion is the one I am most glad you set. `dev/twoLines.ts` is
+a player that cannot see the screen: it gets the standing line and the
+sentence as strings, matches a handful of phrases, and moves the dial. It
+serves every easy mandate. That is the difference between "the rest of the
+screen is optional" as a claim and as a fact.
+
+**Bothers me.** Five defects in one pass, and four were this project's own
+recorded mistakes repeated. Paper tokens on `bg-inset`, which is walnut in
+both directions — the invisible panel from entry 1, rebuilt. The same quantity
+stated in three places on two screens, all measuring against the whole priced
+gap where the engine charges against 35 % of it, so the three agreed with each
+other and disagreed with the model. A verdict band comparing the same-day pair,
+where prices cannot move, so it was "mixed" every time and never once
+appeared. A wager that could be revised every meeting and therefore never
+settled — a finished-looking feature whose payoff was unreachable code. And
+the tools returning on an element's *first painted frame*, so a capture showed
+the severe-warning line as an empty gap.
+
+Four of those are the same failure: **something that cannot happen, in code
+that looks like it happens.** I have written the parade for it four times now
+and keep walking into it from a new direction. The one real defence is the one
+you pushed me to this week — state the criterion as a number, then write the
+thing that tries to falsify it.

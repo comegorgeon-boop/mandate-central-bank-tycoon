@@ -10,6 +10,7 @@ import {
   type CommitteeVote,
   type RunConfig,
 } from '../../simulation/index.ts'
+import type { CounterfactualLine } from '../meeting/counterfactualLine.ts'
 import { Reveal } from '../meeting/Reveal.tsx'
 import { meetingVerdict } from '../meeting/verdict.ts'
 import { VotePanel } from '../meeting/VotePanel.tsx'
@@ -35,6 +36,7 @@ export function ReactionPanel({
   call,
   config,
   current,
+  fork,
   onContinue,
 }: {
   readonly before: ObservationSet
@@ -50,6 +52,17 @@ export function ReactionPanel({
   readonly call: CallOutcome | null
   /** The mandate's own objective and sustainable rate, for the verdict. */
   readonly config: RunConfig
+  /**
+   * The counterfactual, shown here only after the decisive meeting.
+   *
+   * The banner on that meeting promises the player will be shown what the
+   * other way would have produced, and this is that promise kept: the same
+   * economy replayed without their decisions, which the engine has been
+   * advancing in lockstep all mandate. Null at every other meeting, where it
+   * lives in the Meeting Brief as usual rather than taking the top of the
+   * screen.
+   */
+  readonly fork: CounterfactualLine | null
   /**
    * This meeting's published set, for the verdict band.
    *
@@ -100,6 +113,20 @@ export function ReactionPanel({
             verdict === 'better' ? 'bg-good' : 'bg-bad'
           }`}
         />
+      )}
+
+      {fork !== null && (
+        <section
+          data-fork=""
+          aria-label="What the other way would have produced"
+          className="mb-4 rounded-lg border-l-4 border-edge-accent bg-inset p-3 text-onwood"
+        >
+          <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-onwood-faint">
+            The fork
+          </p>
+          <p className="mt-1 text-sm font-semibold text-onwood">{fork.headline}</p>
+          <p className="mt-1 text-xs text-onwood-soft">{fork.detail}</p>
+        </section>
       )}
 
       <h2

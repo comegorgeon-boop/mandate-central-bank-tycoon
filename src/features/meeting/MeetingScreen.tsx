@@ -29,7 +29,8 @@ import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MandateChartPanel } from './panels/MandateChartPanel.tsx'
 import { FirstMeetingGuide } from './FirstMeetingGuide.tsx'
 import { QuickMeeting } from './QuickMeeting.tsx'
-import { readTempo } from '../../simulation/meeting/tempo.ts'
+import { DecisiveBanner } from './DecisiveBanner.tsx'
+import { readTempo, decisiveMeetingOf } from '../../simulation/meeting/tempo.ts'
 import { useNarrowScreen } from '../../components/useNarrowScreen.ts'
 import { hasSeenGuide, markGuideSeen } from '../records/storage.ts'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
@@ -282,6 +283,12 @@ export function MeetingScreen({
             call={session.call}
             config={config}
             current={session.observation}
+            // Only after the decisive meeting, which promised it.
+            fork={
+              session.state.meetingIndex === decisiveMeetingOf(session) + 1
+                ? counterfactual
+                : null
+            }
             onContinue={() => setShowReaction(false)}
           />
         </div>
@@ -335,6 +342,10 @@ export function MeetingScreen({
             previousTone={previousStanding?.tone ?? null}
             severeWarnings={severeWarnings}
           />
+
+          {/* The meeting this mandate is remembered by: announced the meeting
+              before, so it can be dreaded, and marked when it arrives. */}
+          <DecisiveBanner session={session} />
 
           {because !== null && (
             <p

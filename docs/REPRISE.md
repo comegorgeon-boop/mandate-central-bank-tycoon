@@ -13,9 +13,9 @@ record, and `docs/JOURNAL.md` is the week read in two minutes.
 | check | result |
 | --- | --- |
 | `npm run build` | clean |
-| `npm test` | 1094 passing, 65 files |
+| `npm test` | 1102 passing, 66 files |
 | `npm run check:offline` | clean, **against the deployed site** — 12 requests, all same-origin; a full mandate plays with the network cut and attempts nothing |
-| `node tools/contrast.mjs` | no failures across **604** screen states |
+| `npm run check:contrast` | no failures across **664** screen states |
 | `node tools/board.mjs` | 684 shots, 0 scrolling sideways — `docs/board/index.html` |
 
 Sixteen commits since 17 October. `wrangler` is logged in on this machine as
@@ -34,11 +34,43 @@ The six chantiers, in the order they were given.
 | E | the 30 events in full | **done** — 36, of which 13 chain and 5 are gated second acts |
 | F | keep looking; the council vote and the living projection | **both done**, plus the comparison against your own best |
 
-Two corrections were made after that, both on your instruction: the Okun
-coefficient now steepens with the depth of the output gap, so the game no
-longer teaches a sacrifice ratio about half the real one; and the phone
-meeting screen opens on the tab the player came for, with 252 px of header
-and alarm above it instead of 1,518 px of context.
+Two corrections followed, both on instruction: the Okun coefficient now
+steepens with the depth of the output gap, so the game no longer teaches a
+sacrifice ratio about half the real one; and the phone meeting screen opens on
+the tab the player came for.
+
+**Then the game was restructured**, because it was still boring, and the
+reason was not density: *the gesture never varied.* Twenty-four identical
+turns. That is now three kinds of meeting, a wager with the stake visible
+before the commitment, and a verdict in colour. See journal 15 and the table
+below.
+
+## The shape of a turn
+
+| | what it is | how often |
+| --- | --- | --- |
+| **quick** | one sentence, the dial, the wager, done. 24 compulsory words, about seven seconds. The room is one gesture away and most players will not open it | 75-89 % of fictional meetings, 56-77 % of a scenario's |
+| **full** | the whole apparatus, because something **changed** — a crisis landed, a warning just turned severe, the government asked for something new, the objective moved, guidance comes due | the rest |
+| **decisive** | one per mandate, placed by seed or at a scenario's own crisis | once |
+
+*Full* means changed, not true. The first version tested states and latched:
+79 % of the 2021-23 meetings came back full, because a supply shock is true
+for as long as it lasts. A thing true at every meeting is weather.
+
+**Two wagers.** Surprising the market is priced on the dial as you move it —
+reach bought against market trust and volatility risked, read off the engine's
+own constants so the stake shown is the stake taken. And the published
+forecast: where inflation prints in two meetings, at a band you choose, which
+cannot be revised once made.
+
+**Criteria, all measured** (`dev/twoLines.ts`, `dev/tempoMix.ts`, and the
+timing probe in journal 15):
+
+- a quick meeting is 24 compulsory words, about seven seconds
+- a full one is 425 words, about two minutes
+- on easy, a player reading **only** the standing line and the meeting
+  sentence serves 40 of 40 mandates and meets the objective in 24
+- a run is distinguishable by colour alone, reading no text
 
 ## The tools, which are the review channel
 
@@ -52,8 +84,10 @@ and alarm above it instead of 1,518 px of context.
 | `npx tsx src/simulation/dev/skillCheck.ts` | paired survival, skill against passivity, 240 seeds |
 | `npx tsx src/simulation/dev/gateProbe.ts` | whether a chain gate actually separates the two populations |
 | `npx tsx src/simulation/dev/nixonFit.ts` | whether 1972-74 produces 1972-74 |
-| `npx tsx src/simulation/dev/okunFit.ts` | how far unemployment swings in every scenario, against the period |
 | `npx tsx src/simulation/dev/scenarioFit.ts` | every fit table in SCENARIOS.md |
+| `npx tsx src/simulation/dev/twoLines.ts` | whether two lines are enough to serve a mandate |
+| `npx tsx src/simulation/dev/tempoMix.ts` | what proportion of meetings are quick, and why the rest are not |
+| `npx tsx src/simulation/dev/okunFit.ts` | how far unemployment swings in every scenario |
 
 ## What is open
 
@@ -65,6 +99,13 @@ are answered and applied, and each records what was applied and how to reverse
 it; #3 and #4 carry an update from the Okun work.
 
 **Two things I would open next**, neither blocking:
+
+0. **The decisive meeting is decided but not yet dressed.** `readTempo`
+   returns `decisive` once per mandate and the screen treats it as a full
+   meeting. What it does not yet have is the announcement a meeting ahead, or
+   an outcome that visibly forks. It is the one numbered item of the
+   restructure that is wired and not finished.
+
 
 1. **The output gap is too shallow in the mild recessions.** The Okun pass
    fixed the labour block: 1979-83 now reaches 11.8 % unemployment against the
