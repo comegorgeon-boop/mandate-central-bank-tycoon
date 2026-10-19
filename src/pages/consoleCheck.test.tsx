@@ -9,6 +9,21 @@ import {
 } from '../simulation/index.ts'
 
 /**
+ * Open the full room if this meeting is a quick one.
+ *
+ * Most meetings now render a five-second surface — one sentence, the dial,
+ * done — and the apparatus these tests drive is one gesture behind it. A
+ * player reaches the tabs by pressing "Open the room"; so does a test. See
+ * `simulation/meeting/tempo.ts`.
+ */
+function openRoom(): void {
+  const open = document.querySelector('[data-open-room]')
+  if (open !== null) fireEvent.click(open)
+}
+
+
+
+/**
  * A whole mandate at each difficulty, driven through the real screens.
  *
  * This is the only test that touches every panel a player actually sees, so it
@@ -47,6 +62,7 @@ function playWholeMandate(difficulty: Difficulty): void {
     if (screen.queryByRole('tab', { name: 'Meeting Brief' }) === null) break
 
     for (const tab of ['Meeting Brief', 'Prices', 'Labor', 'Policy Desk']) {
+      openRoom()
       fireEvent.click(screen.getByRole('tab', { name: tab }))
     }
 
@@ -110,6 +126,7 @@ describe('both institutions are reachable', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: 'Start the mandate' }))
       fireEvent.click(screen.getByRole('button', { name: 'Enter the first meeting' }))
+      openRoom()
       fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
 
       expect(screen.getAllByText(rateLabel).length).toBeGreaterThan(0)
@@ -149,6 +166,7 @@ describe('the toolkit each difficulty actually reaches', () => {
         name: 'Continue to the next meeting',
       })
       if (onward !== null) fireEvent.click(onward)
+      openRoom()
       fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     }
 
@@ -170,6 +188,7 @@ describe('the toolkit each difficulty actually reaches', () => {
    * something that is deliberately not on screen.
    */
   function openBench(label: 'The case' | 'The words' | 'The toolkit'): void {
+    openRoom()
     fireEvent.click(screen.getByRole('tab', { name: label }))
   }
 

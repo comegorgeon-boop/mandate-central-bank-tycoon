@@ -17,6 +17,21 @@ import {
 import { deriveTone } from '../features/policy/statement.ts'
 
 /**
+ * Open the full room if this meeting is a quick one.
+ *
+ * Most meetings now render a five-second surface — one sentence, the dial,
+ * done — and the apparatus these tests drive is one gesture behind it. A
+ * player reaches the tabs by pressing "Open the room"; so does a test. See
+ * `simulation/meeting/tempo.ts`.
+ */
+function openRoom(): void {
+  const open = document.querySelector('[data-open-room]')
+  if (open !== null) fireEvent.click(open)
+}
+
+
+
+/**
  * The interface and the engine play the same game.
  *
  * Every balance measurement in docs/BALANCE.md drives the engine directly —
@@ -150,6 +165,7 @@ function readIndicator(label: string): number | null {
 }
 
 function policyRateInForce(): number {
+  openRoom()
   const strip = screen.getByRole('region', { name: 'Policy stance' })
   const match = /Policy rate\s*(-?\d+\.\d+) %/.exec(strip.textContent ?? '')
   if (match === null) throw new Error('the stance strip does not show a policy rate')
@@ -202,14 +218,20 @@ function playThroughTheInterface(): {
 
     const rate = policyRateInForce()
 
+    openRoom()
+
     fireEvent.click(screen.getByRole('tab', { name: 'Prices' }))
     const headline = readIndicator('Headline inflation')
     const core = readIndicator('Core inflation')
+
+    openRoom()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Labor' }))
     const unemployment = readIndicator('Unemployment rate')
 
     published.push({ meeting, policyRate: rate, headline, core, unemployment })
+
+    openRoom()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     fireEvent.change(screen.getByRole('slider', { name: /rate|range/i }), {
@@ -218,6 +240,7 @@ function playThroughTheInterface(): {
     // The words are a bench on the desk now: the dial and the rate it lands on
     // are what stands in front of the chair, and everything else is one click
     // away. See `PolicyDeskPanel`.
+    openRoom()
     fireEvent.click(screen.getByRole('tab', { name: 'The words' }))
     fireEvent.click(
       screen.getByRole('button', { name: /We expect to go materially further/ }),

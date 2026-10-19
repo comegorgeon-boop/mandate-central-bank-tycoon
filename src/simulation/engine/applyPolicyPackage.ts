@@ -590,6 +590,16 @@ export function applyPolicyPackage(
   latent.marketTrust -=
     INSTITUTIONAL.marketTrust.surprise * Math.abs(surprise) * 0.25 * sensitivity
 
+  // And what the surprise buys, which until now was nothing. A move the market
+  // had priced is already in long rates before the committee sits; one it had
+  // not moves them on the day, so an unanticipated tightening reaches the real
+  // economy harder than an anticipated one of the same size.
+  //
+  // Signed, not absolute: this is reach in the direction you moved, not a
+  // reward for being erratic. It decays through the ordinary term-premium
+  // dynamics, so it is a kick rather than a new level.
+  latent.termPremium += INSTITUTIONAL.marketTrust.surpriseReach * surprise
+
   // ---- Sovereign spreads, on the day --------------------------------------
   //
   // Sovereign debt reprices within minutes of a decision, not at the next

@@ -10,6 +10,21 @@ import {
 } from '../simulation/index.ts'
 
 /**
+ * Open the full room if this meeting is a quick one.
+ *
+ * Most meetings now render a five-second surface — one sentence, the dial,
+ * done — and the apparatus these tests drive is one gesture behind it. A
+ * player reaches the tabs by pressing "Open the room"; so does a test. See
+ * `simulation/meeting/tempo.ts`.
+ */
+function openRoom(): void {
+  const open = document.querySelector('[data-open-room]')
+  if (open !== null) fireEvent.click(open)
+}
+
+
+
+/**
  * The whole loop, driven through the interface.
  *
  * This is the test that says the game is playable: setup, briefing, every
@@ -69,6 +84,7 @@ function rateSlider(): HTMLInputElement {
 
 /** Confirms a move, in basis points, and lands on the next meeting. */
 function decideThisMeeting(basisPoints = 0): void {
+  openRoom()
   fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
   if (basisPoints !== 0) {
     fireEvent.change(rateSlider(), { target: { value: String(basisPoints) } })
@@ -80,6 +96,7 @@ function decideThisMeeting(basisPoints = 0): void {
 
 /** The policy rate currently in force, read off the permanent stance strip. */
 function policyRateInForce(): number {
+  openRoom()
   const strip = screen.getByRole('region', { name: 'Policy stance' })
   const match = /Policy rate\s*(-?\d+\.\d+) %/.exec(strip.textContent ?? '')
   return Number(match?.[1])
@@ -132,18 +149,25 @@ describe('the playable loop', () => {
       within(panel()).getByRole('heading', { name: 'The Meridian Ledger' }),
     ).toBeInTheDocument()
 
+    openRoom()
+
     fireEvent.click(screen.getByRole('tab', { name: 'Meeting Brief' }))
     expect(within(panel()).getByRole('heading', { name: 'Meeting Brief' })).toBeInTheDocument()
+
+    openRoom()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Prices' }))
     expect(within(panel()).getByRole('heading', { name: 'Prices' })).toBeInTheDocument()
     expect(within(panel()).getByText('Headline inflation')).toBeInTheDocument()
+
+    openRoom()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Labor' }))
     expect(within(panel()).getByRole('heading', { name: 'Labor' })).toBeInTheDocument()
     expect(within(panel()).getByText('Unemployment rate')).toBeInTheDocument()
 
     passTheReaction()
+    openRoom()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     expect(within(panel()).getByRole('heading', { name: 'Policy Desk' })).toBeInTheDocument()
   })
@@ -166,6 +190,7 @@ describe('the playable loop', () => {
     decideThisMeeting(50)
 
     passTheReaction()
+    openRoom()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     expect(rateSlider().value).toBe('0')
   })
@@ -175,6 +200,7 @@ describe('the playable loop', () => {
     // values the validator rejects. The detent is the contract.
     startRunOnSeed('STEP')
     passTheReaction()
+    openRoom()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
     expect(rateSlider().step).toBe('25')
   })
@@ -187,6 +213,7 @@ describe('the playable loop', () => {
 
     const current = policyRateInForce()
     passTheReaction()
+    openRoom()
     fireEvent.click(screen.getByRole('tab', { name: 'Policy Desk' }))
 
     const min = Number(rateSlider().min)

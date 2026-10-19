@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import {
   decisionFrontPages,
   getInstitution,
@@ -28,6 +28,8 @@ import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MandateChartPanel } from './panels/MandateChartPanel.tsx'
 import { FirstMeetingGuide } from './FirstMeetingGuide.tsx'
+import { QuickMeeting } from './QuickMeeting.tsx'
+import { readTempo } from '../../simulation/meeting/tempo.ts'
 import { useNarrowScreen } from '../../components/useNarrowScreen.ts'
 import { hasSeenGuide, markGuideSeen } from '../records/storage.ts'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
@@ -113,6 +115,14 @@ export function MeetingScreen({
   // Phone width puts the tab the player came for above the context. See the
   // comment at the swap itself.
   const narrow = useNarrowScreen()
+  // What kind of meeting this is — see `simulation/meeting/tempo.ts`. Derived
+  // in the engine so it replays; a tempo computed here would differ between a
+  // run and its replay the moment this file changed.
+  const { tempo, because } = useMemo(() => readTempo(session), [session])
+  // A quick meeting the player has chosen to open. Reset on every meeting,
+  // because the component is remounted at each one.
+  const [roomOpen, setRoomOpen] = useState(false)
+  const quick = tempo === 'quick' && !roomOpen
   const { settings } = useSettings()
   // This component is remounted at every meeting, so each of these is shown
   // exactly once, in order: first the interval that has just elapsed, then the
@@ -323,7 +333,22 @@ export function MeetingScreen({
             severeWarnings={severeWarnings}
           />
 
-          {narrow ? (
+          {because !== null && (
+            <p
+              data-because=""
+              className="mt-3 text-sm text-onwood-soft"
+            >
+              {because}
+            </p>
+          )}
+
+          {quick ? (
+            <QuickMeeting
+              session={session}
+              onConfirm={onConfirm}
+              onOpenRoom={() => setRoomOpen(true)}
+            />
+          ) : narrow ? (
             <>
               <Fragment key="work">
             <div

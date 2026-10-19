@@ -587,6 +587,24 @@ export const INSTITUTIONAL = {
   marketTrust: {
     ceiling: 88,
     surprise: 20.0,
+    /**
+     * Extra reach a surprise buys, in index points of financial conditions
+     * per percentage point of unanticipated move.
+     *
+     * The engine charged for surprise and paid nothing for it: volatility up,
+     * market trust down, and no channel through which being ahead of the
+     * market did more work than being level with it. That made the one real
+     * wager in a central banker's week a pure cost, and the interface could
+     * only ever report it afterwards.
+     *
+     * The reward is the standard one and it goes through the term premium,
+     * which already feeds financial conditions: a move markets had priced is
+     * mostly in long rates before the meeting, and one they had not moves
+     * them on the day. Deliberately smaller than the cost — surprising the
+     * market is not supposed to be free money, it is supposed to be a bet
+     * worth taking when you are right about the economy.
+     */
+    surpriseReach: 0.22,
     brokenPromise: 8.0,
     volatility: 0.5,
     adjustment: 2.4,

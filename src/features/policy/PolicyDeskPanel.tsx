@@ -41,6 +41,8 @@ import { ScoreboardPanel } from './ScoreboardPanel.tsx'
 import type { Scoreboard } from '../game/doctrineScoreboard.ts'
 import { InstrumentBrief } from './InstrumentBrief.tsx'
 import { RateSlider, type GhostMarker } from './RateSlider.tsx'
+import { pricedMoveBp, surpriseStake } from '../meeting/surprise.ts'
+import { StakeChips } from '../meeting/StakeChips.tsx'
 import { InstrumentEffectPanel } from './InstrumentEffectPanel.tsx'
 import { formatMagnitude } from './InstrumentStepper.tsx'
 import { guidancePreview } from './guidancePreview.ts'
@@ -49,7 +51,7 @@ import { ProjectionPanel } from './ProjectionPanel.tsx'
 import { CommunicationPanel } from './CommunicationPanel.tsx'
 import { StancePreview } from './StancePreview.tsx'
 import { formatMeetings, transmissionLag } from './lag.ts'
-import { pricedInSummary, rateEffectHint } from './rateCopy.ts'
+import { rateEffectHint } from './rateCopy.ts'
 import { buildStatement, deriveTone } from './statement.ts'
 
 /**
@@ -213,20 +215,20 @@ export function PolicyDeskPanel({
 
   const resultingRate = currentRate + move / 100
   const marketRate = session.observation.indicators.market_expected_rate?.value ?? null
-  const pricedGap =
-    marketRate === null ? 0 : Math.round((marketRate - currentRate) * 100)
-
   // The two references, in basis points of move so they sit on the same
   // track as the handle. See `RateSlider`.
   const markers: GhostMarker[] = []
-  if (marketRate !== null) {
+  // The move the market has priced *for this meeting*, which is 35 % of the
+  // gap to the expected rate — the engine's own figure, defined once in
+  // `meeting/surprise.ts` so the dial, its sentence and the stake agree.
+  const pricedThisMeeting = pricedMoveBp(session)
+  if (pricedThisMeeting !== null) {
     markers.push({
       id: 'market',
       label: 'priced',
       basisPoints:
-        Math.round(((marketRate - currentRate) * 100) / range.increment) *
-        range.increment,
-      rate: marketRate,
+        Math.round(pricedThisMeeting / range.increment) * range.increment,
+      rate: currentRate + pricedThisMeeting / 100,
     })
   }
   markers.push({
@@ -487,9 +489,12 @@ export function PolicyDeskPanel({
 
         <StancePreview observation={session.observation} move={move} />
 
-        <p className="mt-3 text-sm text-ink-soft">
-          {pricedInSummary(move, pricedGap)}
-        </p>
+        {/* One statement of the stake, from the engine's own arithmetic.
+            There used to be three on two screens — the slider's sentence, this
+            paragraph and the confirm screen's — all measuring the move against
+            the *whole* priced gap where the engine charges against 35 % of it,
+            so they agreed with each other and disagreed with the model. */}
+        <StakeChips stake={surpriseStake(session, move)} />
         <p className="mt-2 text-sm text-ink-soft">
           Peak effect on inflation and output expected around{' '}
           {formatMeetings(lag.peakMeetings)} from now. Markets and the priced path,
@@ -698,10 +703,10 @@ export function PolicyDeskPanel({
 
       <StancePreview observation={session.observation} move={move} />
 
-      <p className="mt-2 text-sm text-ink-soft">
-        {pricedInSummary(move, pricedGap)}
-        {showsHints ? ` ${rateEffectHint(move)}` : ''}
-      </p>
+      <StakeChips stake={surpriseStake(session, move)} />
+      {showsHints && (
+        <p className="mt-2 text-sm text-ink-soft">{rateEffectHint(move)}</p>
+      )}
 
       {/* The bench. Everything a decision *may* need, one click away and never
           two of them open at once. */}

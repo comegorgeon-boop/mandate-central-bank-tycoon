@@ -290,6 +290,12 @@ export async function settleMeeting(page, onTransient = null) {
 
     if (await tablist.isVisible().catch(() => false)) return 'meeting'
 
+    // A quick meeting has no tab strip at all — one sentence, the dial, done.
+    // It is still a meeting, and it is now most of them. See
+    // `simulation/meeting/tempo.ts`.
+    const quick = page.locator('[data-tempo="quick"]')
+    if (await quick.isVisible().catch(() => false)) return 'meeting'
+
     // Nothing recognised yet — give React a tick and look again, rather than
     // concluding anything from an absence.
     await page.waitForTimeout(150)
@@ -328,8 +334,17 @@ export async function isResult(page) {
     })
 }
 
-/** Select one tab by its panel id. Returns false if this run has no such tab. */
+/**
+ * Select one tab by its panel id. Returns false if this run has no such tab.
+ *
+ * Opens the room first where the meeting is a quick one: the tabs live one
+ * gesture behind the fast surface, and a tool that gave up on not finding
+ * them would be reporting the absence of a screen that is simply closed.
+ */
 export async function openPanel(page, panel) {
+  const room = page.locator('[data-open-room]')
+  if (await room.isVisible().catch(() => false)) await room.click()
+
   const tab = page.locator(`#tab-${panel}`)
   if (!(await tab.isVisible().catch(() => false))) return false
   await tab.click()
@@ -345,7 +360,27 @@ export async function openPanel(page, panel) {
  * `<input type="range">`, so it is driven the way a keyboard player drives it,
  * which also means the test exercises the accessible path.
  */
-export async function decideAndAdvance(page, { move = 0 } = {}) {
+export async function decideAndAdvance(page, { move = 0, openTheRoom = false } = {}) {
+  // The quick surface decides in one action: the dial and a confirm, with no
+  // review screen between them. `openTheRoom` forces the full apparatus, for
+  // the tools that exist to photograph it.
+  const quick = page.locator('[data-tempo="quick"]')
+  if (!openTheRoom && (await quick.isVisible().catch(() => false))) {
+    if (move !== 0) {
+      const slider = page.locator('[data-tempo="quick"] input[type="range"]').first()
+      if (await slider.isVisible().catch(() => false)) {
+        const step = Number((await slider.getAttribute('step')) ?? 25)
+        const min = Number((await slider.getAttribute('min')) ?? -200)
+        const max = Number((await slider.getAttribute('max')) ?? 200)
+        const current = Number(await slider.inputValue())
+        const wanted = Math.max(min, Math.min(max, current + move))
+        await slider.fill(String(Math.round(wanted / step) * step))
+      }
+    }
+    await page.locator('[data-confirm]').click()
+    return settleMeeting(page)
+  }
+
   await openPanel(page, 'desk')
 
   if (move !== 0) {

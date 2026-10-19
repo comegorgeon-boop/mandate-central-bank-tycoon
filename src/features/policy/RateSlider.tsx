@@ -130,9 +130,6 @@ export function RateSlider({
       .some((earlier) => Math.abs(earlier.left - marker.left) < LABEL_WIDTH),
   }))
 
-  const market = markers.find((marker) => marker.id === 'market') ?? null
-  const surprise = market === null ? null : value - market.basisPoints
-
   // The costly region, as a share of the track. Clamped to it: a floor above
   // the top of the range shades the whole track, which is the honest picture
   // of a meeting where every move available is one that drains reserves.
@@ -261,23 +258,15 @@ export function RateSlider({
         </div>
       </div>
 
+      {/* The move, and only the move.
+          This used to narrate the surprise as well — "+50 bp above what
+          markets have priced" — from the *snapped* marker, while the stake
+          panel beside it stated the same quantity exactly, from the engine's
+          own figure. Two statements of one thing, disagreeing by six basis
+          points, on the same screen. The stake panel owns it now; see
+          `meeting/StakeChips.tsx`. */}
       <p className="mt-1 text-sm text-ink">
         <span className="font-semibold tabular-nums">{signedBp(value)}</span>
-        {surprise !== null && (
-          <>
-            {' · '}
-            {Math.abs(surprise) < step / 2 ? (
-              <span className="text-ink-soft">
-                exactly what markets have priced
-              </span>
-            ) : (
-              <span className="text-accent-strong">
-                {signedBp(Math.abs(surprise))} {surprise > 0 ? 'above' : 'below'} what
-                markets have priced
-              </span>
-            )}
-          </>
-        )}
       </p>
 
       {/* The gloss on the marks is a thing a reader needs once, and it sat
