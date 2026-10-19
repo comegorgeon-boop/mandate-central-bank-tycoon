@@ -76,6 +76,43 @@ export interface LatentState {
   /** Market volatility index, 0..100. Around 20 is calm. */
   marketVolatility: number
   /**
+   * Fragility built up by calm, 0 to 100. **Minsky's hypothesis, as a number.**
+   *
+   * The defect this exists to fix was reported from a played mandate: eight
+   * consecutive meetings with nothing to decide, because the economy was well
+   * run and a well-run economy made the event generator go quiet. That is
+   * realistic and it is bad play — and the correction is not a cheat, it is
+   * the financial-instability hypothesis this game already ships an adviser
+   * for. *Stability breeds instability.* A long calm is when leverage is
+   * built, risk is repriced as safe, and the imbalances of the next crisis
+   * are assembled.
+   *
+   * So calm **accumulates** here, and what accumulates raises the hazard of a
+   * shock and the severity of one when it lands. A shock discharges it, which
+   * is the other half of the hypothesis: the crisis is the deleveraging.
+   *
+   * It is not shown to the player as a gauge. It is read in the newswire —
+   * the clues that precede an event — because a visible "crisis meter" would
+   * turn an argument about the world into a number to manage.
+   */
+  fragility: number
+  /**
+   * Meetings since anything last happened.
+   *
+   * Carried so the generator can keep a promise it could not otherwise keep:
+   * **never a third consecutive meeting with nothing to decide.** A played
+   * mandate reported eight in a row, and raising the hazard fixed the median
+   * without fixing the tail — a probability, however steep, has a tail by
+   * definition.
+   *
+   * So this is a stated rule rather than a model result, and it is stated
+   * here rather than hidden in a constant: after two quiet meetings the next
+   * draw fires. What fires is still the weighted draw over what the state
+   * makes eligible, and by then fragility has been building for two
+   * meetings, so the thing that arrives is the thing the calm had earned.
+   */
+  meetingsSinceEvent: number
+  /**
    * Institution-specific transmission impairment.
    * ECB: sovereign fragmentation spread in basis points.
    * Fed: regional banking stress index, 0..100 scaled to the same field.

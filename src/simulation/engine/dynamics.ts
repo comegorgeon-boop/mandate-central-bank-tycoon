@@ -673,9 +673,48 @@ export function advanceSubstep(
       (boundTarget('marketTrust', marketTrustTarget) - latent.marketTrust) *
       dt
 
+  // ---- Minsky: what calm is building -------------------------------------
+  //
+  // Calm is the *absence* of every warning sign at once — quiet markets, a
+  // sound banking system, an output gap near zero and inflation near the
+  // objective. That is the state in which leverage is built and risk is
+  // repriced as safe, and it is exactly the state in which this game used to
+  // fall silent for eight meetings at a time.
+  //
+  // Measured on published-style aggregates rather than on any one variable,
+  // so a player cannot hold fragility down by managing a single number.
+  const fr = INSTITUTIONAL.fragility
+  // Continuous, and weighted toward the *mandate* rather than toward market
+  // noise. The first version was four hard gates, two of them on volatility
+  // and banking stress — the two variables an event perturbs — so once the
+  // generator started firing regularly the accumulator never left single
+  // figures and the crises it exists to build never arrived. Calm is the
+  // player succeeding, which is the state the complaint described: "the
+  // economy was going well, I set reasonable rates, I clicked hold eight
+  // times."
+  const near = (distance: number, scale: number): number =>
+    Math.max(0, 1 - Math.abs(distance) / scale)
+  const calm =
+    0.4 * near(latent.inflationHeadline - target, 2.0) +
+    0.3 * near(unemploymentGap(latent), 1.5) +
+    0.2 * near(latent.bankingStress - BANKING.base, 22) +
+    0.1 * near(latent.marketVolatility - VOLATILITY.base, 18)
+  next.fragility = Math.max(
+    0,
+    Math.min(100, latent.fragility + fr.build * calm * dt),
+  )
+
   const pol = INSTITUTIONAL.politicalPressure
   const politicalTarget =
     pol.base +
+    // The political economy of success, which this model had backwards. A
+    // government leans hardest on a central bank when there is *no* crisis to
+    // justify the cost of credit: unemployment is low, inflation is at target,
+    // and the only visible thing the bank is doing is keeping borrowing
+    // expensive. Pressure that only rose with trouble made the quiet mandates
+    // quiet in a second way, and it is not how the record reads either — 1972
+    // was a boom.
+    pol.complacency * calm +
     pol.unemployment * Math.max(0, unemploymentGap(latent)) +
     pol.policyRate *
       Math.max(

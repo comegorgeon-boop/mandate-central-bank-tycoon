@@ -60,6 +60,15 @@ function value(observation: ObservationSet, id: SeriesId): number | null {
  */
 export function meetingLine(session: RunSession): string | null {
   const { state, observation } = session
+
+  // Something landed in the interval. It leads, whatever else is true: the
+  // generator now guarantees an event every third meeting at the latest, and
+  // a player who is handed a dial without being told what just happened is
+  // being asked to react to a number that moved for no stated reason.
+  const landed = session.minorEvents[0]
+  if (landed !== undefined) {
+    return landed.title + '.'
+  }
   const difficulty: Difficulty = state.config.difficulty
   const target = inflationTargetFor(state.config)
   const inflation = value(observation, 'headline_inflation')

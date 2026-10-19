@@ -126,8 +126,23 @@ export function readTempo(session: RunSession): TempoReading {
   // test below. Absent at the first meeting, where nothing can have changed.
   const before = state.history.at(-2)?.latent ?? null
 
-  // A crisis that landed in the interval just gone. Already a change: a major
-  // event fires once.
+  // A crisis that landed in the interval just gone.
+  //
+  // **Majors only**, and the reasoning is worth keeping because the opposite
+  // was tried in between. Opening the whole room for every event looked like
+  // the fix for "eight meetings with nothing to decide" — but once the
+  // generator was made to fire every third meeting at the latest, it meant
+  // three meetings in sixteen stayed quick and the fast surface effectively
+  // disappeared. Two things were being conflated:
+  //
+  //   - **whether something happened**, which is the event generator's job
+  //     and is now guaranteed (see `LatentState.meetingsSinceEvent`);
+  //   - **whether the whole apparatus is needed to respond**, which is this.
+  //
+  // An energy spike changes the economy and is worth a sentence and a dial.
+  // A bank failing is worth the room. The quick surface names the event in
+  // its own line — see `features/meeting/meetingLine.ts` — so a player is
+  // never unaware that something landed, only spared the dossier about it.
   if (session.majorEvent !== null) {
     return { tempo: 'full', because: session.majorEvent.title }
   }

@@ -60,6 +60,11 @@ function afterOnset(ctx: EventContext, onset: string, factor = 2.5): number {
  * euro-area passive completion rate rising three points. A player who let the
  * episode escalate has not contained it, whatever the reading says today.
  *
+ * The factor is small, and smaller than it was. These were calibrated when
+ * an event fired about a third as often as it does now; at the current
+ * cadence a 1.8× boost on every relief made the catalogue net disinflationary
+ * by itself — the thing `balance.test.ts` exists to forbid.
+ *
  * It is also what keeps the draw honest. At hard an event fires most
  * meetings, so the probability is fixed and the catalogue is a *mix*: three
  * adverse second acts added to the pool do not add events, they displace
@@ -72,7 +77,7 @@ function whenContained(
   onset: string,
   escalation: string,
   contained: boolean,
-  factor = 1.4,
+  factor = 1.15,
 ): number {
   return (ctx.occurrences[onset] ?? 0) > 0 &&
     (ctx.occurrences[escalation] ?? 0) === 0 &&
@@ -667,7 +672,7 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     'currency_pressure',
     'capital_flight',
     ctx.latent.exchangeRate >= 85,
-    1.6,
+    1.25,
   ),
     immediate: (ctx) => [
       { variable: 'exchangeRate', delta: 7 },
@@ -859,10 +864,16 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     isEligible: (ctx) =>
       ctx.latent.marketVolatility < 25 && ctx.latent.creditGrowth > 1.5,
     weight: (ctx) => 0.5 + Math.max(0, ctx.latent.creditGrowth) / 5,
+      // Scaled up to survive the severity cut. The global
+      // `eventSeverityScale` fell by about 40 % to pay for an event rate that
+      // roughly tripled, and three of the smallest events fell below the bar
+      // `consequence.test.ts` sets: they changed two or three meetings in
+      // forty-eight and moved under 2 % of the score, which is the definition
+      // of decoration. A uniform dial cannot know that.
     immediate: () => [
-      { variable: 'assetPricePressure', delta: 16 },
-      { variable: 'creditGrowth', delta: 1.2 },
-      { variable: 'confidenceShock', delta: 0.6 },
+      { variable: 'assetPricePressure', delta: 28 },
+      { variable: 'creditGrowth', delta: 2.1 },
+      { variable: 'confidenceShock', delta: 1.05 },
     ],
     delayed: () => [
       { delaySteps: TWO_MEETINGS, effects: [{ variable: 'assetPricePressure', delta: 8 }] },
@@ -1281,6 +1292,9 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'credibility', delta: -9 },
       { variable: 'marketTrust', delta: -15 },
       { variable: 'marketVolatility', delta: 14 },
+      // Investment deferred while nobody knows who is in charge is capacity
+      // that is not there later. See the note in `market_panic`.
+      { variable: 'potentialGrowth', delta: -0.75 },
       // Uncertainty over who is actually in charge chills spending before any
       // policy has actually changed — a demand-shaped shock, not a supply one.
       { variable: 'demandShock', delta: -1.4 },
@@ -1419,11 +1433,14 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     immediate: (ctx) => [
       {
         variable: 'assetPricePressure',
-        delta: -Math.max(32, ctx.latent.assetPricePressure * 0.6),
+        delta: -Math.max(21, ctx.latent.assetPricePressure * 0.4),
       },
       { variable: 'bankingStress', delta: 26 },
-      { variable: 'confidenceShock', delta: -1.9 },
+      { variable: 'confidenceShock', delta: -1.25 },
       { variable: 'financialShock', delta: 1.7 },
+      // Capacity with demand — see the note in `market_panic`. Construction
+      // and the trades do not come back when the credit does.
+      { variable: 'potentialGrowth', delta: -0.95 },
     ],
     delayed: () => [
       // Demand destruction takes a couple of quarters to show up in full.
@@ -1527,9 +1544,29 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
       { variable: 'marketVolatility', delta: 44 },
       { variable: 'creditSpread', delta: 1.6 },
       { variable: 'bankingStress', delta: 20 },
+      // Capacity lost, not only demand. A crisis that destroys *only* demand
+      // is a deflationary event by construction, and that is how all four of
+      // these were written — so biasing the draw toward the majors, which is
+      // what "three crises a mandate" requires, imported a systematic
+      // disinflation the player had not caused. Measured: the majors averaged
+      // an impulse of −0.39 against the minors' −0.015.
+      //
+      // The correction is better economics rather than a dial. A financial
+      // crisis impairs credit allocation and destroys productive capacity —
+      // hysteresis, and the credit-supply literature — so capacity falls with
+      // demand and the episode is far less deflationary than demand
+      // destruction alone. Which is also what the 1930s and 2008 looked like.
+      //
+      // Expressed as lost *capacity* and never as `supplyShock`: that is a
+      // declared cost-push variable, and `character.test.ts` requires any
+      // event touching one to be filed as a supply shock. These are not
+      // supply shocks. The shock mix routes each mode's diet of problems by
+      // that field, so filing a bank failure as cost-push would serve it to a
+      // player who had asked for demand.
+      { variable: 'potentialGrowth', delta: -1.05 },
       {
         variable: 'assetPricePressure',
-        delta: -Math.max(26, ctx.latent.assetPricePressure * 0.5),
+        delta: -Math.max(17, ctx.latent.assetPricePressure * 0.34),
       },
       { variable: 'confidenceShock', delta: -2.0 },
       { variable: 'financialShock', delta: 3.0 },
@@ -1722,8 +1759,8 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     weight: (ctx) => 0.7 + Math.max(0, ctx.latent.policyRate - 2) / 4,
     immediate: () => [],
     memberEffects: () => [
-      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: 3.0 },
-      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: -1.8 },
+      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: 5.2 },
+      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: -3.1 },
       { member: 'most_cyclical', field: 'inflationOffset', magnitude: -0.8 },
     ],
     delayed: () => [],
@@ -1788,10 +1825,10 @@ export const EVENT_CATALOG: readonly GameEvent[] = [
     // be a score that only falls. Convergence happens, and it happens for the
     // ordinary reason — capital goes where returns are higher.
     weight: (ctx) => 0.6 + Math.max(0, 60 - ctx.latent.fragmentation) / 60,
-    immediate: () => [{ variable: 'confidenceShock', delta: 0.3 }],
+    immediate: () => [{ variable: 'confidenceShock', delta: 0.52 }],
     memberEffects: () => [
-      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: -2.2 },
-      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: 1.2 },
+      { member: 'most_cyclical', field: 'unemploymentOffset', magnitude: -3.8 },
+      { member: 'most_cyclical', field: 'outputGapOffset', magnitude: 2.1 },
       { member: 'most_indebted', field: 'spread', magnitude: -110 },
       { member: 'most_indebted', field: 'outputGapOffset', magnitude: 0.8 },
     ],

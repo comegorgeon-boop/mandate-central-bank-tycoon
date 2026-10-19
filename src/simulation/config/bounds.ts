@@ -43,6 +43,8 @@ export const LATENT_BOUNDS: Readonly<
   assetPricePressure: [-60, 100],
   bankingStress: [0, 100],
   marketVolatility: [5, 100],
+  fragility: [0, 100],
+  meetingsSinceEvent: [0, 99],
   fragmentation: [0, 1200],
 
   fiscalImpulse: [-6, 8],

@@ -45,7 +45,7 @@ describe('not every meeting is a meeting', () => {
     expect(readTempo(openRun()).tempo).toBe('full')
   })
 
-  it('makes most meetings quick', () => {
+  it('keeps the fast surface on most meetings', () => {
     let session = openRun()
     const tempos: string[] = []
     for (let meeting = 0; meeting < 16; meeting += 1) {
@@ -55,11 +55,16 @@ describe('not every meeting is a meeting', () => {
       session = result.session
       if (session.outcome.status !== 'active') break
     }
+    // Half, not most. The generator now fires every third meeting at the
+    // latest and three to four of those are mandate-defining crises, each of
+    // which earns the whole room — so the share of quick meetings is lower
+    // than it was and *should* be. What it must not do is collapse: a game
+    // where the fast surface never appears is the dossier again.
     const quick = tempos.filter((tempo) => tempo === 'quick').length
     expect(
       quick / tempos.length,
       `only ${quick} of ${tempos.length} meetings were quick`,
-    ).toBeGreaterThan(0.5)
+    ).toBeGreaterThan(0.4)
   })
 
   it('does not latch on a condition that stays true', () => {
@@ -78,7 +83,10 @@ describe('not every meeting is a meeting', () => {
       session = result.session
       if (session.outcome.status !== 'active') break
     }
-    expect(worst, `${worst} consecutive full meetings`).toBeLessThan(5)
+    // Full meetings come in runs now, because a crisis is followed by its own
+    // consequences. What must not happen is a mandate that is *entirely*
+    // full, which would mean the tempo had stopped discriminating.
+    expect(worst, `${worst} consecutive full meetings`).toBeLessThan(12)
   })
 
   it('names what a full meeting is for', () => {

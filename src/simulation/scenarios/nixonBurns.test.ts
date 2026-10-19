@@ -30,7 +30,17 @@ function playedByTheRule() {
     scenario: 'nixon_burns_1972',
     simulationVersion: SIMULATION_VERSION,
   })
-  return playRun(config, (session) => toolkitPackage(session, 'fed', 'hard'))
+  // The rate only. The benchmark rule proposes the whole modern toolkit, and
+  // 1972 had no securities-purchase programme — at the current event cadence
+  // the rule now reaches a state where it asks for one, and the engine
+  // rightly refuses.
+  return playRun(config, (session) => {
+    const full = toolkitPackage(session, 'fed', 'hard')
+    return {
+      actions: full.actions.filter((action) => action.instrument === 'policy_rate'),
+      communication: null,
+    }
+  })
 }
 
 describe('the period the scenario is named after', () => {

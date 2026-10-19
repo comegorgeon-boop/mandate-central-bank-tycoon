@@ -609,8 +609,74 @@ export const INSTITUTIONAL = {
     volatility: 0.5,
     adjustment: 2.4,
   },
+  /**
+   * Minsky's financial instability hypothesis, as four numbers.
+   *
+   * A well-run economy made this game's event generator go quiet, and a
+   * played mandate reported eight consecutive meetings with nothing to
+   * decide. The correction is not a thumb on the scale: *stability breeds
+   * instability* is the oldest result in financial macroeconomics, and this
+   * project already ships an adviser whose entire argument it is.
+   *
+   * Calm builds `fragility`; fragility raises the hazard of a shock and the
+   * size of one; a shock discharges it, because the crisis is the
+   * deleveraging. The player never sees the number — they see the clues it
+   * produces, which is where a central banker reads it too.
+   */
+  fragility: {
+    /**
+     * Points built per year of complete calm.
+     *
+     * Calibrated rather than chosen: at 26 a well-run mandate still produced
+     * runs of eleven quiet meetings, because a mandate is two to four years
+     * and full calm is rare enough that the accumulator never filled. See
+     * `dev/cadence.ts` for the measurement this is set against.
+     */
+    build: 70,
+    /**
+     * How much of it a shock burns off, as a share.
+     *
+     * Not all of it: a single bad quarter does not undo three years of
+     * accumulated leverage, and a mandate where one crisis bought permanent
+     * safety would teach the opposite of the hypothesis.
+     */
+    discharge: 0.75,
+    /**
+     * What an ordinary shock burns off.
+     *
+     * Almost nothing, and that is the point. A wage round, a data revision or
+     * an energy spike does not deleverage a financial system; it is weather
+     * passing over the imbalance rather than the imbalance resolving. Setting
+     * this equal to a crisis's discharge — which the first version did, by
+     * having one number — kept the accumulator permanently near empty and the
+     * majors as rare as they had always been.
+     */
+    minorDischarge: 0.08,
+    /** Multiplier on event probability at full fragility. */
+    hazard: 3.2,
+    /**
+     * How much fragility biases the draw toward mandate-defining crises.
+     *
+     * The majors carry a `baseWeight` near 0.15 against ordinary events at
+     * 1.0, so at rest they are roughly one in forty of the draw and a mandate
+     * saw about half of one. A player asked for three or four. This is how
+     * they arrive — after the calm that built them, which is the hypothesis
+     * rather than a dial.
+     */
+    majorBias: 95,
+    /** Multiplier on event severity at full fragility. */
+    severity: 1.25,
+  },
   politicalPressure: {
     base: 22,
+    /**
+     * Pressure added by a calm, well-run economy, at full calm.
+     *
+     * See the note in `dynamics.ts`: a government presses hardest when there
+     * is no crisis to justify the cost of credit. This is the other half of
+     * the Minsky correction — calm should not be quiet politically either.
+     */
+    complacency: 14.0,
     unemployment: 10.0,
     /** Resentment per point of real policy rate above the tolerance. */
     policyRate: 4.0,

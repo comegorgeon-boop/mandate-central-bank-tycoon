@@ -239,7 +239,19 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     forecastUncertaintyScale: 0.6,
     publicationLagRelief: 1,
     eventProbability: 0.35,
-    eventSeverityScale: 0.65,
+    /**
+     * Scaled down to pay for the cadence.
+     *
+     * The event rate roughly tripled when calm stopped being quiet — a
+     * guaranteed event every third meeting at the latest, and three majors a
+     * mandate instead of half of one. At the old severity that produced a
+     * game that ended in a banking crisis 97 times in 150 and completed
+     * twice. *More things happening must not mean more damage per mandate*;
+     * the player asked for cadence, not lethality. See `dev/cadence.ts` and
+     * `dev/skillCheck.ts`, which are the two measurements this is set
+     * against.
+     */
+    eventSeverityScale: 0.42,
     // The mode where you learn that the instrument works. Demand shocks in a
     // large majority, because they are the ones a rate move addresses whole:
     // prices and activity move together, so there is a right answer and the
@@ -286,7 +298,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     forecastUncertaintyScale: 1.0,
     publicationLagRelief: 0,
     eventProbability: 0.55,
-    eventSeverityScale: 1.0,
+    eventSeverityScale: 0.58,
     // The mode where you discover the trade-off. The catalog's own weights,
     // untouched, so the first real supply shock arrives here and the two
     // halves of the mandate pull against each other for the first time.
@@ -334,7 +346,7 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
     // more named crises in it is a denser game, while the same mandate with
     // more ambient variance is only a noisier one.
     eventProbability: 0.8,
-    eventSeverityScale: 1.55,
+    eventSeverityScale: 0.88,
     // The real job. Supply weighted above everything else and no ceiling on
     // how much cost-push can be outstanding at once, so shocks pile onto one
     // another and the mandate is decided on how the expectations anchor is

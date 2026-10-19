@@ -341,6 +341,10 @@ export function createInitialState(
       8,
       55,
     ),
+    // A fresh economy has not been calm for long enough to have built
+    // anything. See `LatentState.fragility`.
+    fragility: 0,
+    meetingsSinceEvent: 0,
     fragmentation: clamp(base.fragmentation + noise(base.fragmentation * 0.2), 0, 400),
 
     fiscalImpulse: clamp(noise(0.7), -3, 3),

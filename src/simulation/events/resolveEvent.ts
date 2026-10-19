@@ -9,6 +9,8 @@ import type {
 import type { SimulationState } from '../types/state.ts'
 import type { DiagnosticEvent } from '../types/core.ts'
 import { restorePrng } from '../rng/prng.ts'
+import { INSTITUTIONAL } from '../config/model.ts'
+import { inflationImpulse } from './inflationImpulse.ts'
 import { clampLatentState } from '../config/bounds.ts'
 import { DIFFICULTY_ORDER, getDifficulty, meetsDifficulty } from '../config/difficulty.ts'
 import { applyEffects } from '../engine/advanceTrueState.ts'
@@ -116,13 +118,33 @@ export function eligibleEvents(
 function selectionWeights(
   events: readonly GameEvent[],
   ctx: EventContext,
+  /** False for a historical scenario — see the note on the bias below. */
+  emergentCrises: boolean,
 ): readonly number[] {
   const mix = getDifficulty(ctx.difficulty).shockMix
+
+  // Minsky in the *selection*, not only in the rate. A long calm does not
+  // merely make something more likely to happen, it decides what kind of
+  // thing happens: leverage built quietly for three years is not discharged
+  // by a wage round, it is discharged by a bank failing. So fragility biases
+  // the draw toward the mandate-defining crises, which is the half of the
+  // hypothesis a hazard multiplier alone cannot express.
+  //
+  // It is also what makes three or four majors a mandate reachable at all:
+  // they carry a `baseWeight` around 0.15 against ordinary events at 1.0,
+  // and no plausible change to the firing rate would have surfaced them.
+  // Fictional mandates only, for the same reason the hazard is — see the
+  // note at the draw. A scenario's crises are dated; biasing its drawn stream
+  // toward *more* crises on top of the ones history already supplied is how
+  // 1929-33 went from eleven seeds in twelve serving a full term to three.
+  const built = emergentCrises ? ctx.latent.fragility / 100 : 0
+  const majorBias = 1 + INSTITUTIONAL.fragility.majorBias * built
+
   return events.map((event) => {
     const multiplier = event.weight(ctx) * mix[event.shockCharacter]
-    return Number.isFinite(multiplier) && multiplier > 0
-      ? event.baseWeight * multiplier
-      : 0
+    if (!Number.isFinite(multiplier) || multiplier <= 0) return 0
+    const bias = event.tier === 'major' ? majorBias : 1
+    return event.baseWeight * multiplier * bias
   })
 }
 
@@ -142,9 +164,15 @@ const CLUE_PROMINENCE = 1.6
  * flagging. Deterministic: the player is warned about genuine risk, not by a
  * separate coin flip.
  */
-function buildClues(ctx: EventContext, threshold: number): readonly string[] {
+function buildClues(
+  ctx: EventContext,
+  threshold: number,
+  emergentCrises: boolean,
+): readonly string[] {
   const events = eligibleEvents(ctx)
-  const weights = selectionWeights(events, ctx)
+  // The same weights the draw will use, so the warning a player reads is a
+  // warning about the distribution they actually face.
+  const weights = selectionWeights(events, ctx, emergentCrises)
   const total = weights.reduce((sum, weight) => sum + weight, 0)
   if (total <= 0) return []
 
@@ -190,22 +218,74 @@ export function resolveEvent(
   // dated events make the mandate recognisable as 1979-83, and the drawn ones
   // are the whole reason two seeds of it are different mandates.
   const scenario = scenarioNow
-  const fires = prng.bernoulli(
-    difficulty.eventProbability * (scenario?.proceduralEventScale ?? 1),
+
+  // Minsky, at the point of the draw. Fragility built by calm raises the
+  // hazard, which is the whole correction: a well-run economy used to make
+  // this generator fall silent, and a played mandate reported eight
+  // consecutive meetings with nothing to decide. See `LatentState.fragility`.
+  const fr = INSTITUTIONAL.fragility
+  // **Fictional mandates only.**
+  //
+  // Minsky explains why an invented economy generates its own crises, which
+  // is exactly the hole it was built to fill: a well-run fictional mandate
+  // had nothing happen in it for eight meetings. A historical period does not
+  // need explaining — its crises are dated, they are in the calendar, and
+  // they happened for reasons the scenario already states. Piling an emergent
+  // hazard on top of 1929-33 took the share of seeds serving a full term from
+  // eleven in twelve to three, which is not a harder scenario, it is a
+  // different one.
+  const built = scenarioNow === null ? state.latent.fragility / 100 : 0
+  const hazard = 1 + (fr.hazard - 1) * built
+  const severity =
+    difficulty.eventSeverityScale * (1 + (fr.severity - 1) * built)
+
+  // The draw is consumed either way, so forcing the outcome below never
+  // shifts the random sequence the rest of the run depends on.
+  const drawn = prng.bernoulli(
+    Math.min(
+      0.97,
+      difficulty.eventProbability * (scenario?.proceduralEventScale ?? 1) * hazard,
+    ),
   )
-  const weights = selectionWeights(candidates, ctx)
+  // Never a third quiet meeting. A stated rule, not a model result — see
+  // `LatentState.meetingsSinceEvent` for why a probability could not keep
+  // this promise however steep it was made.
+  const fires =
+    drawn || (scenarioNow === null && state.latent.meetingsSinceEvent >= 2)
+  // When the fire is *forced* — two quiet meetings have passed — the draw is
+  // narrowed to the events that are not good news.
+  //
+  // The rule says the accumulated imbalance surfaces, and an imbalance
+  // surfacing as an energy price *relief* is nonsense. It also broke the
+  // catalogue's own invariant: in a calm economy the eligible set skews
+  // benign, so forcing a draw from it made the catalogue net disinflationary
+  // by itself — exactly what `balance.test.ts` exists to forbid. Measured at
+  // −0.16 per meeting on fed/medium against a floor of −0.08.
+  const forced = !drawn
+  const pool = forced
+    ? candidates.filter((candidate) => inflationImpulse(candidate, ctx) > -0.05)
+    : candidates
+  const usable = pool.length > 0 ? pool : candidates
+  const weights = selectionWeights(usable, ctx, scenarioNow === null)
   const index = prng.weightedIndex(weights)
 
   if (!fires || index < 0) {
     return {
-      state: { ...state, rng: prng.getState() },
+      state: {
+        ...state,
+        latent: {
+          ...state.latent,
+          meetingsSinceEvent: state.latent.meetingsSinceEvent + 1,
+        },
+        rng: prng.getState(),
+      },
       resolved: [],
-      clues: buildClues(ctx, difficulty.clueThreshold),
+      clues: buildClues(ctx, difficulty.clueThreshold, scenarioNow === null),
     }
   }
 
-  const event = candidates[index]
-  const immediate = scaleEffects(event.immediate(ctx), difficulty.eventSeverityScale)
+  const event = usable[index]
+  const immediate = scaleEffects(event.immediate(ctx), severity)
   const delayed = event.delayed(ctx)
 
   const diagnostics: DiagnosticEvent[] = []
@@ -216,10 +296,28 @@ export function resolveEvent(
   const asymmetric = applyMemberShocks(
     state.members,
     event.memberEffects?.(ctx) ?? [],
-    difficulty.eventSeverityScale,
+    severity,
   )
+  // The discharge, which is the other half of Minsky: the crisis *is* the
+  // deleveraging. Not all of it — a single bad quarter does not undo three
+  // years of accumulated leverage, and a mandate where one shock bought
+  // permanent safety would teach the opposite of the hypothesis.
+  // The discharge, and **only a crisis discharges.** This was wrong first
+  // time: every event burned off 45 % of the accumulated fragility, so a wage
+  // round or a data revision deleveraged the financial system, the
+  // accumulator never filled, and the mandate-defining crises it exists to
+  // produce stayed as rare as before. A minor shock is not the deleveraging —
+  // the deleveraging is the thing fragility is *for*.
+  const dischargeShare = event.tier === 'major'
+    ? INSTITUTIONAL.fragility.discharge
+    : INSTITUTIONAL.fragility.minorDischarge
+  const discharged = {
+    ...state.latent,
+    fragility: state.latent.fragility * (1 - dischargeShare),
+    meetingsSinceEvent: 0,
+  }
   const latent = clampLatentState(
-    applyEffects(applyEffects(state.latent, asymmetric.aggregate), immediate),
+    applyEffects(applyEffects(discharged, asymmetric.aggregate), immediate),
     state.stepIndex,
     diagnostics,
   )
@@ -227,7 +325,7 @@ export function resolveEvent(
   const pending: PendingEventEffect[] = delayed.map((spec) => ({
     eventId: event.id,
     fireAtStep: state.stepIndex + spec.delaySteps,
-    effects: scaleEffects(spec.effects, difficulty.eventSeverityScale),
+    effects: scaleEffects(spec.effects, severity),
   }))
 
   const record: ResolvedEventRecord = {
@@ -265,6 +363,10 @@ export function resolveEvent(
   return {
     state: nextState,
     resolved: [record],
-    clues: buildClues(buildEventContext(nextState), difficulty.clueThreshold),
+    clues: buildClues(
+      buildEventContext(nextState),
+      difficulty.clueThreshold,
+      scenarioNow === null,
+    ),
   }
 }

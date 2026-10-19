@@ -86,20 +86,25 @@ describe('the mandate report', () => {
   })
 
   it('falls back to the smaller developments when no major event ever fired', () => {
-    // Majors are rare random draws above easy, so this searches for a mandate
-    // that happened not to draw one rather than asserting a difficulty never
-    // produces them — which is what this test used to do, back when they were
-    // scoped out of medium and hard entirely.
-    for (let index = 0; index < 40; index += 1) {
-      const { state, outcome, score } = completedSession(`report-quiet-${index}`, 'medium')
-      if (state.eventLog.some((record) => isMajorEvent(record.eventId))) continue
-
-      const report = buildMandateReport(state, outcome, score)
-      nonEmpty(report.whatHappened)
-      expect(report.whatHappened.join(' ')).toMatch(/quiet|smaller development/)
-      return
+    // **Constructed, not searched for.** This used to hunt forty seeds for a
+    // mandate that happened not to draw a major, which worked while majors
+    // were a rare draw and stopped working the day the generator was made to
+    // produce three or four a mandate — the search ran out of seeds and the
+    // test failed over a change that was entirely intentional.
+    //
+    // A report with no majors in its log is a perfectly ordinary thing to
+    // ask the report builder for: it is what a mandate that ended in its
+    // third meeting looks like. So it is handed one, rather than the suite
+    // depending on the event generator staying quiet enough to find one.
+    const { state, outcome, score } = completedSession('report-quiet', 'medium')
+    const quiet = {
+      ...state,
+      eventLog: state.eventLog.filter((record) => !isMajorEvent(record.eventId)),
     }
-    throw new Error('no seed in 40 produced a mandate free of major events')
+
+    const report = buildMandateReport(quiet, outcome, score)
+    nonEmpty(report.whatHappened)
+    expect(report.whatHappened.join(' ')).toMatch(/quiet|smaller development/)
   })
 
   it('omits the promise-ledger callouts when nothing was ever announced', () => {
