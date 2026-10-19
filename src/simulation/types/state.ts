@@ -1,4 +1,5 @@
 import type { DiagnosticEvent, RunConfig } from './core.ts'
+import type { ForecastCall } from '../policy/forecastCall.ts'
 import type { GuidanceState, PolicyStance } from './policy.ts'
 import type { PendingEventEffect, ResolvedEventRecord } from './events.ts'
 import type { PrngState } from '../rng/prng.ts'
@@ -236,6 +237,15 @@ export interface SimulationState {
   /** Standing policy settings, in force until the player changes them. */
   readonly stance: PolicyStance
   readonly guidance: GuidanceState
+  /**
+   * The published forecast currently outstanding, if the committee has made
+   * one. Settled two meetings after it was issued and then cleared.
+   *
+   * Mandate-long state rather than a reading, which is why it is here: it has
+   * to survive the interval, and a replay has to reconstruct it. See
+   * `policy/forecastCall.ts`.
+   */
+  readonly call: ForecastCall | null
   /** Event effects scheduled to fire at a future internal sub-step. */
   readonly pendingEffects: readonly PendingEventEffect[]
   /** Events already resolved in this run, newest last. */

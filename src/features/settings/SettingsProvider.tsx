@@ -6,6 +6,7 @@ import {
   saveSettings,
   type Settings,
 } from './settings.ts'
+import { setSoundEnabled } from './sound.ts'
 
 /**
  * Holds the player's settings and puts the visual direction on the document.
@@ -25,6 +26,14 @@ export function SettingsProvider({ children }: { readonly children: ReactNode })
       return DEFAULT_SETTINGS
     }
   })
+
+  // The audio module keeps its own flag, because `play` is called from places
+  // that have no business holding a React context — a slider's change handler
+  // firing thirty times a second, for one. Kept in step here, which is also
+  // what restores the preference across a reload.
+  useEffect(() => {
+    setSoundEnabled(settings.sound)
+  }, [settings.sound])
 
   useEffect(() => {
     const root = globalThis.document?.documentElement

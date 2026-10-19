@@ -6,12 +6,15 @@ import {
   rateInstrumentLabel,
   type MeetingResult,
   type PolicyPackage,
+  type CallBand,
   type RunSession,
 } from '../../simulation/index.ts'
 import { RateSlider, type GhostMarker } from '../policy/RateSlider.tsx'
 import { meetingLine } from './meetingLine.ts'
 import { pricedMoveBp, surpriseStake } from './surprise.ts'
 import { StakeChips } from './StakeChips.tsx'
+import { CallPanel } from './CallPanel.tsx'
+import { play } from '../settings/sound.ts'
 
 /**
  * A meeting that takes five seconds.
@@ -51,6 +54,10 @@ export function QuickMeeting({
 }) {
   const [move, setMove] = useState(0)
   const [rejected, setRejected] = useState<string | null>(null)
+  // The wager, which defaults to declining. A committee that must bet every
+  // meeting is not betting.
+  const [callCentre, setCallCentre] = useState<number | null>(null)
+  const [callBand, setCallBand] = useState<CallBand>('even')
 
   const { config } = session.state
   const instrument = getInstrument('policy_rate')
@@ -81,10 +88,12 @@ export function QuickMeeting({
   const line = meetingLine(session)
 
   const confirm = () => {
-    const pkg: PolicyPackage =
-      move === 0
-        ? { actions: [], communication: null }
-        : { actions: [{ instrument: 'policy_rate', magnitude: move }], communication: null }
+    const pkg: PolicyPackage = {
+      actions:
+        move === 0 ? [] : [{ instrument: 'policy_rate', magnitude: move }],
+      communication: null,
+      call: callCentre === null ? null : { centre: callCentre, band: callBand },
+    }
     const result = onConfirm(pkg)
     if (!result.ok) {
       setRejected(
@@ -115,6 +124,10 @@ export function QuickMeeting({
           // under the dial would put back a third of what was just removed.
           explains={false}
           onChange={(basisPoints) => {
+            // One notch, one click. Fires only on an actual change of detent,
+            // not on every pointer event, or dragging the handle across the
+            // track would be a rattle.
+            if (basisPoints !== move) play('detent')
             setMove(basisPoints)
             setRejected(null)
           }}
@@ -122,6 +135,16 @@ export function QuickMeeting({
       </div>
 
       <StakeChips stake={stake} />
+
+      <CallPanel
+        session={session}
+        centre={callCentre}
+        band={callBand}
+        onChange={(centre, band) => {
+          setCallCentre(centre)
+          setCallBand(band)
+        }}
+      />
 
       {rejected !== null && (
         <p role="alert" className="mt-3 text-sm text-bad-strong">
@@ -132,7 +155,10 @@ export function QuickMeeting({
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <button
           type="button"
-          onClick={confirm}
+          onClick={() => {
+            if (callCentre !== null) play('stake')
+            confirm()
+          }}
           data-confirm=""
           className="rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
         >

@@ -1,3 +1,4 @@
+import type { CallBand } from '../policy/forecastCall.ts'
 import type { OperatingProcedure } from './scenario.ts'
 import type { DemandResponse } from '../politics/demands.ts'
 import type { Difficulty, Institution } from './core.ts'
@@ -99,6 +100,19 @@ export interface PolicyPackage {
    * it, and only at the meeting it names. See `types/scenario.ts`.
    */
   readonly procedure?: OperatingProcedure | null
+  /**
+   * A published forecast, wagered on.
+   *
+   * Not an instrument and not a communication: it is a public commitment
+   * about where a *number* will be, settled two meetings later against what
+   * the statistical agency actually prints, and paid in credibility. The
+   * committee chooses how tight to make it, which is the whole trade — a
+   * narrow band is worth more and costs more. See `policy/forecastCall.ts`.
+   *
+   * Absent means no call was made this meeting, which is always allowed: a
+   * committee that must wager every meeting is not wagering.
+   */
+  readonly call?: { readonly centre: number; readonly band: CallBand } | null
   /**
    * The answer to a demand from the government, where one has been made.
    *

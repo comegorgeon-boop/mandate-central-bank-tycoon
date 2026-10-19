@@ -112,6 +112,16 @@ export function readTempo(session: RunSession): TempoReading {
     return { tempo: 'decisive', because: null }
   }
 
+  // The first meeting is never quick. It is the one where a player learns what
+  // a meeting is — the first-meeting guide points at the tab strip and the
+  // confirm step, neither of which a quick meeting has — and it is the only
+  // meeting with no previous state to have changed from, so every test below
+  // would answer "nothing happened" and send a new player straight to a
+  // five-second surface they had never been shown the inside of.
+  if (index === 0) {
+    return { tempo: 'full', because: 'Your first meeting. The whole room is out.' }
+  }
+
   // The world as it was at the last meeting, for every "has this changed"
   // test below. Absent at the first meeting, where nothing can have changed.
   const before = state.history.at(-2)?.latent ?? null

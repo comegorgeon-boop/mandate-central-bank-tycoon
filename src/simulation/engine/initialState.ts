@@ -493,6 +493,9 @@ export function createInitialState(
     members,
     rng: createPrng(`${seed}|run`).getState(),
     stance,
+    // No forecast outstanding at the opening: a committee that has not met
+    // has not published anything.
+    call: null,
     guidance: INITIAL_GUIDANCE,
     pendingEffects: [],
     eventLog: [],

@@ -14,6 +14,7 @@ import { applyScheduledEvents, isScheduledMajor } from '../scenarios/scheduled.t
 import { applyGoldDrain } from '../scenarios/goldStandard.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { committeeVote, type CommitteeVote } from '../policy/committeeVote.ts'
+import type { CallOutcome } from '../policy/forecastCall.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
 import { configFromLog } from './decisionLog.ts'
@@ -89,6 +90,12 @@ export interface RunSession {
    */
   readonly vote: CommitteeVote
   /**
+   * A published forecast that came due at this meeting, and which way it
+   * went. Null when none was outstanding. The interface turns this one over
+   * like a card — see `features/meeting/Reveal.tsx`.
+   */
+  readonly call: CallOutcome | null
+  /**
    * The interval just elapsed, sub-step by sub-step, for the interface to
    * play. Empty at the first meeting, where no time has passed yet.
    *
@@ -152,6 +159,7 @@ export function startRun(config: RunConfig): RunSession {
     // No decision has been taken, so there is nothing to have voted on. The
     // empty form reads as *absent* rather than as a unanimous 0-0.
     vote: committeeVote([], 0),
+    call: null,
     decisions: [],
     newswire: [],
     minorEvents: [],
@@ -240,6 +248,7 @@ export function submitMeeting(
       majorEvent,
       clues: resolution.clues,
       vote: applied.vote,
+      call: applied.call,
       interval: buildIntervalFrames(
         steps,
         resolution.state.timeYears,

@@ -65,6 +65,18 @@ export {
 // `INSTITUTIONAL` joins them for the promise ledger: what a broken promise
 // costs on screen has to be the number the dynamics actually charge.
 export { COMMUNICATION, EXPECTATIONS, INSTITUTIONAL, VOLATILITY } from './config/model.ts'
+export {
+  CALL_HORIZON,
+  allCallTerms,
+  callStake,
+  callTerms,
+  settleCall,
+  type CallBand,
+  type CallOutcome,
+  type CallTerms,
+  type ForecastCall,
+} from './policy/forecastCall.ts'
+export { readTempo, decisiveMeetingOf, type MeetingTempo } from './meeting/tempo.ts'
 
 // ---- Engine ---------------------------------------------------------------
 export {

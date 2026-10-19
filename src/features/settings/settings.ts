@@ -27,6 +27,14 @@ export interface Settings {
    * pass. `prefers-reduced-motion` is honoured separately and unconditionally.
    */
   readonly playTheInterval: boolean
+  /**
+   * Three short cues: the dial's detent, a stake pushed, a wager turning over.
+   *
+   * **Off by default**, and off means no audio context is created at all —
+   * see `sound.ts`. A game that made noise at somebody without being asked
+   * would be a game played once.
+   */
+  readonly sound: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -36,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // text-on-background pair. See `styles/tokens.css`.
   direction: 'after-hours',
   playTheInterval: true,
+  sound: false,
 }
 
 const STORAGE_KEY = 'mandate.settings.v1'
@@ -53,6 +62,9 @@ export function loadSettings(): Settings {
           ? 'papers-on-the-table'
           : 'after-hours',
       playTheInterval: candidate.playTheInterval !== false,
+      // `=== true` rather than `!== false`: an absent value means a player
+      // who has never been asked, and the answer for them is silence.
+      sound: candidate.sound === true,
     }
   } catch {
     // A browser that will not let us read is a browser that gets the defaults.

@@ -4,7 +4,14 @@ import type { FrontPage } from '../../simulation/index.ts'
 import { FrontPagesPanel } from './FrontPagesPanel.tsx'
 import type { RealisedEntry } from './instrumentLedger.ts'
 import type { SettledPromise } from './settledPromise.ts'
-import type { CommitteeVote } from '../../simulation/index.ts'
+import {
+  callTerms,
+  type CallOutcome,
+  type CommitteeVote,
+  type RunConfig,
+} from '../../simulation/index.ts'
+import { Reveal } from '../meeting/Reveal.tsx'
+import { meetingVerdict } from '../meeting/verdict.ts'
 import { VotePanel } from '../meeting/VotePanel.tsx'
 import { buildReaction } from './reaction.ts'
 import { RealisedEffectPanel } from './RealisedEffectPanel.tsx'
@@ -25,6 +32,9 @@ export function ReactionPanel({
   promise,
   realised,
   vote,
+  call,
+  config,
+  current,
   onContinue,
 }: {
   readonly before: ObservationSet
@@ -36,11 +46,31 @@ export function ReactionPanel({
   readonly promise: SettledPromise | null
   /** How the committee voted on the decision just taken. */
   readonly vote: CommitteeVote
+  /** A published forecast that came due, if one did. */
+  readonly call: CallOutcome | null
+  /** The mandate's own objective and sustainable rate, for the verdict. */
+  readonly config: RunConfig
+  /**
+   * This meeting's published set, for the verdict band.
+   *
+   * Not `onTheDay`: that is the *same-day* restatement, where markets have
+   * moved and prices have not — by construction, because a price index does
+   * not respond to a decision on the afternoon it is taken. Judging the
+   * meeting on that pair returned "mixed" every single time, which is how the
+   * first version of the band managed never to appear.
+   */
+  readonly current: ObservationSet
   /** Instruments whose lag has run, now checkable. Usually empty. */
   readonly realised: readonly RealisedEntry[]
   readonly onContinue: () => void
 }) {
   const reaction = useMemo(() => buildReaction(before, onTheDay), [before, onTheDay])
+  // One bit, in colour, for the silent-phone criterion. Mixed carries no
+  // colour at all — see `meeting/verdict.ts` for why that is the point.
+  const verdict = useMemo(
+    () => meetingVerdict(before, current, config),
+    [before, current, config],
+  )
 
   return (
     // On paper, like every other document the player reads. It draws in ink,
@@ -54,6 +84,24 @@ export function ReactionPanel({
       aria-labelledby="reaction-heading"
       className="rounded-lg border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
     >
+      {/* The verdict, as a band of colour and nothing else. No figure, no
+          sentence: this is the thing that has to be readable across a room on
+          a silent phone, and a number would invite reading instead of
+          glancing. The detail is everything below it.
+
+          First in the panel, which is the whole requirement. It sat below the
+          front pages in the first version — present, measurable, and off the
+          bottom of a phone screen, which is the same as absent. */}
+      {verdict !== 'mixed' && (
+        <div
+          data-tone={verdict}
+          aria-hidden="true"
+          className={`mb-3 h-1.5 w-full rounded-full ${
+            verdict === 'better' ? 'bg-good' : 'bg-bad'
+          }`}
+        />
+      )}
+
       <h2
         id="reaction-heading"
         className="font-display text-2xl font-semibold text-ink"
@@ -151,6 +199,30 @@ export function ReactionPanel({
             : `${headlines} stories broke in the weeks after the decision`}
           , not because of it. They lead the front page at the meeting.
         </p>
+      )}
+
+      {/* The wager, turning over. First, before the vote and before the
+          promise: it is the only thing on this screen the player was hoping
+          about, and burying a reveal under two panels of record is how a
+          moment becomes a line in a table. */}
+      {call !== null && Number.isFinite(call.printed) && (
+        <Reveal won={call.won}>
+          <p className="text-sm font-semibold">
+            {call.won ? 'Your call was good.' : 'Your call missed.'}
+          </p>
+          <p className="mt-1 text-sm">
+            You said {call.call.centre.toFixed(2)} % give or take{' '}
+            {callTerms(call.call.band).halfWidth.toFixed(2)}. It printed{' '}
+            <span className="font-semibold tabular-nums">
+              {call.printed.toFixed(2)} %
+            </span>
+            .
+          </p>
+          <p className="mt-1 text-sm">
+            {call.credibility >= 0 ? '+' : '−'}
+            {Math.abs(call.credibility).toFixed(1)} credibility.
+          </p>
+        </Reveal>
       )}
 
       {/* The vote, published with the decision — which is when a vote is

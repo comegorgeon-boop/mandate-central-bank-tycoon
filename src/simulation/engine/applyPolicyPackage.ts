@@ -19,6 +19,7 @@ import {
   committeeVote,
   type CommitteeVote,
 } from '../policy/committeeVote.ts'
+import { settleCall, type CallOutcome } from '../policy/forecastCall.ts'
 import {
   COMMUNICATION_AVAILABILITY,
   POLICY_RATE_FLOOR,
@@ -89,6 +90,11 @@ export type PolicyApplication =
        * thing the two paths disagree about.
        */
       readonly vote: CommitteeVote
+      /**
+       * A published forecast that came due at this meeting, with which way it
+       * went. Null when none was outstanding or none was due.
+       */
+      readonly call: CallOutcome | null
     }
   | { readonly ok: false; readonly validation: PolicyValidation }
 
@@ -875,6 +881,42 @@ export function applyPolicyPackage(
     }
   }
 
+  // ---- The published forecast, settled and re-issued -----------------------
+  //
+  // A call comes due two meetings after it was made and is judged on what the
+  // agency *printed*, not on the latent truth: a committee is believed or not
+  // according to the published figure, and at hard that number carries noise
+  // the committee cannot see through. Settled before a new call is recorded,
+  // so a committee can close one wager and open another in the same meeting.
+  let call = state.call
+  const settled =
+    call === null
+      ? null
+      : settleCall(
+          state,
+          call,
+          observation?.indicators.headline_inflation?.value ?? null,
+        )
+  if (settled !== null) {
+    latent.credibility = Math.max(
+      0,
+      Math.min(100, latent.credibility + settled.credibility),
+    )
+    call = null
+  }
+  // A new call is accepted **only when none is outstanding.** A committee that
+  // could republish every meeting would never have one come due, and the
+  // first version did exactly that: the wager was overwritten a meeting after
+  // it was made, every time, so it never once settled and the reveal was
+  // unreachable code. You make a call and you live with it.
+  if (call === null && pkg.call !== undefined && pkg.call !== null) {
+    call = {
+      centre: pkg.call.centre,
+      band: pkg.call.band,
+      issuedAtMeeting: state.meetingIndex,
+    }
+  }
+
   // Charged last, on top of everything else the package cost: the record is
   // published with the decision, so it lands with it.
   if (vote.credibilityCost > 0) {
@@ -888,12 +930,14 @@ export function applyPolicyPackage(
     ok: true,
     validation,
     vote,
+    call: settled,
     state: {
       ...state,
       latent: clamped,
       members,
       stance,
       guidance,
+      call,
       // Accumulated across the mandate, never reset — see
       // `SimulationState.contradictionCost`'s own doc comment for why.
       contradictionCost: state.contradictionCost + packageContradictionCost,

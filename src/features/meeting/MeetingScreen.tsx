@@ -279,6 +279,9 @@ export function MeetingScreen({
             promise={settled}
             realised={realised}
             vote={session.vote}
+            call={session.call}
+            config={config}
+            current={session.observation}
             onContinue={() => setShowReaction(false)}
           />
         </div>

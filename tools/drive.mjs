@@ -223,6 +223,31 @@ export async function enterFirstMeeting(page, onTransient = null) {
  * screen at all. The third blind spot in this project's history is exactly
  * this function written without that hook.
  */
+
+/**
+ * Let the arrived screen finish arriving, then call it a meeting.
+ *
+ * `isVisible` is true on an element's *first painted frame*, and panels in
+ * this interface enter with `animate-rise`, which starts at opacity zero. So
+ * a tool that returned the moment something was visible was photographing
+ * and measuring panels at an opacity of nought — which is exactly what
+ * happened: a full-mandate capture showed the standing line, the one that
+ * carries the severe warnings, as an empty gap.
+ *
+ * Two frames and a tick. Cheap, and it is the difference between a tool that
+ * reports what the player sees and one that reports what the browser was
+ * holding halfway through.
+ */
+async function settled(page) {
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(null)))
+      }),
+  )
+  return 'meeting'
+}
+
 export async function settleMeeting(page, onTransient = null) {
   for (let guard = 0; guard < 8; guard += 1) {
     if (await isResult(page)) return 'result'
@@ -288,13 +313,13 @@ export async function settleMeeting(page, onTransient = null) {
       continue
     }
 
-    if (await tablist.isVisible().catch(() => false)) return 'meeting'
+    if (await tablist.isVisible().catch(() => false)) return settled(page)
 
     // A quick meeting has no tab strip at all — one sentence, the dial, done.
     // It is still a meeting, and it is now most of them. See
     // `simulation/meeting/tempo.ts`.
     const quick = page.locator('[data-tempo="quick"]')
-    if (await quick.isVisible().catch(() => false)) return 'meeting'
+    if (await quick.isVisible().catch(() => false)) return settled(page)
 
     // Nothing recognised yet — give React a tick and look again, rather than
     // concluding anything from an absence.

@@ -40,7 +40,7 @@ import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open
  * difference between "nothing failed" and "nothing was looked at" into an
  * error rather than a number nobody reads.
  */
-const MINIMUM_STATES = 580
+const MINIMUM_STATES = 640
 
 /**
  * Measure every text node in the page.
@@ -327,6 +327,31 @@ async function walk({
       await page.getByRole('button', { name: 'Confirm and advance' }).click()
       if ((await settleMeeting(page)) === 'result') break
       continue
+    }
+
+    // The quick surface, before anything opens the room. It is now most of
+    // the meetings a player sees, and until this line the audit had never
+    // measured one: every walk went straight for the tabs, which open the
+    // full apparatus and discard the screen the game actually shows.
+    const quick = page.locator('[data-tempo="quick"]')
+    if (await quick.isVisible().catch(() => false)) {
+      await audit(page, `${direction}:${tag}:m${meeting}:quick`)
+
+      // The wager, offered and taken, and the stake that appears once the
+      // dial leaves the priced path. Three states that exist only here.
+      const tight = page.locator('[data-call-band="tight"]')
+      if (await tight.isVisible().catch(() => false)) {
+        await tight.click()
+        await audit(page, `${direction}:${tag}:m${meeting}:quick:call`)
+      }
+      const slider = page.locator('[data-tempo="quick"] input[type="range"]').first()
+      if (await slider.isVisible().catch(() => false)) {
+        const step = Number((await slider.getAttribute('step')) ?? 25)
+        const max = Number((await slider.getAttribute('max')) ?? 150)
+        await slider.fill(String(Math.round(max / step) * step))
+        await audit(page, `${direction}:${tag}:m${meeting}:quick:stake`)
+        await slider.fill('0')
+      }
     }
 
     for (const panel of PANELS) {

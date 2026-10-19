@@ -139,10 +139,21 @@ export function FirstMeetingGuide({
       if (element === null || !painted(element)) {
         // Not mounted yet — a tab that was just asked to open — or mounted and
         // still rising. Look again next frame rather than ringing a rectangle
-        // that has nothing in it. The cap is about two seconds at 60 Hz, after
-        // which something is wrong and a guide that never appears is better
-        // than one that points at the wrong place forever.
-        if (tries++ < 120) frame = requestAnimationFrame(measure)
+        // that has nothing in it.
+        if (tries++ < 120) {
+          frame = requestAnimationFrame(measure)
+          return
+        }
+        // Two seconds and it is not there, which is a real state rather than a
+        // failure: a **quick** meeting has no tab strip and no review button,
+        // so two of these four steps have nothing to point at. Skip to the
+        // next one. The first version stalled here instead, leaving a scrim
+        // over a screen whose Next button pointed at nothing — which is how a
+        // tutorial becomes a trap.
+        setIndex((current) =>
+          current + 1 < GUIDE_STEPS.length ? current + 1 : current,
+        )
+        if (index + 1 >= GUIDE_STEPS.length) onDone()
         return
       }
       // Scrolled into view before it is measured, and this is not a nicety.
@@ -160,7 +171,7 @@ export function FirstMeetingGuide({
     }
     measure()
     return () => cancelAnimationFrame(frame)
-  }, [step])
+  }, [step, index, onDone])
 
   // Keep the spotlight on the control when the page moves under it.
   useEffect(() => {
