@@ -51,7 +51,7 @@ below.
 | --- | --- | --- |
 | **quick** | one sentence, the dial, the wager, done. 24 compulsory words, about seven seconds. The room is one gesture away and most players will not open it | 75-89 % of fictional meetings, 56-77 % of a scenario's |
 | **full** | the whole apparatus, because something **changed** — a crisis landed, a warning just turned severe, the government asked for something new, the objective moved, guidance comes due | the rest |
-| **decisive** | one per mandate, placed by seed or at a scenario's own crisis | once |
+| **decisive** | one per mandate, placed by seed or at a scenario's own crisis. Announced a meeting ahead; afterwards the counterfactual takes the top of the reaction screen — what the other way would have produced | once |
 
 *Full* means changed, not true. The first version tested states and latched:
 79 % of the 2021-23 meetings came back full, because a supply shock is true
@@ -100,11 +100,6 @@ it; #3 and #4 carry an update from the Okun work.
 
 **Two things I would open next**, neither blocking:
 
-0. **The decisive meeting is decided but not yet dressed.** `readTempo`
-   returns `decisive` once per mandate and the screen treats it as a full
-   meeting. What it does not yet have is the announcement a meeting ahead, or
-   an outcome that visibly forks. It is the one numbered item of the
-   restructure that is wired and not finished.
 
 
 1. **The output gap is too shallow in the mild recessions.** The Okun pass

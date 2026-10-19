@@ -690,3 +690,35 @@ that looks like it happens.** I have written the parade for it four times now
 and keep walking into it from a new direction. The one real defence is the one
 you pushed me to this week — state the criterion as a number, then write the
 thing that tries to falsify it.
+
+---
+
+## 16 — The meeting the mandate is remembered by, and two contrast failures in ten minutes
+
+**Did.** Closed the fourth numbered point. The decisive meeting is announced a
+meeting ahead so it can be dreaded, and afterwards the counterfactual — the
+same economy replayed without the player's decisions, which the engine has
+been advancing in lockstep all mandate — takes the top of the reaction screen
+instead of living in a tab. *"Market-implied rate, 1 year is +1.06 higher than
+if you had done nothing."*
+
+**Measured.** 1102 tests. `check:offline` clean. And the contrast audit found
+**16 failures across 16 states**, all mine, all introduced in the hour before.
+
+**Bothers me, and it should.** The failure was `opacity-80` on text. Opacity
+composites toward whatever is behind it, so a pair the token file documents at
+6.6:1 landed at **4.2:1** against a 4.5 bar. Nothing about the colours was
+wrong; the transparency was. The audit caught it only because it composites
+backgrounds and accumulates ancestor opacity — a check written for this exact
+class of mistake, by me, some sessions ago.
+
+Then I fixed it with the wrong token and broke the *other* variant of the same
+component: `on-accent-surface-soft` is ink, and the second surface is walnut
+in both directions. Two contrast failures in one small file in ten minutes,
+both of them the same misunderstanding of a two-layer token system I wrote the
+documentation for.
+
+What I take from it: the audit is not a formality I run at the end, it is the
+only reason either of these is not live. And the rule I keep failing to
+internalise is one line — **never put `opacity` on text, and never assume a
+token pair without checking which surface it was declared for.**
