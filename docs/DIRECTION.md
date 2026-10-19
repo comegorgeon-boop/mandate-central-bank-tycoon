@@ -494,3 +494,126 @@ The period also does not settle whether the chairman gave in. That is
 contested, and the game declines to decide it. What it does instead is put the
 same pressure in front of the player and record what *they* do — which is the
 only version of the question a game can honestly ask.
+
+## The five defects of the restructure, and what would make them impossible
+
+Written down because **four of the five were mistakes this project had already
+made and already recorded**, and a lesson that has to be learned twice was not
+learned. A journal entry is a memory. What is wanted here is a mechanism.
+
+Each defect is given with the entry that recorded it the first time, and with
+the check that would stop it recurring. Where that check does not exist yet it
+says so: a proposed check written down as though it were built would be the
+same failure one level up.
+
+### 1. Paper tokens on a walnut surface — **recorded, journal 1**
+
+`StakeChips` was built on `bg-inset` using `text-ink*` and `text-good-strong`.
+`bg-inset` is walnut in **both** directions — the one surface in the token file
+that does not flip — so the panel rendered dark on dark and was unreadable.
+
+The identical mistake took down the Volcker operating-procedure panel at
+1.09:1 and is the first entry in this project's journal. It then happened a
+*second* time within the hour in `DecisiveBanner`, where the fix for an
+unrelated contrast failure used `on-accent-surface-soft`, which is ink, on the
+same walnut surface.
+
+**Caught by:** the contrast audit, both times, and only because the state was
+reached.
+
+**What would make it impossible:** a static check, which does not exist. A
+test that reads the source for a `className` containing both a dark-surface
+class (`bg-inset`, `bg-room`, `bg-page`, `bg-sunk`) and a paper-text class
+(`text-ink*`, `*-strong`), or the reverse pairing, and fails naming the file.
+It is a grep. It needs no browser, no screen state, and no walk to reach the
+panel, which is the whole point: the audit only finds this where a walk
+happens to go.
+
+### 2. One quantity stated in three places — **new in this form**
+
+The move's distance from the priced path was stated by the slider's sentence,
+by a paragraph on the desk and by a third on the confirm screen — all three
+measuring against the **whole** priced gap, where the engine charges against
+35 % of it. The three agreed with each other and disagreed with the model, so
+no amount of reading the interface would have revealed it.
+
+It is new as a specific failure and old as a principle: `records/achievements.ts`
+already carries the rule in its own doc comment — *a counter kept in the
+interface is a second source of truth about a world the engine already fully
+describes, and the first time the two disagree the player is right and the
+game is wrong.*
+
+**Caught by:** looking at a screenshot, by eye, because two sentences on one
+phone screen contradicted each other.
+
+**What would make it impossible:** nothing automatic, and that is worth
+admitting. The structural fix is the one applied — a derived quantity gets
+**one** exported function and every surface calls it (`meeting/surprise.ts`,
+`pricedMoveBp`). The discipline is: if a number appears on two screens, it is
+computed in neither of them.
+
+### 3 and 4. Content that cannot fire — **recorded, journal 8**
+
+Two instances in one pass.
+
+The **verdict band** compared the same-day observation pair, where prices
+cannot have moved, because an index does not respond to the afternoon a
+decision is taken. It returned "mixed" every single time, so it never once
+appeared.
+
+The **wager** accepted a new call at every meeting, which replaced the
+outstanding one before it could mature. No call ever came due, the credibility
+never moved, and the reveal was unreachable code inside a feature that looked
+finished.
+
+Journal 8 records the same class three times over: three chain gates that
+could never open, one of them testing an index near 100 as though it were a
+percentage. The entry's own conclusion was *"tests check what code does; none
+of them notices what it never does."*
+
+**Caught by:** playing it and noticing nothing happened. Both would have
+survived the full suite indefinitely.
+
+**What would make it impossible:** a reachability test per gated outcome,
+which is the defence this project keeps building piecemeal — `chains.test.ts`
+for event chains, `tempo.test.ts` for the wager, the arc test for scenarios.
+The general rule has never been written down, so here it is: **every branch
+that produces player-visible content owes a test that reaches it**, and the
+test belongs beside the branch, not in a suite somewhere that happens to
+exercise it.
+
+### 5. Measuring a screen before it arrived — **recorded, journal 5**
+
+Every browser tool returned the moment an element was `isVisible`, which is
+true on its *first painted frame*. Panels here enter with `animate-rise`,
+which starts at opacity zero, so a full-mandate capture showed the standing
+line — the one carrying the severe warnings — as an empty gap.
+
+Journal 5 records the board photographing a doctrine's argument at about a
+third opacity and the contrast audit measuring the declared colour of text
+being painted at a fraction of it. The fix then was `settleAnimations`; the
+hole left was that *arrival* and *visibility* are different questions.
+
+**Caught by:** looking at a capture and seeing a gap where a panel should be.
+
+**What made it impossible:** this one is actually closed. `settleMeeting` in
+`tools/drive.mjs` now waits two animation frames before reporting a meeting,
+so every tool in the repository inherits it — the board, the audit, the
+playthroughs, the guide walk. A fix in the shared driver rather than in four
+callers is the shape the other four want.
+
+### The pattern, stated once
+
+Four of the five are the same failure wearing different clothes: **something
+that cannot happen, in code that reads as though it happens.** An invisible
+panel, a band that never appears, a wager that never settles, a capture of a
+frame nobody sees. All four pass every test that asks what the code *does*.
+
+The one defence that has worked, every time, is the one this week was run on:
+**state the criterion as a number, then write the thing that tries to falsify
+it.** `dev/twoLines.ts` does not check that the sentence is good; it plays
+forty mandates reading nothing else. `dev/gateProbe.ts` does not check that a
+gate is sensible; it measures how often it is open for two populations.
+`check:offline` does not check that nothing failed; it cuts the wire.
+
+A check that can only confirm is not a check.

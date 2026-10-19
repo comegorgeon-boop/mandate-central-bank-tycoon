@@ -18,8 +18,12 @@ record, and `docs/JOURNAL.md` is the week read in two minutes.
 | `npm run check:contrast` | no failures across **664** screen states |
 | `node tools/board.mjs` | 684 shots, 0 scrolling sideways — `docs/board/index.html` |
 
-Sixteen commits since 17 October. `wrangler` is logged in on this machine as
-`comegorgeon@gmail.com`, so `npm run deploy` now works unattended.
+Twenty-one commits since 17 October. `wrangler` is logged in on this machine
+as `comegorgeon@gmail.com`, so `npm run deploy` works unattended.
+
+**A playtest is in progress and the game is frozen until it comes back.**
+Nothing in `src/` or `tools/` should change meanwhile: feedback on a version
+that no longer exists is feedback thrown away.
 
 ## What the week was asked for, and where each piece landed
 
@@ -89,7 +93,34 @@ timing probe in journal 15):
 | `npx tsx src/simulation/dev/tempoMix.ts` | what proportion of meetings are quick, and why the rest are not |
 | `npx tsx src/simulation/dev/okunFit.ts` | how far unemployment swings in every scenario |
 
+## The first thing to pick up
+
+**Four guardrails, specified in `docs/DIRECTION.md` and not built.** They come
+from the five defects of the restructure, four of which were mistakes this
+project had already made and already written down. A journal entry is a
+memory; these are meant to be mechanisms.
+
+1. **A static token check.** A test that reads the source for a `className`
+   holding both a dark-surface class and a paper-text class, or the reverse,
+   and fails naming the file. It is a grep. It would have caught both contrast
+   failures of this pass before either reached a commit, and unlike the audit
+   it does not depend on a walk happening to reach the panel.
+2. **Reachability tests as a rule rather than a habit.** Every branch that
+   produces player-visible content owes a test that reaches it. Three exist
+   (`chains.test.ts`, `tempo.test.ts`, the scenario arc test) and each was
+   written after the branch in question had already shipped unreachable.
+3. **One source per derived quantity.** Applied by hand this pass
+   (`meeting/surprise.ts`); no check enforces it.
+4. The fifth defect is closed: `settleMeeting` waits two animation frames, so
+   every browser tool reports what the player sees rather than what the
+   browser held halfway through.
+
 ## What is open
+
+**One thing is waiting on you: the playtest.** The game is frozen until it
+comes back. Everything below is what I would do after it, in the order I would
+do it — behind the four guardrails above, which come first because they are
+what stops this list growing the same way twice.
 
 **No decision is waiting on you.** `docs/QUESTIONS.md` #5 is settled: the
 committee influences and does not veto, decided 19 October, with the reason
@@ -99,8 +130,6 @@ are answered and applied, and each records what was applied and how to reverse
 it; #3 and #4 carry an update from the Okun work.
 
 **Two things I would open next**, neither blocking:
-
-
 
 1. **The output gap is too shallow in the mild recessions.** The Okun pass
    fixed the labour block: 1979-83 now reaches 11.8 % unemployment against the
@@ -112,19 +141,28 @@ it; #3 and #4 carry an update from the Okun work.
    than the 12.0 % against 24.9 % it now reaches.
 2. **The Meeting Brief is the heaviest tab** at 2732 characters on fed/medium,
    against the desk's 2404 and everything else under 1600. No longer an
-   outlier — a newspaper column, not a dossier.
+   outlier — a newspaper column, not a dossier — and now behind "open the
+   room", so it is read by a player who chose to read it.
 
 ## The thing to carry forward
 
-Every silent failure this week had the same shape, and there were six of them:
-**something that could not fire, or was measured before it had arrived, with
-the whole suite green.** Three gates that could never open. A scenario that
-deflated through 1973. A guide that ringed a panel which had not finished
+Every silent failure this week had the same shape, and there were eleven of
+them: **something that could not fire, or was measured before it had arrived,
+with the whole suite green.** Three gates that could never open. A scenario
+that deflated through 1973. A guide that ringed a panel which had not finished
 fading in. A badge that could never say "first time". A follow-up list half of
-which nothing acted on. A first rule with no executable check.
+which nothing acted on. A first rule with no executable check. A verdict band
+that never appeared. A wager that never settled. An invisible panel, twice.
 
-Tests check what code *does*. None of them notices what it never does. The
-defences added this week are all the same defence in different places: measure
-the thing rather than assume it, and write the check that would have caught
-it — `gateProbe` for gates, the arc test for scenarios, the decoration test for
-chains, `check:offline` for the first rule.
+Tests check what code *does*. None of them notices what it never does.
+
+The one defence that has worked every time is a method: **state the criterion
+as a number, then write the thing that tries to falsify it.** `twoLines` does
+not check that the sentence is good — it plays forty mandates reading nothing
+else. `gateProbe` does not check that a gate is sensible — it measures how
+often it is open for two populations. `check:offline` does not check that
+nothing failed — it cuts the wire.
+
+A check that can only confirm is not a check. And a method only works when
+somebody remembers to apply it, which is why the four guardrails above matter
+more than any of the measurements below.

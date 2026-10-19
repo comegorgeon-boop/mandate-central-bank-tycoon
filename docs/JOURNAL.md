@@ -722,3 +722,50 @@ What I take from it: the audit is not a formality I run at the end, it is the
 only reason either of these is not live. And the rule I keep failing to
 internalise is one line — **never put `opacity` on text, and never assume a
 token pair without checking which surface it was declared for.**
+
+---
+
+## 17 — Deployed, and the five defects written where they will be read
+
+**Did.** The restructure is live and verified against the deployed site rather
+than the preview: twelve requests, all same-origin, and a full mandate played
+with the network cut attempting nothing. Then the thing you asked for, which
+is the more useful half: the five defects of this pass written into
+**DIRECTION.md**, each with the journal entry that recorded it the first time
+and with the check that would stop it recurring.
+
+**Measured.** 1102 tests. 664 contrast states. The deployed site plays.
+
+**Four of five had been recorded before**, and that is the finding rather than
+the defects themselves:
+
+| | defect | first recorded |
+| --- | --- | --- |
+| 1 | paper tokens on a walnut surface — an invisible panel | journal 1 |
+| 2 | one quantity stated in three places, all disagreeing with the model | new in this form; the principle is in `achievements.ts` |
+| 3 | a verdict band comparing a pair that cannot move, so it never appeared | journal 8 |
+| 4 | a wager that could be revised and therefore never settled | journal 8 |
+| 5 | tools measuring a screen on its first painted frame | journal 5 |
+
+Only one of the five now has a mechanism that makes it impossible rather than
+merely catchable: the tools wait two frames in the shared driver, so every
+tool in the repository inherits it. The other four have a proposed check and
+no implementation, and DIRECTION says so in those words — writing a proposed
+check down as though it were built would be the same failure one level up.
+
+**Bothers me.** That the one real defence I have is a *method* rather than a
+mechanism. "State the criterion as a number, then write the thing that tries
+to falsify it" has worked every time it was applied this week — twoLines,
+gateProbe, check:offline, the Okun probe — and it works because somebody
+decided to apply it. The four open mechanisms would work whether or not
+anybody remembered. That is the difference between a habit and a guardrail,
+and I have been shipping habits.
+
+The static token check in particular is a grep. It needs no browser and no
+screen state, it would have caught both contrast failures of this pass before
+either reached a commit, and it does not exist because the contrast audit
+*felt* like enough. It was not: the audit only finds this where a walk happens
+to go.
+
+**Not touching the game** until the playtest comes back, so none of the above
+is built. It is specified in DIRECTION and it is the first thing to pick up.
