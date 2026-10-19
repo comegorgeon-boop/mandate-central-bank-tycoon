@@ -583,3 +583,52 @@ the second attempt by holding the process open in the background. A small
 thing, but it is the same shape as everything else this week — the step that
 fails is the one nobody has a check for, and the fix is always to make the
 waiting explicit instead of assuming it will have happened.
+
+---
+
+## 14 — The sacrifice ratio, and the oldest complaint on this project
+
+**Did.** The two things you kept of my three.
+
+**The Okun coefficient is no longer one number.** It steepens as the output
+gap deepens, which is the documented asymmetry in Okun's law and turned out to
+be exactly the shape of the miss: the periods whose gaps barely left zero
+already fitted, and every period with a deep gap fell short. A single
+coefficient fitted to the mild case has to understate the severe one.
+
+**The phone meeting screen opens on the tab you came for.** The context — the
+objective, the charts, the stance strip — now sits below it at phone width,
+reordered in the DOM rather than with a CSS `order` so the keyboard visits
+what the eye sees. The standing line, which carries the severe warnings,
+stays above everything: an alarm you have to scroll past a newspaper to find
+is not an alarm.
+
+**Measured.** Worst unemployment on the historical rate path, before → after,
+against what printed: 1979-83 **9.3 → 11.8** against 10.8, with the RMSE down
+from 1.5 to 1.1; 1929-33 **10.2 → 12.0** against 24.9, RMSE 9.9 → 8.8;
+1972-74 6.4 → 6.6 against 7.2. The two 2021-23 mandates, which already fitted
+exactly, **did not move at all** — their gaps never approach the ramp, which
+is the asymmetry doing precisely what it is for. Full table in SCENARIOS.md.
+
+It also made passivity cost more, which is correct: paired survival over 240
+seeds went from 45/9 to **57/8** on fed/hard and 55/26 to **65/16** on
+ecb/hard, with competent completion unchanged. `npm run sim:sweep` reports no
+balance warnings. 1094 tests.
+
+And on the phone: **1,518 px before the tab strip → 252 px**, 1.80 screen
+heights to 0.30, at every one of up to thirty-two meetings. Desktop is
+untouched at 950.
+
+**Bothers me.** Two things, and the first is a correction of my own judgement.
+I measured that screen three days ago, concluded the height was content rather
+than gloss, and declined to change it. That was the wrong test. The question
+was never whether the pixels are earned — they are — but whether they are
+earned *at that position, thirty-two times*. Content in the wrong order is
+still the wrong order, and I had the number in front of me and read it as a
+defence.
+
+The second is what the Okun work exposed rather than fixed. 2008-10 and
+2010-12 barely moved, because their modelled output gaps stop at −3.3 and
+−3.6 where the real recessions were deeper. Their unemployment is tracking the
+gap faithfully; the gap is the defect. That is the IS block, not the labour
+block, and it is the next thing I would open.

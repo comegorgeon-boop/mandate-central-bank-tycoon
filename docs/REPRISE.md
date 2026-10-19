@@ -34,6 +34,12 @@ The six chantiers, in the order they were given.
 | E | the 30 events in full | **done** — 36, of which 13 chain and 5 are gated second acts |
 | F | keep looking; the council vote and the living projection | **both done**, plus the comparison against your own best |
 
+Two corrections were made after that, both on your instruction: the Okun
+coefficient now steepens with the depth of the output gap, so the game no
+longer teaches a sacrifice ratio about half the real one; and the phone
+meeting screen opens on the tab the player came for, with 252 px of header
+and alarm above it instead of 1,518 px of context.
+
 ## The tools, which are the review channel
 
 | command | what it is for |
@@ -46,32 +52,31 @@ The six chantiers, in the order they were given.
 | `npx tsx src/simulation/dev/skillCheck.ts` | paired survival, skill against passivity, 240 seeds |
 | `npx tsx src/simulation/dev/gateProbe.ts` | whether a chain gate actually separates the two populations |
 | `npx tsx src/simulation/dev/nixonFit.ts` | whether 1972-74 produces 1972-74 |
+| `npx tsx src/simulation/dev/okunFit.ts` | how far unemployment swings in every scenario, against the period |
+| `npx tsx src/simulation/dev/scenarioFit.ts` | every fit table in SCENARIOS.md |
 
 ## What is open
 
-**One decision is yours**, in `docs/QUESTIONS.md` #5: *can the committee refuse
-the chair's package?* You asked for the council vote with "a majority is
-needed"; I built everything except the refusal, because a committee that can
-block removes the player's direct control of the rate. The file carries the
-five lines that turn it on and names the test that will fail when they do.
+**No decision is waiting on you.** `docs/QUESTIONS.md` #5 is settled: the
+committee influences and does not veto, decided 19 October, with the reason
+written up in `docs/DIRECTION.md` under "The council influences; it does not
+veto" — which is where a later pass will look before reopening it. #1 to #4
+are answered and applied, and each records what was applied and how to reverse
+it; #3 and #4 carry an update from the Okun work.
 
-Questions #1 to #4 are answered and applied; they are kept because each records
-what was applied and how to reverse it.
+**Two things I would open next**, neither blocking:
 
-**Three things I would look at next**, none of them blocking:
-
-1. **The quantity half of every scenario is damped.** Prices track; output and
-   employment do not swing far enough, in all seven periods. It is stated once
-   in `docs/SCENARIOS.md` under "what the model cannot do". It is a property of
-   the engine's Okun relationship, not of any scenario, so fixing it is a model
-   change and a re-measurement of the whole balance sheet.
-2. **The phone meeting screen** carries 1.8 phone-heights of header, charts and
-   stance strip before the tab you came for, at every one of 24 meetings. I
-   measured it intending to cut it and found the height is content rather than
-   gloss, so I left it. The board flags it; disagreeing with me here is cheap.
-3. **The Meeting Brief is still the heaviest tab** at 2732 characters on
-   fed/medium, against the desk's 2404 and everything else under 1600. No
-   longer an outlier — a newspaper column, not a dossier.
+1. **The output gap is too shallow in the mild recessions.** The Okun pass
+   fixed the labour block: 1979-83 now reaches 11.8 % unemployment against the
+   10.8 % that printed, where it reached 9.3 before. What it exposed is that
+   2008-10 and 2010-12 barely moved, because their modelled gaps stop at −3.3
+   and −3.6 where the real recessions were deeper. Their unemployment is
+   tracking the gap faithfully and **the gap is the defect** — which is the IS
+   block, a different change, and the one that would also carry 1929-33 closer
+   than the 12.0 % against 24.9 % it now reaches.
+2. **The Meeting Brief is the heaviest tab** at 2732 characters on fed/medium,
+   against the desk's 2404 and everything else under 1600. No longer an
+   outlier — a newspaper column, not a dossier.
 
 ## The thing to carry forward
 

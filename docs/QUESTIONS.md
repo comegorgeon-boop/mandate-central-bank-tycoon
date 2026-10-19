@@ -4,7 +4,9 @@ Numbered, each with **the answer I applied** and **how to turn it back**.
 Nothing waits for an answer: the most reasonable reading is built, and the
 revert is one line wherever I could make it one.
 
-Settled questions move to the bottom under "Answered".
+A question you have since decided keeps its number and says so in its
+heading, with your decision quoted at the top of it. The body is kept: it
+carries what was built, what was measured, and how to reverse it.
 
 ---
 
@@ -54,7 +56,7 @@ changes what the score means at that mode, which is explicitly not mine.
 **To turn it back.** `COHESION_TOLERANCE = 2.0` in `config/scoring.ts`, and
 re-run `node src/simulation/dev/cohesion.ts`.
 
-## 3. The Volcker disinflation does not finish inside the model. Is a threshold the right place to pay for that?
+## 3. The Volcker disinflation does not finish inside the model. Is a threshold the right place to pay for that? — **partly answered by the model**
 
 **Where it came from.** Replaying the historical funds-rate path through the
 engine now gets the peak right (16.2 % against the 14.59 % of March 1980) and
@@ -86,13 +88,30 @@ modes that are balanced.
 and expect the historical path to fail most seeds until the disinflation itself
 is fixed.
 
-## 4. 1929-33 reaches a tenth of the Depression's unemployment. Ship it, or cut the scenario?
+**Update, 19 October 2026.** Less of it is being paid for there. The engine's
+Okun coefficient now steepens as the output gap deepens, so the scenario has a
+recession it previously only had a threshold for, and a recession does
+disinflationary work on its own. The median ending moved from 9.4 % to 7.7 %
+against the 2.36 % that printed, and unemployment from 9.3 % to 11.8 %
+against the 10.8 % that happened. The threshold is unchanged; what it is
+compensating for is smaller. The question stays open because 7.7 is still not
+2.36.
+
+## 4. 1929-33 falls far short of the Depression's unemployment. Ship it, or cut the scenario?
 
 **Where it came from.** The engine bounds the output gap at −20 and its
-Phillips curve is a modern reduced form. The scenario reaches a gap of −10.4
+Phillips curve is a modern reduced form. The scenario reached a gap of −10.4
 and unemployment of 10.0 % against the 24.9 % that happened. The deflation is
 about two thirds of the real one (−6.4 % against −10.74 %) and arrives at
-roughly the right time; the unemployment is not close.
+roughly the right time; the unemployment was not close.
+
+**Update, 19 October 2026.** It now reaches **12.0 %**, after the Okun
+coefficient was made to steepen with the depth of the gap, and the RMSE
+against the series fell from 9.9 to 8.8. Still not close, and the reason is
+now precisely identifiable rather than general: the coefficient is steeper
+than the historical one, and the *gap it multiplies* is less than half the
+collapse that happened. Reproducing the Depression's depth is a change to the
+IS block, not to the labour block, and it has not been made.
 
 **What I applied.** Shipped it, with the miss stated three times — in the
 document's "what the model cannot do" section, in the scenario's own fit table,
@@ -110,7 +129,20 @@ so it will tell you if you miss one.
 
 ---
 
-## 5. Can the committee refuse the chair's package?
+## 5. Can the committee refuse the chair's package? — **ANSWERED: no**
+
+**Settled on 19 October 2026, by you, in these words:** *"Le conseil ne peut
+pas refuser, garde-le comme ça. Un conseil qui bloque retire au joueur le seul
+levier qu'il ait, et tout ce projet s'est battu contre le sentiment de n'avoir
+aucun contrôle. Le conseil influence, il ne met pas de veto."*
+
+The reason is written up in `docs/DIRECTION.md` under **"The council
+influences; it does not veto"**, which is where a later pass will look before
+reopening it. The rest of this entry is the question as it was asked and is
+kept because it carries what was built, what was measured, and the five lines
+that would reverse it.
+
+---
 
 You proposed the council vote as "the advisers vote, **a majority is needed**,
 dissents are published and cost credibility — the Fed publishes its own." I
@@ -147,9 +179,10 @@ record that says "divided" every meeting is noise.
 
 **Why I did not decide it.** Letting the committee block a package changes
 what the player controls, which is close enough to removing a mechanic that it
-is yours.
+was yours. You decided it: no veto. See the block at the top of this entry.
 
-**To turn it on.** In `simulation/policy/committeeVote.ts`, `committeeVote`
+**To turn it on, if the decision is ever revisited.** In
+`simulation/policy/committeeVote.ts`, `committeeVote`
 already computes `inFavour` and `against`. Add a `carried: inFavour > against`
 field, and in `engine/applyPolicyPackage.ts` return a validation rejection
 when it is false — the rejection path already exists and the confirmation

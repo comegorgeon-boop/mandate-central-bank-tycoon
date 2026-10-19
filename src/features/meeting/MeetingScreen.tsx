@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   decisionFrontPages,
   getInstitution,
@@ -28,6 +28,7 @@ import { LaborPanel } from './panels/LaborPanel.tsx'
 import { MarketsPanel } from './panels/MarketsPanel.tsx'
 import { MandateChartPanel } from './panels/MandateChartPanel.tsx'
 import { FirstMeetingGuide } from './FirstMeetingGuide.tsx'
+import { useNarrowScreen } from '../../components/useNarrowScreen.ts'
 import { hasSeenGuide, markGuideSeen } from '../records/storage.ts'
 import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { PressPanel } from './panels/PressPanel.tsx'
@@ -109,6 +110,9 @@ export function MeetingScreen({
   readonly onConfirm: (pkg: PolicyPackage) => MeetingResult
 }) {
   const [panel, setPanel] = useState<PanelId>('press')
+  // Phone width puts the tab the player came for above the context. See the
+  // comment at the swap itself.
+  const narrow = useNarrowScreen()
   const { settings } = useSettings()
   // This component is remounted at every meeting, so each of these is shown
   // exactly once, in order: first the interval that has just elapsed, then the
@@ -285,181 +289,394 @@ export function MeetingScreen({
             />
           )}
 
+          {/* Two groups, and on a phone they swap.
+
+              The context — where the economy is — and then the work: the tab
+              strip and the panel the player came to read.
+
+              Measured before changing it: on a 390-wide screen the header,
+              the objective, three stacked charts and the stance strip come to
+              1,518 pixels, or 1.8 phone-heights, *before* the tab you came
+              for — at every one of up to thirty-two meetings. On a desktop
+              that is one glance. On a phone it is a scroll performed
+              thirty-two times, and it was the oldest complaint on this
+              project.
+
+              So the narrow layout puts the work first and the context under
+              it. Nothing is hidden and nothing is cut: a played mandate
+              reported that from about the fifth meeting players look only at
+              the charts, and the charts are still there — one swipe down,
+              which on a phone is where the second thing goes.
+
+              Reordered in the DOM rather than with a CSS `order`, so the
+              keyboard visits what the eye sees. Both groups are keyed, so
+              crossing the breakpoint moves them rather than rebuilding them —
+              a remount would close every disclosure the player had opened.
+              See `components/useNarrowScreen.ts`. */}
+          {/* The standing line stays at the top in both layouts, outside the
+              swap below. It is one line and it carries the severe warnings —
+              an alarm you have to scroll past a newspaper to find is not an
+              alarm. Sixty-six pixels, against the 1,348 the swap gives back. */}
           <StandingPanel
             standing={standing}
             previousTone={previousStanding?.tone ?? null}
             severeWarnings={severeWarnings}
           />
 
-          {tutorial !== null && <TutorialGoalPanel progress={tutorial} />}
-
-          {/* On the tutorial these two said the same thing in different words,
-              one directly above the other: "repair the economy, then hold it
-              there" and "bring inflation back to 2 % without breaking
-              employment". The tutorial goal *is* the objective there, stated
-              in the two numbers that end the mandate, so the general statement
-              is the one that goes. Above easy there is no tutorial goal and
-              the objective panel is the only thing saying what winning is —
-              and it is the panel that changes under a supply shock, which is
-              the whole reason it is on screen. */}
-          {tutorial === null && (
-            <div className="mt-4">
-              <ObjectivePanel objective={objective} />
+          {narrow ? (
+            <>
+              <Fragment key="work">
+            <div
+              role="tablist"
+              aria-label="Meeting panels"
+              data-guide="tabs"
+              className="mt-6 flex flex-wrap gap-1"
+            >
+              {TABS.filter(
+                (tab) => tab.id !== 'area' || session.observation.area !== null,
+              ).map((tab) => {
+                const selected = tab.id === panel
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-controls={`panel-${tab.id}`}
+                    onClick={() => setPanel(tab.id)}
+                    // The selected tab is a sheet of paper pulled forward out of
+                    // the stack; the rest are still in the room.
+                    // Not animated, deliberately. A tab moving between paper and
+                    // walnut is a discrete change of state, and interpolating it
+                    // puts dark ink on a still-dark ground for the length of the
+                    // transition — measured at 1.11:1 on every tab change, which
+                    // is worse than anything this redesign set out to fix.
+                    className={`-mb-px rounded-t-md border border-b-0 px-3 py-2 text-sm ${
+                      selected
+                        ? 'border-edge bg-panel font-semibold text-ink'
+                        : 'border-edge-room bg-room text-onwood-soft hover:bg-inset hover:text-onwood'
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.id === 'press' && breaking && (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="ml-1.5 inline-block h-2 w-2 rounded-full bg-bad align-middle"
+                        />
+                        <span className="sr-only"> — breaking news</span>
+                      </>
+                    )}
+                  </button>
+                )
+              })}
             </div>
-          )}
 
-          {/* The charts, before any prose. A played mandate reported that from
-              about the fifth meeting the player had stopped reading and was
-              looking only at these — which is the correct instinct about what
-              a macroeconomic series is for, and an indictment of a layout that
-              had them nowhere. */}
-          <div data-guide="charts">
-            <MandateChartPanel observation={session.observation} config={config} />
-          </div>
-
-          <StanceStrip
-            objective={mandateObjective}
-            sustainable={sustainable}
-            observation={session.observation}
-            previousObservation={session.previousObservation}
-            difficulty={config.difficulty}
-            institution={config.institution}
-          />
-
-          <div
-            role="tablist"
-            aria-label="Meeting panels"
-            data-guide="tabs"
-            className="mt-6 flex flex-wrap gap-1"
-          >
-            {TABS.filter(
-              (tab) => tab.id !== 'area' || session.observation.area !== null,
-            ).map((tab) => {
-              const selected = tab.id === panel
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  id={`tab-${tab.id}`}
-                  aria-selected={selected}
-                  aria-controls={`panel-${tab.id}`}
-                  onClick={() => setPanel(tab.id)}
-                  // The selected tab is a sheet of paper pulled forward out of
-                  // the stack; the rest are still in the room.
-                  // Not animated, deliberately. A tab moving between paper and
-                  // walnut is a discrete change of state, and interpolating it
-                  // puts dark ink on a still-dark ground for the length of the
-                  // transition — measured at 1.11:1 on every tab change, which
-                  // is worse than anything this redesign set out to fix.
-                  className={`-mb-px rounded-t-md border border-b-0 px-3 py-2 text-sm ${
-                    selected
-                      ? 'border-edge bg-panel font-semibold text-ink'
-                      : 'border-edge-room bg-room text-onwood-soft hover:bg-inset hover:text-onwood'
-                  }`}
-                >
-                  {tab.label}
-                  {tab.id === 'press' && breaking && (
-                    <>
-                      <span
-                        aria-hidden="true"
-                        className="ml-1.5 inline-block h-2 w-2 rounded-full bg-bad align-middle"
-                      />
-                      <span className="sr-only"> — breaking news</span>
-                    </>
+            <div
+              role="tabpanel"
+              id={`panel-${panel}`}
+              aria-labelledby={`tab-${panel}`}
+              tabIndex={-1}
+              className="rounded-lg rounded-tl-none border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
+            >
+              {panel === 'press' && <PressPanel session={session} />}
+              {panel === 'brief' && (
+                <div className="space-y-5">
+                  {session.observation.diagnosis !== null && (
+                    <DiagnosisPanel diagnosis={session.observation.diagnosis} />
                   )}
-                </button>
-              )
-            })}
-          </div>
-
-          <div
-            role="tabpanel"
-            id={`panel-${panel}`}
-            aria-labelledby={`tab-${panel}`}
-            tabIndex={-1}
-            className="rounded-lg rounded-tl-none border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
-          >
-            {panel === 'press' && <PressPanel session={session} />}
-            {panel === 'brief' && (
-              <div className="space-y-5">
-                {session.observation.diagnosis !== null && (
-                  <DiagnosisPanel diagnosis={session.observation.diagnosis} />
-                )}
-                {/* "What changed since the last meeting" used to sit above the
-                    tabs, permanently, at five items of two lines each. It is
-                    the brief's own subject and it belongs in the brief: a
-                    panel a player must scroll past to reach the interface is
-                    a panel that has stopped being read. */}
-                <ChangesPanel
-                  objective={mandateObjective}
+                  {/* "What changed since the last meeting" used to sit above the
+                      tabs, permanently, at five items of two lines each. It is
+                      the brief's own subject and it belongs in the brief: a
+                      panel a player must scroll past to reach the interface is
+                      a panel that has stopped being read. */}
+                  <ChangesPanel
+                    objective={mandateObjective}
+                    observation={session.observation}
+                    previousObservation={session.previousObservation}
+                    institution={config.institution}
+                    counterfactual={counterfactual}
+                    newSeries={newSeries}
+                  />
+                  <MeetingBriefPanel
+                    objective={mandateObjective}
+                    observation={session.observation}
+                    outcome={session.outcome}
+                    institution={config.institution}
+                  />
+                </div>
+              )}
+              {panel === 'markets' && (
+                <MarketsPanel
                   observation={session.observation}
                   previousObservation={session.previousObservation}
-                  institution={config.institution}
-                  counterfactual={counterfactual}
-                  newSeries={newSeries}
+                  difficulty={config.difficulty}
                 />
-                <MeetingBriefPanel
-                  objective={mandateObjective}
+              )}
+              {panel === 'prices' && (
+                <PricesPanel
                   observation={session.observation}
-                  outcome={session.outcome}
-                  institution={config.institution}
+                  inflationTarget={inflationTargetFor(config)}
+                  register={register}
+                  difficulty={config.difficulty}
                 />
+              )}
+              {panel === 'labor' && (
+                <LaborPanel
+                  observation={session.observation}
+                  register={register}
+                  difficulty={config.difficulty}
+                />
+              )}
+              {panel === 'area' && session.observation.area !== null && (
+                <DispersionPanel area={session.observation.area} />
+              )}
+              {/* The public finances. Behind a tab, not above it, because they
+                  are not in the mandate and a player who never opens this tab
+                  has not missed anything they are graded on — they have missed
+                  the reason a fiscal-dominance episode turns up later. */}
+              {panel === 'treasury' && (
+                <PublicFinancesPanel
+                  config={config}
+                  latent={session.state.latent}
+                  history={session.state.history.map((entry) => entry.latent)}
+                />
+              )}
+              {panel === 'desk' && (
+                <PolicyDeskPanel
+                  session={session}
+                  scoreboard={scoreboard}
+                  onConfirm={onConfirm}
+                />
+              )}
+            </div>
+
+            {panel !== 'desk' && (
+              <button
+                type="button"
+                onClick={() => setPanel('desk')}
+                className="mt-6 rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
+              >
+                Go to the Policy Desk
+              </button>
+            )}
+              </Fragment>
+              <Fragment key="context">
+            {tutorial !== null && <TutorialGoalPanel progress={tutorial} />}
+
+            {/* On the tutorial these two said the same thing in different words,
+                one directly above the other: "repair the economy, then hold it
+                there" and "bring inflation back to 2 % without breaking
+                employment". The tutorial goal *is* the objective there, stated
+                in the two numbers that end the mandate, so the general statement
+                is the one that goes. Above easy there is no tutorial goal and
+                the objective panel is the only thing saying what winning is —
+                and it is the panel that changes under a supply shock, which is
+                the whole reason it is on screen. */}
+            {tutorial === null && (
+              <div className="mt-4">
+                <ObjectivePanel objective={objective} />
               </div>
             )}
-            {panel === 'markets' && (
-              <MarketsPanel
-                observation={session.observation}
-                previousObservation={session.previousObservation}
-                difficulty={config.difficulty}
-              />
-            )}
-            {panel === 'prices' && (
-              <PricesPanel
-                observation={session.observation}
-                inflationTarget={inflationTargetFor(config)}
-                register={register}
-                difficulty={config.difficulty}
-              />
-            )}
-            {panel === 'labor' && (
-              <LaborPanel
-                observation={session.observation}
-                register={register}
-                difficulty={config.difficulty}
-              />
-            )}
-            {panel === 'area' && session.observation.area !== null && (
-              <DispersionPanel area={session.observation.area} />
-            )}
-            {/* The public finances. Behind a tab, not above it, because they
-                are not in the mandate and a player who never opens this tab
-                has not missed anything they are graded on — they have missed
-                the reason a fiscal-dominance episode turns up later. */}
-            {panel === 'treasury' && (
-              <PublicFinancesPanel
-                config={config}
-                latent={session.state.latent}
-                history={session.state.history.map((entry) => entry.latent)}
-              />
-            )}
-            {panel === 'desk' && (
-              <PolicyDeskPanel
-                session={session}
-                scoreboard={scoreboard}
-                onConfirm={onConfirm}
-              />
-            )}
-          </div>
 
-          {panel !== 'desk' && (
-            <button
-              type="button"
-              onClick={() => setPanel('desk')}
-              className="mt-6 rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
+            {/* The charts, before any prose. A played mandate reported that from
+                about the fifth meeting the player had stopped reading and was
+                looking only at these — which is the correct instinct about what
+                a macroeconomic series is for, and an indictment of a layout that
+                had them nowhere. */}
+            <div data-guide="charts">
+              <MandateChartPanel observation={session.observation} config={config} />
+            </div>
+
+            <StanceStrip
+              objective={mandateObjective}
+              sustainable={sustainable}
+              observation={session.observation}
+              previousObservation={session.previousObservation}
+              difficulty={config.difficulty}
+              institution={config.institution}
+            />
+
+              </Fragment>
+            </>
+          ) : (
+            <>
+              <Fragment key="context">
+            {tutorial !== null && <TutorialGoalPanel progress={tutorial} />}
+
+            {/* On the tutorial these two said the same thing in different words,
+                one directly above the other: "repair the economy, then hold it
+                there" and "bring inflation back to 2 % without breaking
+                employment". The tutorial goal *is* the objective there, stated
+                in the two numbers that end the mandate, so the general statement
+                is the one that goes. Above easy there is no tutorial goal and
+                the objective panel is the only thing saying what winning is —
+                and it is the panel that changes under a supply shock, which is
+                the whole reason it is on screen. */}
+            {tutorial === null && (
+              <div className="mt-4">
+                <ObjectivePanel objective={objective} />
+              </div>
+            )}
+
+            {/* The charts, before any prose. A played mandate reported that from
+                about the fifth meeting the player had stopped reading and was
+                looking only at these — which is the correct instinct about what
+                a macroeconomic series is for, and an indictment of a layout that
+                had them nowhere. */}
+            <div data-guide="charts">
+              <MandateChartPanel observation={session.observation} config={config} />
+            </div>
+
+            <StanceStrip
+              objective={mandateObjective}
+              sustainable={sustainable}
+              observation={session.observation}
+              previousObservation={session.previousObservation}
+              difficulty={config.difficulty}
+              institution={config.institution}
+            />
+
+              </Fragment>
+              <Fragment key="work">
+            <div
+              role="tablist"
+              aria-label="Meeting panels"
+              data-guide="tabs"
+              className="mt-6 flex flex-wrap gap-1"
             >
-              Go to the Policy Desk
-            </button>
+              {TABS.filter(
+                (tab) => tab.id !== 'area' || session.observation.area !== null,
+              ).map((tab) => {
+                const selected = tab.id === panel
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-controls={`panel-${tab.id}`}
+                    onClick={() => setPanel(tab.id)}
+                    // The selected tab is a sheet of paper pulled forward out of
+                    // the stack; the rest are still in the room.
+                    // Not animated, deliberately. A tab moving between paper and
+                    // walnut is a discrete change of state, and interpolating it
+                    // puts dark ink on a still-dark ground for the length of the
+                    // transition — measured at 1.11:1 on every tab change, which
+                    // is worse than anything this redesign set out to fix.
+                    className={`-mb-px rounded-t-md border border-b-0 px-3 py-2 text-sm ${
+                      selected
+                        ? 'border-edge bg-panel font-semibold text-ink'
+                        : 'border-edge-room bg-room text-onwood-soft hover:bg-inset hover:text-onwood'
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.id === 'press' && breaking && (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="ml-1.5 inline-block h-2 w-2 rounded-full bg-bad align-middle"
+                        />
+                        <span className="sr-only"> — breaking news</span>
+                      </>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div
+              role="tabpanel"
+              id={`panel-${panel}`}
+              aria-labelledby={`tab-${panel}`}
+              tabIndex={-1}
+              className="rounded-lg rounded-tl-none border border-edge bg-panel p-4 text-ink shadow-panel sm:p-5"
+            >
+              {panel === 'press' && <PressPanel session={session} />}
+              {panel === 'brief' && (
+                <div className="space-y-5">
+                  {session.observation.diagnosis !== null && (
+                    <DiagnosisPanel diagnosis={session.observation.diagnosis} />
+                  )}
+                  {/* "What changed since the last meeting" used to sit above the
+                      tabs, permanently, at five items of two lines each. It is
+                      the brief's own subject and it belongs in the brief: a
+                      panel a player must scroll past to reach the interface is
+                      a panel that has stopped being read. */}
+                  <ChangesPanel
+                    objective={mandateObjective}
+                    observation={session.observation}
+                    previousObservation={session.previousObservation}
+                    institution={config.institution}
+                    counterfactual={counterfactual}
+                    newSeries={newSeries}
+                  />
+                  <MeetingBriefPanel
+                    objective={mandateObjective}
+                    observation={session.observation}
+                    outcome={session.outcome}
+                    institution={config.institution}
+                  />
+                </div>
+              )}
+              {panel === 'markets' && (
+                <MarketsPanel
+                  observation={session.observation}
+                  previousObservation={session.previousObservation}
+                  difficulty={config.difficulty}
+                />
+              )}
+              {panel === 'prices' && (
+                <PricesPanel
+                  observation={session.observation}
+                  inflationTarget={inflationTargetFor(config)}
+                  register={register}
+                  difficulty={config.difficulty}
+                />
+              )}
+              {panel === 'labor' && (
+                <LaborPanel
+                  observation={session.observation}
+                  register={register}
+                  difficulty={config.difficulty}
+                />
+              )}
+              {panel === 'area' && session.observation.area !== null && (
+                <DispersionPanel area={session.observation.area} />
+              )}
+              {/* The public finances. Behind a tab, not above it, because they
+                  are not in the mandate and a player who never opens this tab
+                  has not missed anything they are graded on — they have missed
+                  the reason a fiscal-dominance episode turns up later. */}
+              {panel === 'treasury' && (
+                <PublicFinancesPanel
+                  config={config}
+                  latent={session.state.latent}
+                  history={session.state.history.map((entry) => entry.latent)}
+                />
+              )}
+              {panel === 'desk' && (
+                <PolicyDeskPanel
+                  session={session}
+                  scoreboard={scoreboard}
+                  onConfirm={onConfirm}
+                />
+              )}
+            </div>
+
+            {panel !== 'desk' && (
+              <button
+                type="button"
+                onClick={() => setPanel('desk')}
+                className="mt-6 rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood"
+              >
+                Go to the Policy Desk
+              </button>
+            )}
+              </Fragment>
+            </>
           )}
         </>
       )}

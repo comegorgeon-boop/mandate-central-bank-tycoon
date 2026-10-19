@@ -20,6 +20,7 @@ import {
   INSTITUTIONAL,
   IS_CURVE,
   LABOR,
+  okunAt,
   MARKET_EXPECTATIONS,
   PHILLIPS,
   SPREADS,
@@ -472,7 +473,9 @@ export function advanceSubstep(
   next.outputGap = latent.outputGap + gapDelta
 
   // ---- 12. Okun: unemployment and employment momentum ---------------------
-  const unemploymentTarget = latent.naturalUnemployment - ctx.okun * latent.outputGap
+  // Steeper as the gap deepens — see `LABOR` for why this is not one number.
+  const okunNow = okunAt(ctx.okun, latent.outputGap)
+  const unemploymentTarget = latent.naturalUnemployment - okunNow * latent.outputGap
   const unemploymentDelta =
     LABOR.adjustment * (unemploymentTarget - latent.unemployment) * dt
   next.unemployment = latent.unemployment + unemploymentDelta

@@ -222,15 +222,59 @@ export const IS_CURVE = {
   meanReversion: 0.83,
 } as const
 
-/** Okun-style unemployment dynamics. */
+/**
+ * Okun-style unemployment dynamics.
+ *
+ * ## The coefficient is not one number, and that is the point
+ *
+ * A single linear Okun coefficient was taught a false sacrifice ratio. Played
+ * by the benchmark rule, the model reached 8.7 % unemployment in 1979-83
+ * against the 10.8 % that printed, and swung 2.9 points against the real 4.9;
+ * 1929-33 swung 6.1 against 21.7. Prices tracked in every period and
+ * quantities were damped in every period, which is one coefficient failing
+ * rather than seven scenarios.
+ *
+ * **Okun's law is steeper in recessions than in expansions.** That asymmetry
+ * is well documented and it is exactly the shape of the miss: the 2021-23
+ * mandates, whose gaps barely leave zero, already fitted (a range of 2.7
+ * against an actual 2.6); every period with a deep gap fell short. A linear
+ * coefficient fitted to the mild case therefore has to understate the severe
+ * one, and raising it uniformly would break the case that already worked.
+ *
+ * So the coefficient steepens as the gap deepens. `okun` is the expansion and
+ * mild-recession value; `deepeningMax` is how much is added at a fully
+ * deepened gap, reached at `deepeningAt` points below zero, ramping linearly
+ * from `deepeningFrom`. A scenario that sets its own `okun` gets the same
+ * steepening on top of its own base — 1929's 0.75 becomes 1.10 at depth —
+ * because the asymmetry is a property of labour markets, not of a year.
+ */
 export const LABOR = {
   /** Percentage points of unemployment per point of output gap. */
   okun: 0.42,
+  /** Output gap below which the coefficient begins to steepen, points. */
+  deepeningFrom: -2,
+  /** Output gap at which the steepening is complete, points. */
+  deepeningAt: -10,
+  /** Added to the coefficient at a fully deepened gap. */
+  deepeningMax: 0.30,
   /** Speed at which unemployment closes on its Okun target. */
   adjustment: 1.4,
   /** Smoothing of the employment momentum indicator. */
   momentumSmoothing: 2.5,
 } as const
+
+/**
+ * The Okun coefficient that applies at this output gap.
+ *
+ * Exported so the measurement script and the tests read the same function the
+ * engine does, rather than reimplementing the ramp and drifting from it.
+ */
+export function okunAt(base: number, outputGap: number): number {
+  const { deepeningFrom, deepeningAt, deepeningMax } = LABOR
+  const span = deepeningFrom - deepeningAt
+  const depth = Math.min(1, Math.max(0, (deepeningFrom - outputGap) / span))
+  return base + deepeningMax * depth
+}
 
 /** Wage Phillips curve. */
 export const WAGES = {

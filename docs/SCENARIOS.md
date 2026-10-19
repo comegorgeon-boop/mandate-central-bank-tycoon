@@ -17,6 +17,32 @@ parses it and compares it to the code scenario by scenario, row by row: every
 opening state, every calendar, every benchmark rate and every published outcome.
 Edit one side and the other fails.
 
+## A warning about thresholds, before anything else
+
+Every scenario may override the failure thresholds, and every scenario does.
+It is the most dangerous field in this file and it is worth saying why at the
+top rather than in six footnotes.
+
+**A threshold has one legitimate job: to stop the game disqualifying a player
+for arriving where history arrived.** 1972-74 ends at 12.1 % inflation; the
+fictional spiral bar is 12. 1979-83 opens at 11.84 % against the same bar.
+Left alone, the game would end both mandates for being the period they are,
+and then offer a comparison against a path it had already disqualified — which
+is not a comparison. So the bar moves above what the real path itself
+produced, and the document says by how much and against which reading.
+
+**It has one illegitimate job, which is to pay for the model.** When a
+scenario does not reach the depth of its period, the temptation is to widen a
+threshold until the shortfall stops ending mandates. That hides a model defect
+behind a constant, in the one file a reader consults to find out whether the
+game is honest about the past. It has happened once in this project
+(`docs/QUESTIONS.md` #3, the Volcker disinflation) and it is recorded there as
+an open question rather than as a solution.
+
+The test is simple. Ask of every override: **would a competent player hit this
+bar for a reason the period makes real, or for a reason the engine makes up?**
+The first is a threshold. The second is a model change wearing one.
+
 ## The rule that replaces the difficulty selector
 
 A historical scenario has **no difficulty chooser**. Difficulty is not a
@@ -39,16 +65,17 @@ what the information ladder shows about the committee, how the score is weighted
 That keeps a scenario from being a second copy of the whole balance sheet of
 constants.
 
-## The six
+## The seven
 
 | | scenario | institution | rules | meetings | what the game is actually about |
 | --- | --- | --- | --- | --- | --- |
 | 1 | 1929-33, The Great Contraction | Fed | hard | 30 | deflation and a floor you cannot cut through: the nominal rate near zero while the *real* rate climbs, and the gold standard closing off the answer. The October 1931 **rise** is in the game, because a scenario that only lets you cut cannot teach why they raised. |
-| 2 | 1979-83, Volcker | Fed | hard | 32 | the sacrifice ratio. Double-digit inflation, expectations unanchored, and a disinflation whose whole cost arrives before any of its benefit. |
-| 3 | 2008-10, After Lehman | Fed | hard | 19 | the floor arrives in three meetings, and then the game is the balance sheet and the facilities. The rate stops being the instrument almost immediately, which is the lesson. |
-| 4 | 2010-12, One rate, several economies | ECB | hard | 24 | one rate, several economies. The 2011 rises and their reversal; spreads and country divergence do all the work and the aggregate is nearly beside the point. |
-| 5 | 2021-23, Transitory, Washington | Fed | medium | 20 | good data, published on time, and you are still wrong — the real-time slack problem with none of 1979's excuses. |
-| 6 | 2021-23, Transitory, from Frankfurt | ECB | medium | 20 | the same shock from the other seat, where the inflation is a gas price you do not set and raising the rate reopens 2012. |
+| 2 | 1972-74, Burns | Fed | hard | 24 | a published inflation number held down by price controls and a real-time output gap reading too high, both telling the committee there is room when there is none — and a government pressing from the first meeting. |
+| 3 | 1979-83, Volcker | Fed | hard | 32 | the sacrifice ratio. Double-digit inflation, expectations unanchored, and a disinflation whose whole cost arrives before any of its benefit. |
+| 4 | 2008-10, After Lehman | Fed | hard | 19 | the floor arrives in three meetings, and then the game is the balance sheet and the facilities. The rate stops being the instrument almost immediately, which is the lesson. |
+| 5 | 2010-12, One rate, several economies | ECB | hard | 24 | one rate, several economies. The 2011 rises and their reversal; spreads and country divergence do all the work and the aggregate is nearly beside the point. |
+| 6 | 2021-23, Transitory, Washington | Fed | medium | 20 | good data, published on time, and you are still wrong — the real-time slack problem with none of 1979's excuses. |
+| 7 | 2021-23, Transitory, from Frankfurt | ECB | medium | 20 | the same shock from the other seat, where the inflation is a gas price you do not set and raising the rate reopens 2012. |
 
 ## Where the numbers come from
 
@@ -121,8 +148,8 @@ Three misses recur across the scenarios and are easier to state here than
 seven times:
 
 1. **Depth.** The engine's output gap is bounded at −20 and its Phillips curve
-   is a modern reduced form. 1929-33 reaches a modelled gap of about −11 and
-   unemployment of about 10 % against the 25 % that happened; the Depression is
+   is a modern reduced form. 1929-33 reaches a modelled gap of about −10 and
+   unemployment of about 12 % against the 25 % that happened; the Depression is
    simply outside the range this model was built on. The scenario reproduces
    the *shape* — deflation, a rising real rate at the floor, a gold constraint,
    a banking collapse — at roughly half its historical depth.
@@ -131,15 +158,69 @@ seven times:
    The model gets the peak (16.2 against 14.59) and the recession (a gap of
    −10.4 against −7.3, unemployment 9.3 against 10.8) and it does not get the
    last four points of the disinflation inside the four years.
-3. **Unemployment, in both directions.** Every scenario understates how far it
-   moves: by about a point and a half in 1979 and 2008, by a great deal in
-   1929, and in 1972-74 by failing to produce the boom at all — the real
-   series fell to 4.6 % in 1973 and the model holds near 5.5. The engine's
-   Okun coefficient of 0.42 is a modern one; 1929 overrides it to 0.75 and
-   still falls short. The consequence is the same wherever it appears: the
-   *price* half of every mandate tracks and the *quantity* half is damped, so
-   a player reading these scenarios should take the inflation paths seriously
-   and the unemployment paths as indicative.
+3. **Unemployment in a deep recession — much improved, and still short in
+   1929.** The engine's Okun coefficient used to be a single number, and a
+   single number fitted to a mild recession has to understate a severe one.
+   It now **steepens as the output gap deepens**, which is the documented
+   asymmetry in Okun's law and exactly the shape of the miss: the periods
+   whose gaps barely left zero already fitted, and every period with a deep
+   gap fell short. See the adjustment table below.
+
+   What remains is 1929-33, at 12.0 % against 24.9 %. That is not the
+   coefficient — it is the output gap itself, which the engine bounds at −20
+   and which reaches about −10 in that scenario. Reproducing the Depression's
+   depth is a different change from this one and has not been made.
+
+
+### The Okun adjustment, measured across all seven
+
+The complaint that prompted it: *the game teaches a false sacrifice ratio.*
+8.3 % unemployment against 10.8 % in 1982, a tenth of the Depression in 1929.
+A player revising on this learns that disinflation is cheaper in jobs than it
+is, which is the one quantitative lesson a monetary-policy game must not get
+wrong.
+
+The fix is in `LABOR` in `config/model.ts`: the coefficient is
+`okun + 0.30 × depth`, where depth ramps from an output gap of −2 to one of
+−10. A scenario that sets its own `okun` gets the same steepening on top of
+its own base, because the asymmetry is a property of labour markets rather
+than of a year.
+
+Worst unemployment on the historical rate path, median over twelve seeds, and
+the RMSE against the published series over every meeting of every run.
+Reproduce with `npx tsx src/simulation/dev/scenarioFit.ts`; the range
+measurement that motivated it is `npx tsx src/simulation/dev/okunFit.ts`.
+
+| scenario | before | after | actual | RMSE before | RMSE after |
+| --- | --- | --- | --- | --- | --- |
+| 1929-33 | 10.2 % | **12.0 %** | 24.9 % | 9.9 | **8.8** |
+| 1972-74 | 6.4 % | **6.6 %** | 7.2 % | 0.5 | 0.5 |
+| 1979-83 | 9.3 % | **11.8 %** | 10.8 % | 1.5 | **1.1** |
+| 2008-10 | 7.1 % | 7.2 % | 9.9 % | 3.5 | 3.5 |
+| 2010-12 | 10.2 % | 10.2 % | 12.0 % | 1.4 | 1.4 |
+| 2021-23, Fed | 6.1 % | 6.1 % | 6.1 % | 0.4 | 0.4 |
+| 2021-23, ECB | 8.2 % | 8.2 % | 8.2 % | 0.8 | 0.8 |
+
+**It moved what it should and left alone what it should.** 1979-83 was the
+headline miss and is now a point *over* rather than a point and a half under,
+with the RMSE down from 1.5 to 1.1. The two 2021-23 mandates, which already
+fitted exactly, did not move at all — their gaps never approach the ramp. The
+periods still short, 2008-10 and 2010-12, are short because their modelled
+*output gaps* stop at −3.3 and −3.6 where the real recessions were deeper;
+their unemployment is tracking the gap faithfully and the gap is the defect.
+
+**It also made passivity cost more, which is correct.** Paired survival over
+240 seeds, competent play against doing nothing on the same seed, went from
+45/9 to **57/8** on fed/hard and 55/26 to **65/16** on ecb/hard. Completion
+for competent play is unchanged; doing nothing in a downturn now costs jobs,
+and the score notices. `npm run sim:sweep` reports no balance warnings.
+
+**And the Volcker disinflation went further on its own.** The scenario's
+median ending fell from 9.4 % to 7.7 % against the 2.36 % that printed,
+because a recession the model actually has does disinflationary work the
+model previously had to be told about. That is a partial answer to
+`docs/QUESTIONS.md` #3, which asked whether a threshold was the right place to
+pay for the disinflation not finishing. Less of it is being paid for there now.
 
 ---
 
@@ -306,16 +387,19 @@ a drawn one would be fiction.
 | peak inflation | 1.5 % | 1.17 % |
 | lowest inflation | −6.5 % | −10.74 % (September 1932) |
 | inflation at the end | −6.2 % | −9.35 % |
-| worst unemployment | 10.3 % | 24.9 % (Lebergott, 1933) |
+| worst unemployment | 12.0 % | 24.9 % (Lebergott, 1933) |
 | deepest output gap | about −10.7 % | — |
 | inflation RMSE against the series | 5.8 points | — |
-| unemployment RMSE | 9.8 points | — |
+| unemployment RMSE | 8.8 points | — |
 | full terms served, of twelve seeds | 11 | — |
 
 **Where it is wrong, and by how much.** The deflation is about two thirds of the
 real one and arrives at roughly the right time. The unemployment is not close:
-10 % against 25 %, which is the single largest miss in this document and follows
-directly from an output gap the model bounds at −20 and in practice reaches −11.
+12 % against 25 %, which is the single largest miss in this document and
+follows directly from an output gap the model bounds at −20 and in practice
+reaches about −10. The Okun adjustment moved it from 10 % and could not do
+more: the coefficient is now steeper than the historical one, and the gap it
+multiplies is less than half the collapse that happened.
 This scenario reproduces the shape of the Great Contraction at about half its
 depth, and no amount of parameter choice inside this engine closes that.
 
@@ -585,21 +669,24 @@ Played by the engine's own benchmark rule on seed `NIXON-FIT`. Reproduce with
 | 8 | 1973-01 | 3.61 | 3.64 | 5.69 | 4.9 |
 | 12 | 1973-07 | 5.62 | 5.74 | 5.54 | 4.8 |
 | 16 | 1974-01 | 7.14 | 9.60 | 5.38 | 5.1 |
-| 20 | 1974-07 | 10.83 | 11.54 | 6.16 | 5.5 |
-| 24 | end | 10.77 | 12.10 | 6.57 | 7.2 |
+| 20 | 1974-07 | 10.83 | 11.54 | 6.32 | 5.5 |
+| 24 | end | 10.77 | 12.10 | 6.84 | 7.2 |
 
 **Inflation tracks.** Within four tenths at the opening, at the start of 1973
 and through mid-1973, and within a point at the July 1974 peak. The worst miss
 is January 1974, where the model is 2.5 points low: the embargo's price effect
 arrives slightly later here than it did.
 
-**Unemployment does not swing far enough, and this is the scenario's honest
-weakness.** The real series went 5.8 → 4.6 in the 1973 boom → 7.2 by December
-1974, a range of 2.6 points. The model does 5.4 → 6.6, a range of 1.2. It
-never produces the boom. The engine's Okun relationship is a modern reduced
-form estimated on a labour market that does not behave like 1973's, and this
-is the same limitation 1929-33 records — see "What the model cannot do, stated
-once".
+**Unemployment ends in the right place and never produces the boom.** The real
+series went 5.8 → 4.6 in the 1973 boom → 7.2 by December 1974, a range of 2.6
+points. The model ends at 6.84 against 7.2 — close — but reaches it from 5.4
+rather than from 4.6, a range of 1.5. The recession half is right; the boom
+half is not, because the model's output gap in 1973 is shallower than the
+real one was.
+
+The Okun adjustment helped the end of this period and could not help the
+middle: steepening the coefficient in a *downturn* does nothing for a boom,
+which is the asymmetry working as intended rather than a gap in it.
 
 What the period exists to teach survives at that depth: an inflation print
 held down by controls, a gap estimate reading high, a rule that therefore eases
@@ -865,23 +952,29 @@ term; the RMSE is over every meeting of every run.
 | | model | actual |
 | --- | --- | --- |
 | inflation at the opening | 11.84 % | 11.84 % |
-| peak inflation | 16.2 % | 14.59 % (March 1980) |
-| lowest inflation | 9.4 % | 2.36 % |
-| inflation at the end | 9.4 % | 2.36 % (July 1983) |
-| worst unemployment | 9.3 % | 10.8 % (November 1982) |
-| deepest output gap | about −10.4 % | −7.3 % (1982 Q4) |
-| inflation RMSE against the series | 4.8 points | — |
-| core RMSE | 2.5 points | — |
-| unemployment RMSE | 1.5 points | — |
-| full terms served, of twelve seeds | 8 | — |
+| peak inflation | 15.7 % | 14.59 % (March 1980) |
+| lowest inflation | 7.7 % | 2.36 % |
+| inflation at the end | 7.7 % | 2.36 % (July 1983) |
+| worst unemployment | 11.8 % | 10.8 % (November 1982) |
+| deepest output gap | about −11.4 % | −7.3 % (1982 Q4) |
+| inflation RMSE against the series | 4.5 points | — |
+| core RMSE | 2.3 points | — |
+| unemployment RMSE | 1.1 points | — |
+| full terms served, of twelve seeds | 7 | — |
 
-**Where it is wrong, and by how much.** The peak is 1.6 points *high* and the
-recession is right: a gap of −10.4 against −7.3 and unemployment of 9.3 against
-10.8. What the model does not get is the last four points of the disinflation —
-it ends at a median 9.4 % against the 2.36 % that printed. That is the opposite
-miss from the one this table recorded before the transmission was recalibrated,
-and it is the better one to have: the old version got the ending by never having
-the recession.
+**Where it is wrong, and by how much.** The peak is 1.1 points *high* and the
+recession is now right in the quantity that matters: unemployment of 11.8
+against 10.8, an RMSE of 1.1 points, where before the Okun adjustment it was
+9.3 and 1.5. The gap is deeper than the published −7.3, which is the price of
+getting the unemployment right through a coefficient rather than through the
+gap itself.
+
+What the model still does not get is the last five points of the disinflation
+— it ends at a median 7.7 % against the 2.36 % that printed. That is better
+than the 9.4 % this table recorded before the recession became real, and it is
+the right direction: a recession the model actually has does disinflationary
+work it previously had to be told about. See `docs/QUESTIONS.md` #3, which is
+partly answered by it.
 
 The Okun coefficient stays at the engine's 0.42 here even though the parameter
 now exists (1929-33 needed it). Measured at 0.55, this scenario failed in ten of

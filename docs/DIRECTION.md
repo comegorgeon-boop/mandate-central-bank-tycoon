@@ -446,6 +446,38 @@ What *is* the player's is one line: debt service, which follows the average
 coupon on the stock, which converges on the rate they set at a speed set by
 the average maturity. The panel marks that row and no other.
 
+## The council influences; it does not veto
+
+Settled, and recorded here because it is the kind of decision a later pass
+would reopen without noticing what it costs.
+
+The committee votes on the package the chair confirmed. The dissents are
+published under the wing that cast them, with what that member would have done
+instead, and a committee that cannot hold a majority behind its own policy
+costs credibility — nothing for unanimity, nothing for a single dissent, and a
+charge per voice after that. **What it cannot do is refuse.**
+
+The reason is not realism, though realism agrees: the FOMC chair has been
+outvoted once since the 1930s, and a central bank committee's power has always
+been the published record rather than the ballot. The reason is that **a
+council that blocks removes the one lever the player actually has.** Every
+panel in this interface exists to inform a decision the player then makes; the
+score measures the path that decision produced; the historical comparison is
+"your mandate against what they did". A game whose central control can be
+refused by an adviser is a game about managing advisers — a good game, and not
+this one.
+
+And this whole project has been fought against the feeling of having no
+control. The lag kernel was made visible for it. The counterfactual arms were
+built so "without your rises, inflation would be at 6.2 %" could be an exact
+statement. The living projection exists so the consequence moves while the
+cursor does. Handing the committee a veto would undo all of that in one field.
+
+So the vote **prices** the decision rather than taking it. A chair who ignores
+the room pays for it in credibility and in a record the market reads as a
+policy that may not last — which is a cost, and a cost is a mechanic. A veto
+is not a cost; it is an absence of the game.
+
 ## Nixon and Burns — built, on the terms set here
 
 **1972-74.** The one nameable case, documented to the tape, and the obvious
