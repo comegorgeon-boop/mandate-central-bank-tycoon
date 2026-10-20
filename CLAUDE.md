@@ -17,7 +17,10 @@
 
 ## Avant de dire qu'une tâche est finie
 - `npm run build` passe
-- `npm test` est vert
+- `npm test` est vert — y compris `src/lintGuards.test.ts`, qui fait échouer
+  les deux règles de lint qui sont des bugs et non du style : un hook après
+  un retour anticipé, et une opacité posée sur un élément qui porte du texte
+- `npm run lint` n'a pas d'erreur (les avertissements sont tolérés)
 - `npm run check:offline` est vert — aucune requête ne sort de l'origine, et
   une partie entière se joue réseau coupé. Après un déploiement, le relancer
   contre le site : `MANDATE_URL=<adresse> npm run check:offline`

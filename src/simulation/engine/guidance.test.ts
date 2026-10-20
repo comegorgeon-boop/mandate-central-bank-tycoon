@@ -321,6 +321,12 @@ describe('the falsifiable criterion: honesty pays and bluffing costs', () => {
       // delivers what it announces, the bluffer defaults about once a year.
       expect(honestBroken).toBeLessThan(0.4)
       expect(bluffBroken).toBeGreaterThan(0.9)
-    })
+      // Fifteen seconds, not the default five. This plays several hundred
+      // mandates, and the event generator now fires at every third meeting at
+      // the latest where it used to fall silent for eight — the same work,
+      // over about three times as many events. A timeout raised because the
+      // run got slower is honest; one raised because an assertion got
+      // flakier would not be, and this assertion is unchanged.
+    }, 15_000)
   }
 })

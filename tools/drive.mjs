@@ -225,26 +225,96 @@ export async function enterFirstMeeting(page, onTransient = null) {
  */
 
 /**
- * Let the arrived screen finish arriving, then call it a meeting.
+ * Wait until the page has actually stopped moving.
  *
  * `isVisible` is true on an element's *first painted frame*, and panels in
- * this interface enter with `animate-rise`, which starts at opacity zero. So
- * a tool that returned the moment something was visible was photographing
- * and measuring panels at an opacity of nought — which is exactly what
- * happened: a full-mandate capture showed the standing line, the one that
- * carries the severe warnings, as an empty gap.
+ * this interface enter from opacity zero. So a tool that returned the moment
+ * something was visible was photographing and measuring panels at an opacity
+ * of nought — which is exactly what happened: a full-mandate capture showed
+ * the standing line, the one that carries the severe warnings, as an empty
+ * gap.
  *
- * Two frames and a tick. Cheap, and it is the difference between a tool that
- * reports what the player sees and one that reports what the browser was
- * holding halfway through.
+ * That was fixed with two animation frames, and two frames was enough for a
+ * 90 ms fade. It is nothing against what is on the screen now. A figure rolls
+ * for 420 ms; a chip is thrown on a spring that overshoots and settles over
+ * most of a second; a shake runs five steps 42 ms apart. Two frames into any
+ * of those is halfway through. The symptoms were precise and in two different
+ * tools at once:
+ *
+ *   - the contrast audit reported `1.02:1` on a claret figure against the
+ *     vault — a pair that is really 7:1 — because it measured the element on
+ *     a frame where its fade-in was still at opacity 0.02, and composited it
+ *     into the background;
+ *   - the offline check timed out clicking a tab, with Playwright's own
+ *     `element is not stable`, because something above it was still moving.
+ *
+ * Both are the same defect seen from two sides, and both are the *third*
+ * appearance of this project's most reliable mistake: a tool that reports
+ * what the browser was holding halfway through.
+ *
+ * So this no longer counts frames. It waits for the page to be visually
+ * still: no running Web Animations, and an unchanged signature of every
+ * inline `opacity` and `transform` — which is where Motion writes, frame by
+ * frame — across three consecutive frames. It gives up after `timeout` and
+ * returns anyway, because a tool that hangs on a spring that never quite
+ * settles is worse than one that photographs the last millimetre of it.
  */
+async function quiet(page, timeout = 3000) {
+  await page
+    .evaluate(
+      (limit) =>
+        new Promise((resolve) => {
+          const deadline = performance.now() + limit
+          let previous = null
+          let stable = 0
+
+          const signature = () => {
+            // Motion drives springs by writing inline styles every frame, so
+            // the inline style of everything on the page *is* the animation
+            // state. Reading `cssText` catches opacity, transform and any
+            // motion value bound to a custom property in one go.
+            let out = ''
+            for (const element of document.querySelectorAll('[style]')) {
+              out += element.style.cssText + '|'
+            }
+            return out
+          }
+
+          // WAAPI animations (CSS transitions and keyframes, and the route
+          // Motion takes for a plain opacity tween) report themselves, and
+          // are cheaper to ask than to infer.
+          const running = () =>
+            document.getAnimations().filter((a) => a.playState === 'running').length
+
+          const tick = () => {
+            if (performance.now() > deadline) return resolve('timeout')
+            const now = signature()
+            stable = now === previous ? stable + 1 : 0
+            previous = now
+            // Three consecutive identical frames. Two is not enough: a spring
+            // at its turning point holds the same value for one frame while
+            // still very much in flight.
+            //
+            // And **nothing may be running**. A first version folded the
+            // count of running animations into the signature instead, which
+            // is a different and useless test: a count that sits at 1 for
+            // three frames is identical three times over while the animation
+            // it counts runs its whole course. The audit duly went on
+            // measuring a figure at half opacity and reporting a 7.4:1 pair
+            // as 3.2:1 — the invented failure this function exists to stop,
+            // one layer further in.
+            if (stable >= 3 && running() === 0) return resolve('still')
+            requestAnimationFrame(tick)
+          }
+          requestAnimationFrame(tick)
+        }),
+      timeout,
+    )
+    .catch(() => null)
+}
+
 async function settled(page) {
-  await page.evaluate(
-    () =>
-      new Promise((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve(null)))
-      }),
-  )
+  await quiet(page)
   return 'meeting'
 }
 
@@ -368,14 +438,23 @@ export async function isResult(page) {
  */
 export async function openPanel(page, panel) {
   const room = page.locator('[data-open-room]')
-  if (await room.isVisible().catch(() => false)) await room.click()
+  if (await room.isVisible().catch(() => false)) {
+    await room.click()
+    // The room arrives animated. Clicking a tab inside it while it is still
+    // arriving is what made the offline check time out with Playwright's
+    // `element is not stable` — the tab was there and was moving.
+    await quiet(page)
+  }
 
   const tab = page.locator(`#tab-${panel}`)
   if (!(await tab.isVisible().catch(() => false))) return false
   await tab.click()
   await page.waitForSelector(`#panel-${panel}`, { state: 'visible' })
+  await quiet(page)
   return true
 }
+
+export { quiet }
 
 /**
  * Take one decision at the desk and advance.

@@ -769,3 +769,68 @@ to go.
 
 **Not touching the game** until the playtest comes back, so none of the above
 is built. It is specified in DIRECTION and it is the first thing to pick up.
+
+---
+
+## 18 — The vault, the engraving, and a crash that was waiting
+
+**What I did.** Built the decision screen in the world rather than in a style:
+a vault-black card with the furniture of a banknote drawn, not styled — a
+guilloché rosette as the watermark, an interlaced braid along the top edge, a
+toothed seal, a serial number derived from the run's own seed, and an original
+engraved Governor who reacts to the mandate's standing. Over it, a betting
+slip: the rate as a 52/72 px figure that rolls to its value, the stake and the
+return recomputed live under the thumb, chips thrown on a spring. Built
+`/lab`, where every animation replays on a button with stiffness, damping,
+mass, roll and suspense on sliders, and the four moods sit side by side.
+Removed sound entirely. Wrote `docs/SURVIVAL.md` — the proposal to replace the
+fixed meeting count with serving-until-revoked — without coding any of it.
+
+**What I measured.** Three drawn things failed at the size they are displayed
+and were redrawn: the rosette never closed because `(R−r)/r` was 2.226 and a
+hypotrochoid only returns to its start when that ratio is a whole number, so
+it drew a tangle of open arcs — it is now `R/petals`, which makes the ratio
+exactly `petals − 1`; the portrait was shaded with an even field of straight
+lines across the whole face, which is a screen door over a mask rather than
+intaglio, and is now contoured fans laid only where the form turns away; the
+chips read as flowers at 16 px because six edge notches ate the rim.
+Contrast: **140 failures across 60 states → 0 across 660.** Tests 1103 green,
+lint 0 errors, `check:offline` clean, 27 requests all to this origin.
+
+**What still bothers me.** Both halves of this pass were the *same* defect in
+new clothes, and both were already in this journal. The 140 contrast failures
+were `opacity-60` on a text element — fourth occurrence, and the second of
+them was made in this very pass, four hours after I fixed the first. And the
+tools reported an invented failure, a 7.4:1 pair measured as 1.02:1, because
+they photographed a Motion spring mid-flight — which is journal 5 exactly,
+with the two frames that fixed it then being nothing against a 420 ms roll.
+
+So this time I built the mechanisms instead of specifying them:
+
+- **The opacity rule is now a lint error**, not a habit — an AST selector that
+  fires when one `className` carries both a text token and an `opacity-*`. The
+  drawn components took an `opacity` prop instead, which is the better channel
+  anyway.
+- **`quiet()` in the shared driver** waits for real visual stillness: three
+  identical frames of every inline style *and* nothing running in
+  `getAnimations()`. Both tools inherit it. My own first version folded the
+  *count* of running animations into the signature, which is a different and
+  useless test — a count sitting at 1 for three frames looks identical three
+  times while the animation it counts runs its whole course, and the audit
+  went on inventing failures one layer further in.
+- **`src/lintGuards.test.ts`** fails `npm test` on the two lint rules that are
+  crashes rather than style, and `npm run lint` is now on the finish line in
+  `CLAUDE.md`. The one that prompted it came from HEAD and predates this pass:
+  a `useMemo` below an early return in `PolicyDeskPanel`, which is how React
+  comes to render fewer hooks than it expected and throw. It had never fired
+  because its guard is false in every shipping configuration — which is not a
+  reason it was safe, it is the shape of a crash that waits. ESLint had been
+  reporting it the whole time. Nothing noticed, because lint was not on the
+  list, and *a rule with a check nobody runs is the same as a rule with no
+  check* — which is the lesson of the last entry, one level up, again.
+
+I verified the guard by putting the bug back: the test goes red naming the
+file and line, and green when it is removed.
+
+**Not merged, not propagated.** One screen, as asked. The other screens are
+untouched and the branch is not merged.

@@ -236,19 +236,30 @@ export function MeetingScreen({
     (warning) => warning.severity === 'severe',
   )
 
+  /*
+   * Full width, no gutter, no centred column.
+   *
+   * > "Fini la colonne étroite au milieu du vide : des panneaux accolés,
+   * > séparés par des filets d'un pixel, qui occupent toute la largeur."
+   *
+   * The `mx-auto max-w-3xl px-4` that was here is the single most reliable
+   * tell that a page was laid out as a document. A terminal has no margins:
+   * it fills the glass, and what organises it is rules rather than
+   * whitespace.
+   */
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 text-onwood">
-      {/* The brass rule under the header is the room's one piece of hardware:
-          it marks where the institution ends and the meeting begins. */}
-      <header className="border-b-2 border-edge-accent pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
+    <main className="min-h-screen w-full bg-page text-ink-primary">
+      {/* The status strip. On a terminal the identity of the machine is one
+          line of small type across the top, not a title block. */}
+      <header className="border-b border-edge-accent bg-raised px-2 py-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <p className="font-mono text-2xs uppercase tracking-[0.16em] text-ink-muted">
               {institution.name} ·{' '}
               {dated === null ? config.difficulty : 'historical'} · seed{' '}
               {config.seed}
             </p>
-            <h1 className="mt-1 font-display text-2xl font-semibold text-onwood">
+            <h1 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-accent-onwood">
               {/* A tutorial has no scheduled length, so "of N" would be a
                   promise it does not make: N is the point at which it gives
                   up, not the point at which it ends. */}
@@ -361,6 +372,7 @@ export function MeetingScreen({
               session={session}
               onConfirm={onConfirm}
               onOpenRoom={() => setRoomOpen(true)}
+              shock={session.majorEvent?.title ?? session.minorEvents[0]?.title ?? null}
             />
           ) : narrow ? (
             <>

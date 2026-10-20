@@ -57,17 +57,11 @@ export function CallPanel({
     const due = standing.issuedAtMeeting + CALL_HORIZON - session.state.meetingIndex
     return (
       <section
-        aria-labelledby="call-heading"
+        aria-label="Your call, on the table"
         data-call="standing"
-        className="mt-4 rounded-md border border-edge-accent bg-inset p-3"
+        className="py-1"
       >
-        <p
-          id="call-heading"
-          className="text-2xs font-semibold uppercase tracking-[0.14em] text-onwood-faint"
-        >
-          Your call, on the table
-        </p>
-        <p className="mt-1 text-sm text-onwood">
+        <p className="font-mono text-xs text-ink-primary">
           {standing.centre.toFixed(2)} % give or take{' '}
           {terms.halfWidth.toFixed(2)} —{' '}
           {due <= 0
@@ -76,7 +70,7 @@ export function CallPanel({
               ? 'settles next meeting.'
               : `settles in ${due} meetings.`}
         </p>
-        <p className="mt-1 text-xs text-onwood-faint">
+        <p className="mt-1 font-mono text-2xs text-ink-muted">
           +{terms.reward.toFixed(1)} inside, −{terms.cost.toFixed(1)} outside.
           It cannot be withdrawn.
         </p>
@@ -89,17 +83,11 @@ export function CallPanel({
 
   return (
     <section
-      aria-labelledby="call-heading"
+      aria-label="Your call"
       data-call=""
-      className="mt-4 rounded-md border border-edge-room bg-inset p-3"
+      className="py-1"
     >
-      <p
-        id="call-heading"
-        className="text-2xs font-semibold uppercase tracking-[0.14em] text-onwood-faint"
-      >
-        Your call
-      </p>
-      <p className="mt-1 text-sm text-onwood-soft">
+      <p className="font-mono text-xs text-ink-secondary">
         Where headline inflation prints in {CALL_HORIZON} meetings. Published,
         and judged on the figure the agency gives.
       </p>
@@ -110,7 +98,7 @@ export function CallPanel({
           data-call-band="none"
           aria-pressed={centre === null}
           onClick={() => onChange(null, band)}
-          className={`rounded-md border px-3 py-1.5 text-sm ${
+          className={`border px-3 py-1.5 font-mono text-sm ${
             centre === null
               ? 'border-edge-accent bg-accent-surface font-semibold text-on-accent-surface'
               : 'border-edge-room text-onwood-soft hover:text-onwood'
@@ -126,7 +114,7 @@ export function CallPanel({
             data-call-band={entry.band}
             aria-pressed={centre !== null && band === entry.band}
             onClick={() => onChange(centre ?? Math.round(suggestion * 10) / 10, entry.band)}
-            className={`rounded-md border px-3 py-1.5 text-sm ${
+            className={`border px-3 py-1.5 font-mono text-sm ${
               centre !== null && band === entry.band
                 ? 'border-edge-accent bg-accent-surface font-semibold text-on-accent-surface'
                 : 'border-edge-room text-onwood-soft hover:text-onwood'
@@ -149,7 +137,7 @@ export function CallPanel({
               step={0.1}
               value={centre}
               onChange={(event) => onChange(Number(event.target.value), band)}
-              className="w-24 rounded-md border border-edge-room bg-page px-2 py-1 text-sm tabular-nums text-onwood"
+              className="w-24 border border-edge-room bg-page px-2 py-1 font-mono text-sm tabular-nums text-onwood"
             />
             <span className="text-sm tabular-nums text-onwood-soft">
               {(centre - active.halfWidth).toFixed(2)} to{' '}

@@ -87,6 +87,9 @@ export function RateSlider({
   markers,
   forbidden = null,
   explains = true,
+  showHeader = true,
+  onDark = false,
+  hint,
   onChange,
 }: {
   readonly label: string
@@ -100,8 +103,44 @@ export function RateSlider({
   readonly forbidden?: ForbiddenZone | null
   /** Whether the control explains its own marks. See the note at the bottom. */
   readonly explains?: boolean
+  /**
+   * Whether the control states the label and the resulting rate itself.
+   *
+   * False on the quick surface, which prints the resulting rate at 72px
+   * directly above — a screen that said "3.50 %" in an enormous figure and
+   * then "2.75 % → 3.50 %" in a row beneath it was stating one thing twice,
+   * which is the specific defect this interface keeps producing.
+   */
+  readonly showHeader?: boolean
+  /**
+   * Whether this control is sitting on the dark ground rather than on paper.
+   *
+   * It has to be told, because the two directions do not help here: `bg-page`
+   * is walnut in *both* of them, and the paper tokens this control was
+   * written with render at 2.0:1 on it. Measured, when the quick surface
+   * moved onto the vault: **150 contrast failures across 30 states**, every
+   * one of them a tick label on this slider. Third time this project has made
+   * the same mistake, which is why it is a declared prop rather than a hope.
+   */
+  readonly onDark?: boolean
+  /**
+   * The line under the dial, or `null` to retire it.
+   *
+   * Defaults to the step note, which is what every caller used to get
+   * unconditionally. A caller passes `null` once the player has moved the
+   * dial: an instruction that is still on screen after it has been obeyed is
+   * not help, it is furniture, and on a terminal whose whole argument is that
+   * position is stable it occupies a row a real reading could have had.
+   */
+  readonly hint?: string | null
   readonly onChange: (basisPoints: number) => void
 }) {
+  // `undefined` means the caller has not thought about it and gets the step
+  // note, which is what every caller got before this prop existed. `null`
+  // means the caller has decided there should be no line at all.
+  const hintLine =
+    hint === undefined ? `Moves in ${step} bp steps — arrow keys work.` : hint
+
   const id = useId()
   const resulting = currentRate + value / 100
 
@@ -147,18 +186,24 @@ export function RateSlider({
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <label htmlFor={id} className="text-sm font-medium text-ink">
+      {showHeader ? (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+          <label htmlFor={id} className="text-sm font-medium text-ink">
+            {label}
+          </label>
+          <span className="tabular-nums text-sm text-ink-soft">
+            {currentRate.toFixed(2)} %
+            <span aria-hidden="true" className="mx-1.5 text-ink-faint">
+              →
+            </span>
+            <span className="font-semibold text-ink">{resulting.toFixed(2)} %</span>
+          </span>
+        </div>
+      ) : (
+        <label htmlFor={id} className="sr-only">
           {label}
         </label>
-        <span className="tabular-nums text-sm text-ink-soft">
-          {currentRate.toFixed(2)} %
-          <span aria-hidden="true" className="mx-1.5 text-ink-faint">
-            →
-          </span>
-          <span className="font-semibold text-ink">{resulting.toFixed(2)} %</span>
-        </span>
-      </div>
+      )}
 
       {/* The track. The ghosts are drawn under the input and the input itself
           is transparent-tracked, so the handle sits over them rather than
@@ -194,7 +239,13 @@ export function RateSlider({
           >
             <span
               className={`text-2xs whitespace-nowrap ${
-                marker.id === 'market' ? 'text-accent-strong' : 'text-ink-faint'
+                marker.id === 'market'
+                  ? onDark
+                    ? 'text-accent-onwood'
+                    : 'text-accent-strong'
+                  : onDark
+                    ? 'text-onwood-faint'
+                    : 'text-ink-faint'
               }`}
             >
               {marker.offScale && marker.left <= 70 ? '◂ ' : ''}
@@ -247,7 +298,11 @@ export function RateSlider({
           </div>
         )}
 
-        <div className="flex justify-between gap-2 text-2xs tabular-nums text-ink-faint">
+        <div
+          className={`flex justify-between gap-2 text-2xs tabular-nums ${
+            onDark ? 'text-onwood-faint' : 'text-ink-faint'
+          }`}
+        >
           <span>{signedBp(min)}</span>
           {zone === null || zone.width <= 0 ? (
             <span>hold</span>
@@ -265,24 +320,30 @@ export function RateSlider({
           own figure. Two statements of one thing, disagreeing by six basis
           points, on the same screen. The stake panel owns it now; see
           `meeting/StakeChips.tsx`. */}
-      <p className="mt-1 text-sm text-ink">
-        <span className="font-semibold tabular-nums">{signedBp(value)}</span>
-      </p>
+      {showHeader && (
+        <p className="mt-1 text-sm text-ink">
+          <span className="font-semibold tabular-nums">{signedBp(value)}</span>
+        </p>
+      )}
 
       {/* The gloss on the marks is a thing a reader needs once, and it sat
           under the dial at every meeting of every mandate. On the learning
           mandate it stays; above it, the step note alone — which is a fact
           about the control rather than a lesson about the references. */}
-      <p className="mt-0.5 text-2xs text-ink-faint">
-        Moves in {step} bp steps — arrow keys work.
-        {explains && (
-          <>
-            {' '}The marks are references, not instructions: the rule of thumb
-            accounts for nothing beyond inflation and the gap, and the priced
-            path is what others believe rather than what is right.
-          </>
-        )}
-      </p>
+      {hintLine !== null && (
+        <p
+          className={`mt-0.5 font-mono text-2xs ${onDark ? 'text-onwood-faint' : 'text-ink-faint'}`}
+        >
+          {hintLine}
+          {explains && (
+            <>
+              {' '}The marks are references, not instructions: the rule of thumb
+              accounts for nothing beyond inflation and the gap, and the priced
+              path is what others believe rather than what is right.
+            </>
+          )}
+        </p>
+      )}
     </div>
   )
 }

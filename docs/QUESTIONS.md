@@ -189,3 +189,59 @@ when it is false — the rejection path already exists and the confirmation
 screen already renders rejections, so the interface needs nothing new. The
 test `leaves the chair's decision standing, whatever the vote` in
 `committeeVote.test.ts` is the one that will fail, and it should.
+
+## 6. The fixed meeting count — survival instead? (OPEN)
+
+Asked by you, written up in full in `docs/SURVIVAL.md`. Nothing is coded.
+
+**The proposal:** replace `MEETING_COUNT = { easy: 12, medium: 16, hard: 24 }`
+with serving until revoked. A Fed term is 32 meetings with a reappointment
+hearing at the end; an ECB term is 64 and non-renewable, so political pressure
+has nothing to act on and what ends you instead is losing the Governing
+Council. Neither horizon is meant to be reached often — the median run should
+end well short of it, which makes sessions *shorter* than today's and the
+duration genuinely an outcome.
+
+**What it costs, in one line:** every path-averaged score component starts
+rewarding being fired early, because a short run has a better average. That
+has to be answered before anything else is built, and the answer changes what
+the score means — which is yours, not mine. I recommend banking points per
+meeting rather than grading an average at the end.
+
+**Scope:** fictional mandates only. The seven historical scenarios keep their
+calendars — 1929-33 is thirty meetings because it is a date range — and gain
+an early-exit verdict instead: *you were let go in March 1931; the real one
+served to 1933.*
+
+**Status: awaiting your decision.** Nothing has been applied, so there is
+nothing to revert.
+
+## 7. What happens to "papers on the table"? (APPLIED, easily reversed)
+
+The terminal replaces the `after-hours` direction — near-black chassis, amber,
+green up, red down, light grey text. The second direction, `papers-on-the-table`
+(cream paper, ink, walnut room), is **kept** and still offered in the settings.
+
+**Applied answer:** kept, because you asked for a terminal and not for the
+removal of a setting, and because the contrast audit walks both directions —
+640 of its 664 states exist to prove the pair. Deleting it is a bigger change
+than the one requested and it is not reversible in one commit.
+
+But it is now odd: a cream paper direction inside a game whose other face is a
+dealing screen. If you want it gone, say so — it is one block in
+`tokens.css`, one toggle in `SettingsPanel`, and about forty lines of the
+contrast walk.
+
+## 8. The radius and shadow tokens went to zero globally (APPLIED)
+
+"Zéro angle arrondi, zéro ombre, zéro dégradé" is applied by setting
+`--radius-sm/md/lg/xl` and the three `--shadow-*` tokens to `0` / `none` in
+`tokens.css`, rather than by removing ninety `rounded-lg` and `shadow-panel`
+class names.
+
+**Why:** Tailwind resolves those variables at use time, so every utility keeps
+compiling and keeps meaning something, and the whole interface goes square in
+one block. It also means `papers-on-the-table` went square too, which is
+arguably wrong for a paper document.
+
+**To revert:** restore `2 / 4 / 8 / 12` and the three shadow values. One block.
