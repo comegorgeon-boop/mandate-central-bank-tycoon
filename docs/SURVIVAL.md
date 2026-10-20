@@ -270,3 +270,99 @@ The one thing I would not do is adopt 1–3 while keeping the averaged
 scorecard. That combination has the incentives pointing backwards — it would
 pay the player to get fired early — and it would take a long time to notice,
 because the scorecard would look exactly as it does now.
+
+---
+
+# BUILT — and what the measurements said
+
+Decided on 21 October 2026: survival adopted, option **C** for the score
+(banked per meeting), the ECB's Council as its only failure mode, and the
+scenario verdict kept verbatim. What follows is what the build measured.
+
+## The structure as built
+
+| | Fed | ECB |
+| --- | --- | --- |
+| term | 32 meetings (4 years) | 64 meetings (8 years) |
+| terms | 2, with a hearing between | 1, non-renewable |
+| the hearing | credibility against a bar raised by political pressure | **none, ever** |
+| what else ends you | the catastrophes, as before | the Governing Council, after 5 meetings fractured |
+
+`MEETING_COUNT` is gone from the difficulty table. Length is set by the
+institution and ended by the player's own record.
+
+## The guarantee broke, and why
+
+> "La garantie « jamais plus de deux réunions calmes d'affilée » a été mesurée
+> sur des mandats de longueur fixe ; en survie les parties n'ont plus la même
+> durée."
+
+Exactly right, and it did break. Re-measured over 40 mandates:
+
+| | before the fix | after |
+| --- | --- | --- |
+| fed/easy | 2 | 2 |
+| fed/medium | **4** | 2 |
+| fed/hard | **9** | 2 |
+| ecb/medium | 2 | 2 |
+| ecb/hard | 2 | 2 |
+
+The cause was not the draw and not the Minsky hazard, both of which kept
+working. It was `maxOccurrences`. Every cap in the catalogue was authored
+against a 16- or 24-meeting mandate, so by the fortieth meeting most of the
+table had retired, the eligible set had emptied, and the forced fire that
+*implements* the guarantee had nothing left to fire. **A guarantee implemented
+as "fire something" fails silently and completely the moment there is nothing
+to fire** — and it fails exactly where a long, well-played mandate had earned
+its way to.
+
+The fix is a principle rather than a table of new numbers: a cap written
+against 24 meetings is a statement about *density*, so it scales with the
+horizon. Two banking crises in three years is plausible; insisting on no more
+than two in eight is below the historical rate.
+
+One honest correction inside that: a first attempt froze `maxOccurrences: 1`
+as "structural". It is not. The seven events capped at one are the *big* ones,
+and freezing them while the ordinary events stretched 2.7× did not preserve
+the catalogue — it diluted the majors out of any long career. The one thing
+that genuinely happens once, the opening crisis, is excluded where it belongs:
+it is the economy you were handed, not an event you drew.
+
+## Felt severity — does a banking crisis still frighten?
+
+Measured over 40 mandates a bucket, in banked points destroyed: mean quality
+over the three meetings before a shock against the three after.
+
+| | a major costs | a minor costs | ratio | banking | recovery | ended a career |
+| --- | --- | --- | --- | --- | --- | --- |
+| fed/medium | −20 pts | −6 pts | **3.2×** | −13 | 2.6 mtgs | 25 % |
+| fed/hard | −30 pts | −10 pts | **2.9×** | −22 | 3.7 mtgs | **63 %** |
+| ecb/medium | −28 pts | −4 pts | **7.8×** | −10 | 2.8 mtgs | 30 % |
+| ecb/hard | −29 pts | −14 pts | **2.0×** | −19 | 3.4 mtgs | **57 %** |
+
+**It still frightens.** The ratio is the load-bearing column: a major costs two
+to eight times what a minor costs, so "major" is a fact about the game rather
+than a label on the table. A crisis takes three to four meetings to recover
+from, which is long enough to be an episode rather than weather. And at hard,
+a banking crisis ends six careers in ten — which is the only definition of
+fear that means anything in a survival structure.
+
+The one thing worth watching: 100 % of mandates now end in *something*, which
+is the structure working, and the Fed's hearing is doing a lot of that work.
+Median tenure runs 17–32 meetings at hard and 32–55 at medium.
+
+## A measurement that was quietly wrong
+
+`balance.test.ts` plays mandates and checks the catalogue is not writing the
+inflation outcome by itself. It played **until the run ended** — harmless when
+every mandate was the same length, and a selection effect the moment length
+became a result: a run ends when the player is revoked, revocation follows
+catastrophes, and catastrophes are events. The sample became conditioned on
+the stream it was measuring.
+
+The size of it: on the same seeds, the net delivered impulse on fed/medium
+reads **−0.019** per meeting over a fixed window and **−0.116** over runs
+truncated at their revocation. The catalogue had not changed between those two
+numbers. It now plays a fixed 32-meeting window — and divides by the window it
+played, not by the difficulty's old nominal length, which was a second error
+hiding behind the first.

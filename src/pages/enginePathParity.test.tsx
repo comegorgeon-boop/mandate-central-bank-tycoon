@@ -211,8 +211,19 @@ function playThroughTheInterface(): {
     // can end a mandate before its last scheduled meeting — which is the
     // engine working, not a parity failure. Both paths stop at the same point
     // *because* they are the same game, and that is asserted below.
+    /*
+     * The heading no longer carries "of N", because under a survival
+     * structure there is no N — see `features/meeting/tenureLine.ts`. It
+     * opens with the meeting number and then says where that sits in the
+     * tenure, so this matches the prefix and leaves the rest alone.
+     *
+     * Matching the whole string is what broke when the structure changed:
+     * the regex found nothing, the loop broke on its first pass, and the
+     * parity test reported zero meetings played — which looks exactly like
+     * a catastrophic engine failure and was a stale label.
+     */
     const heading = screen.queryByRole('heading', {
-      name: `Meeting ${meeting} of ${MEETINGS}`,
+      name: new RegExp(`^Meeting ${meeting}\\b`),
     })
     if (heading === null) break
 

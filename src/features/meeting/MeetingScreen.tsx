@@ -45,6 +45,7 @@ import { registerFor } from './register.ts'
 import { SettingsPanel } from '../settings/SettingsPanel.tsx'
 import { shouldPlayInterval, useSettings } from '../settings/settings.ts'
 import { IntervalPlayer } from './IntervalPlayer.tsx'
+import { tenureLine } from './tenureLine.ts'
 
 /**
  * One policy meeting.
@@ -220,7 +221,6 @@ export function MeetingScreen({
     .map((id) => getSeries(id)?.label)
     .filter((label): label is string => label !== undefined)
 
-  const meetingNumber = session.state.meetingIndex + 1
   // In a historical mandate the meeting has a date, and the date is the
   // better name for it: "Meeting 6 of 32" tells you where you are in a
   // schedule, "March 18, 1980" tells you what is happening outside.
@@ -260,14 +260,20 @@ export function MeetingScreen({
               {config.seed}
             </p>
             <h1 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-accent-onwood">
-              {/* A tutorial has no scheduled length, so "of N" would be a
-                  promise it does not make: N is the point at which it gives
-                  up, not the point at which it ends. */}
-              {dated !== null
-                ? dated
-                : tutorial === null
-                  ? `Meeting ${meetingNumber} of ${config.meetingCount}`
-                  : `Meeting ${meetingNumber}`}
+              {/*
+                "Meeting 3 of 16" is gone, and it had to go: under a survival
+                structure there is no N. You serve until you are revoked, and
+                a denominator is a promise the game does not make. What
+                replaces it is the thing a governor actually knows — which
+                term they are in, and how far the next hearing is.
+
+                The two institutions read differently here on purpose. A Fed
+                Chair counts down to a reappointment they can fail; an ECB
+                President, whose term is non-renewable and who cannot be
+                removed, has nothing to count down to and is told the year
+                instead. See `config/tenure.ts`.
+              */}
+              {dated !== null ? dated : tenureLine(session)}
             </h1>
           </div>
           <SettingsPanel className="w-full sm:w-72" />

@@ -126,7 +126,7 @@ describe('the playable loop', () => {
     // A score out of 10,000, with its components broken down.
     expect(screen.getByText('/ 10,000')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Price stability/ })).toBeInTheDocument()
-    expect(screen.getByRole('row', { name: /Mandate completion/ })).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /Tenure/ })).toBeInTheDocument()
 
     // The four post-mandate charts, each with an accessible summary.
     expect(screen.getByRole('img', { name: /^Inflation\./ })).toBeInTheDocument()

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DecisionLog } from './decisionLog.ts'
 import { SIMULATION_VERSION } from '../version.ts'
-import { MEETING_COUNT } from '../config/time.ts'
+import { tenureHorizon } from '../config/tenure.ts'
 import {
   configFromLog,
   decodeDecisionLog,
@@ -84,12 +84,17 @@ describe('round trip', () => {
     expect(encodeDecisionLog(SAMPLE).length).toBeLessThan(160)
   })
 
-  it('rebuilds the run configuration, including the mandate length', () => {
+  it('rebuilds the run configuration, including the tenure horizon', () => {
     const config = configFromLog(SAMPLE)
     expect(config.institution).toBe('ecb')
     expect(config.difficulty).toBe('medium')
     expect(config.seed).toBe('sample-seed')
-    expect(config.meetingCount).toBe(MEETING_COUNT.medium)
+    // The horizon comes from the *institution* now, not the difficulty: a
+    // mandate is served until revoked and an ECB term is eight
+    // non-renewable years whatever the difficulty says. A log that rebuilt a
+    // different horizon from the one the run was played under would replay a
+    // different game.
+    expect(config.meetingCount).toBe(tenureHorizon('ecb'))
   })
 })
 
@@ -130,12 +135,23 @@ describe('malformed input is rejected safely', () => {
     expect(result.ok).toBe(false)
   })
 
-  it('rejects a log with more meetings than the mandate allows', () => {
-    const slots = new Array(MEETING_COUNT.easy + 4).fill('').join('|')
+  it('rejects a log with more meetings than a tenure can run to', () => {
+    const slots = new Array(tenureHorizon('fed') + 4).fill('').join('|')
     const result = decodeDecisionLog(`MCBT2~1.0.0~fed~easy~fictional~-~seed~${slots}`)
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.error).toContain('more than')
+  })
+
+  it('accepts a log longer than the old fixed mandate length', () => {
+    // The guard that this replaces capped a log at the difficulty's old
+    // length, so a legitimate forty-meeting ECB log was rejected as malformed
+    // — and the determinism round-trip reported that the engine could not
+    // reproduce its own run. A cap is only safe while it is a cap on the
+    // right quantity.
+    const slots = new Array(40).fill('').join('|')
+    const result = decodeDecisionLog(`MCBT2~1.0.0~ecb~medium~fictional~-~seed~${slots}`)
+    expect(result.ok).toBe(true)
   })
 
   it('rejects an implausibly large payload without parsing it', () => {

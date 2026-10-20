@@ -276,3 +276,6 @@ export {
   type ReplayResult,
   type RunSession,
 } from './replay/replayRun.ts'
+
+export * from './config/tenure.ts'
+export * from './scoring/banked.ts'

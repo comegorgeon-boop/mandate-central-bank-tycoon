@@ -80,6 +80,25 @@ export type EndConditionId =
    * and the one thing Volcker did not do twice.
    */
   | 'gave_in'
+  /**
+   * Fed only: the term ran out and the appointment was not renewed.
+   *
+   * The ordinary way a Fed chairmanship ends, and historically the *only*
+   * sanction ever actually used — no Chair has been removed, and two were
+   * declined a further term. See `config/tenure.ts`.
+   */
+  | 'not_reappointed'
+  /** Fed only: the hearing was passed and a further term begins. */
+  | 'reappointed'
+  /**
+   * ECB only: the Governing Council stopped following you.
+   *
+   * There is no reappointment to lose and the Treaty makes removal all but
+   * impossible, so political pressure has nothing to act on. What ends an ECB
+   * presidency is losing your own committee — Weber in February 2011, Stark
+   * in September 2011, both over the Securities Markets Programme.
+   */
+  | 'council_lost'
 
 export type RunStatus = 'active' | 'completed' | 'failed'
 

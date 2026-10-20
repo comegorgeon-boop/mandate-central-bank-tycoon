@@ -98,6 +98,13 @@ export interface EventContext {
   readonly lastOccurrence: Readonly<Record<string, number>>
   /** Follow-up event ids unlocked by events that already fired. */
   readonly unlockedFollowUps: readonly string[]
+  /**
+   * The event the mandate *opened* on, if any, which can never recur.
+   *
+   * Not a drawn event: the economy handed to the player at meeting zero,
+   * written into the log before the first decision. See `eligibleEvents`.
+   */
+  readonly openerId: string | null
 }
 
 /**
