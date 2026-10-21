@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import { ScrollToTop } from './components/ScrollToTop.tsx'
 import { RunProvider } from './features/game/RunProvider.tsx'
 import { SettingsProvider } from './features/settings/SettingsProvider.tsx'
 import HomePage from './pages/HomePage'
@@ -15,6 +16,7 @@ function App() {
   return (
     <SettingsProvider>
       <RunProvider>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/glossary" element={<GlossaryPage />} />

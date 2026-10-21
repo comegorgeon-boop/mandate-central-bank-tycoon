@@ -407,3 +407,55 @@ measured rather than reasoned. The bounds are restated at the measured floor
 and this is on the record as the thing to fix if it bothers you: the honest
 options are a smaller opening wreck, or a mechanism that pays communication
 more when the gap is large.
+
+## 16. The 60-word cap is frozen, and the real guarantee is now a test (SETTLED)
+
+Agreed and frozen at 60. The number that matters is in `npm test` from now
+on, not in a harness nobody runs: `features/meeting/orderOnly.test.ts` plays a
+reader that sees only the order line and fails if it serves fewer than **40 of
+40** easy mandates, on either institution. It currently serves 40/40 on both.
+
+`dev/orderOnly.ts` keeps the diagnostics and the harder modes for comparison —
+0/40 on medium and hard, which is the ladder working: one line keeps you alive
+on medium for a full four-year term and still loses you the hearing.
+
+## 17. Communication is alive, and slightly better late (MEASURED, APPLIED)
+
+Measured where you said to measure it. `dev/lateGuidance.ts` pairs the same
+economy with and without the committee saying what it is doing, and splits the
+mandate at the point inflation comes back within 1.5 of target:
+
+| | while inflation is far out | once it is coming back |
+| --- | --- | --- |
+| fed/medium | +4.7 anchor points | **+5.2** |
+| ecb/medium | +5.5 | **+5.9** |
+| fed/hard | +5.0 | **+5.6** |
+
+So the instrument is not dead. The honest reading is not that it is worthless
+early and valuable late — it is worth about the same five points throughout.
+What changes is its **share of what is left to win**: while inflation is six
+points out, five anchor points is a rounding error beside the rate's work;
+once it is within a point and a half, the anchor is the only thing still in
+play.
+
+**Applied:** the wire now says so, once, at the meeting the crossing happens —
+*"Inflation is back within reach, so the rate has done most of what it can.
+What is left is whether people believe it will stay there."* Fired on the
+crossing rather than on the state, so it is news rather than furniture.
+
+## 18. A careful ECB chair is punished on cohesion (NOT FIXED — flagged)
+
+On ecb/hard, competent play now scores **0.934** on area cohesion against
+passivity's **0.966**. Tightening into a downturn widens the spreads between
+members, so the rule that fights inflation hardest pulls the area furthest
+apart.
+
+I left it and changed the test to assert that cohesion *responds to policy*
+rather than that competence improves it — because asserting the opposite would
+be asserting away the euro area's own dilemma, which is the whole of 2011.
+
+But it does mean an ECB chair doing the right thing on the mandate loses marks
+on a component they have no instrument for. If that is the wrong trade, the
+fix is either a smaller weight on cohesion at hard, or an instrument that
+reaches fragmentation directly — the engine has the fragmentation variable and
+no tool pointed at it.

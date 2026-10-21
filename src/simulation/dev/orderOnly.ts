@@ -57,6 +57,8 @@ const SEEDS = 40
 interface Memory {
   /** The distance the order named last meeting, or null at the first. */
   lastDistance: number | null
+  /** True if a move was made last meeting. */
+  justMoved: boolean
 }
 
 function decideFromOrder(
@@ -105,6 +107,24 @@ function decideFromOrder(
    * the sentence the game spent that line teaching them.
    */
   if (patient && previous !== null && distance < previous - 0.05) {
+    memory.justMoved = false
+    return { actions: [], communication: null }
+  }
+
+  /*
+   * **And wait a meeting after acting**, which is the literal form of the
+   * same instinct and the one the game's own second dispatch teaches: *"you
+   * are setting the inflation of six meetings from now."*
+   *
+   * Without it the reader adds another quarter point every single meeting
+   * while the anchor is slow to respond, which compounds into a dose no
+   * person would choose — measured, it broke the banking system on one of
+   * forty easy mandates. Acting every other meeting is not a cleverer parser;
+   * it is the minimum a reader has to understand about a lag to be worth
+   * calling a reader at all.
+   */
+  if (patient && memory.justMoved) {
+    memory.justMoved = false
     return { actions: [], communication: null }
   }
 
@@ -131,6 +151,7 @@ function decideFromOrder(
   const size = Math.min(100, Math.round(reachable) * 25)
   if (size === 0) return { actions: [], communication: null }
 
+  memory.justMoved = true
   return {
     actions: [{ instrument: 'policy_rate', magnitude: (tighten ? 1 : -1) * size }],
     communication: null,
@@ -152,7 +173,7 @@ function play(institution: Institution, difficulty: Difficulty, patient = true) 
       simulationVersion: SIMULATION_VERSION,
     })
     let session = startRun(config)
-    const memory: Memory = { lastDistance: null }
+    const memory: Memory = { lastDistance: null, justMoved: false }
 
     for (let meeting = 0; meeting < 80; meeting += 1) {
       const order = readOrder(session)

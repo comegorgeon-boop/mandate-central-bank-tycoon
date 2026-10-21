@@ -1067,3 +1067,64 @@ and both captures regenerated and looked at — which is how the duplicated
 screen was found. The panels rendered twice, top to bottom, because an
 insertion added the new block without removing the old one. Invisible in the
 diff, unmissable in the picture.
+
+---
+
+## 22 — A ladder of broken readings, and a ceiling that costs instead of refusing
+
+**What I did.** Seven corrections. Made the opening a ladder of how *many*
+readings are broken — one on easy, two in opposition on medium, three on hard
+— with the invariant tested on every seed rather than on average. Derived the
+triplet from the engine's own identities instead of drawing three numbers.
+Took the ceiling off the dial and replaced the refusal with escalating
+warnings; kept the floor and made it explain itself. Guaranteed the opening
+figures. Made every screen open at the top. Split the mode choice in two.
+Measured communication where it should matter.
+
+**What I measured.**
+
+| | before | after |
+| --- | --- | --- |
+| broken readings, easy / medium / hard | 2 / 2 / 3 | **1 / 2 / 3**, every seed |
+| easy, competent vs passive | 19 vs 16 | **19 vs 8** |
+| hard, skill vs idleness (paired) | 11 vs 17 | **16 vs 9** fed, **15 vs 11** ecb |
+| order-only player, easy | 40/40 | **40/40**, now a test |
+| essential readings absent, first 3 meetings | some | **0 of 150** |
+| longest calm run | 2 | 2 |
+| a major shock's cost | 17–51 pts | 26–31 pts, gap 30–37 over a minor |
+| speaking, in anchor points | — | **+4.7 early, +5.2 late** |
+
+**Four findings worth keeping.**
+
+1. **A deep slump implies fast measured growth.** `realGrowth` is
+   `potentialGrowth + Δgap/dt` and the IS curve mean-reverts the gap at 0.83 a
+   year, so a −6.5 gap contributes **+5.4 points of growth** while it closes.
+   There is no opening demand shock that holds it down — `demandShock` reverts
+   at 1.5, and Lehman's own is −2.2. This is why hard opens with three broken
+   readings and has two by the following meeting, and why its third is now
+   carried by a cut to trend growth, which survives the rebound because it is
+   where the rebound lands.
+2. **The slider's floor and its step size were two different guards wearing
+   one number.** Raising the ceiling to 500 while the minimum stayed at −150
+   meant a committee could raise 400 basis points and then be forbidden from
+   unwinding it — the same wall, from the other side, found when a doctrine
+   rule tried to return a 7 % rate toward neutral and the engine refused the
+   package.
+3. **"No release this meeting" at the opening was not a missing release.**
+   With a publication lag, `meetingIndex − lag` is negative at meeting zero,
+   so the figure had never been published at all. A grace period in
+   `isMissing` did nothing about that and the symptom was identical.
+4. **Scroll-to-top on route change was not enough.** The interval player, the
+   reaction screen and the meeting are three phases of the *same* route, and
+   the transitions between them are exactly where a player lands mid-page.
+   Measured over twelve meetings on a phone, the screen opened scrolled by
+   between 451 and 1,399 pixels at every single one.
+
+**What still bothers me.** Two things the measurements say plainly. Competent
+play now *fractures the euro area more* than passivity on ecb/hard — 0.934
+against 0.966 — because tightening into a downturn widens member spreads. I
+left it, because asserting the opposite would be asserting away the whole of
+2011, but it means a careful ECB chair is punished on a component they cannot
+win. And hard's growth reading recovers after one meeting for the reason in
+(1); the ladder is honest at the opening, which is what was asked for, and
+thinner than I would like three meetings in.

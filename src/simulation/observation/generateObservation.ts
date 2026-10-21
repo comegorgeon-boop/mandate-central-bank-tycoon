@@ -163,12 +163,65 @@ function publishedValue(
   return truth + noise + bias
 }
 
-/** Whether a given release is simply missing this time. */
+/**
+ * The two readings the mandate is about, which the opening always publishes.
+ *
+ * Everything else may be missing from the first meeting. These may not.
+ */
+const MANDATE_SERIES: readonly string[] = [
+  'headline_inflation',
+  'core_inflation',
+  'unemployment',
+]
+
+/** Meetings at the start of a mandate during which nothing essential is absent. */
+const GRACE_MEETINGS = 3
+
+/**
+ * How much more likely a release is to be missing when the economy is moving.
+ *
+ * Multiplies the difficulty's base probability at a full head of turbulence.
+ */
+const TURBULENCE_MULTIPLIER = 2.5
+
+/**
+ * Whether a given release is simply missing this time.
+ *
+ * ## The opening always has its figures
+ *
+ * > "À chaque début de partie on me dit « this release did not arrive in time
+ * > for the meeting ». Du coup je ne comprends même pas l'économie dont
+ * > j'hérite, et ça ajoute du flou là où il en faut le moins."
+ *
+ * A missing release is a good mechanic in the wrong place. At the opening the
+ * player has no history to fall back on, no feel for the economy and nothing
+ * to compare against — so an absent inflation print is not a hard decision,
+ * it is a player who cannot read the board they were handed. For the first
+ * three meetings the two readings the mandate is *about* are always there.
+ *
+ * ## And it is likelier when the economy is moving
+ *
+ * > "Rends-le plus probable QUAND L'ÉCONOMIE BOUGE VITE, parce que c'est
+ * > vrai : les erreurs des instituts en temps réel sont les plus grandes aux
+ * > points de retournement. C'est le problème d'Orphanides."
+ *
+ * Which is the finding this whole engine's measurement regime is built on —
+ * Orphanides showed the real-time output gap was wrong by three points in the
+ * mid-seventies, and wrong *worst* at the turning points, because that is
+ * where a statistical agency has least signal and most revision ahead of it.
+ *
+ * So the probability now scales with how fast the economy is moving. The
+ * effect is that the figure goes missing at the moment it would have been
+ * most useful, which is both true and a far better moment of play than a fog
+ * at the start.
+ */
 function isMissing(
   series: SeriesDefinition,
   referencePeriod: number,
   difficulty: DifficultyConfig,
   seed: string,
+  meetingIndex: number,
+  turbulence: number,
 ): boolean {
   // A market price is always there. Only statistics and estimates go missing.
   if (series.category === 'market_data') return false
@@ -176,10 +229,35 @@ function isMissing(
   // from the last review rather than re-published each meeting.
   if (series.persistentError === true) return false
   if (difficulty.missingObservationProbability <= 0) return false
-  return (
-    hashUnit(seed, 'missing', series.id, referencePeriod) <
-    difficulty.missingObservationProbability
+  // The opening grace: the mandate's own two readings are always published
+  // while the player is still learning what they inherited.
+  if (meetingIndex < GRACE_MEETINGS && MANDATE_SERIES.includes(series.id)) return false
+
+  const probability = Math.min(
+    0.9,
+    difficulty.missingObservationProbability *
+      (1 + (TURBULENCE_MULTIPLIER - 1) * turbulence),
   )
+  return hashUnit(seed, 'missing', series.id, referencePeriod) < probability
+}
+
+/**
+ * How fast the economy is moving, 0 to 1.
+ *
+ * Read off the two readings an agency would be revising: a quarter where
+ * inflation and unemployment are both lurching is a quarter where the first
+ * print is least likely to survive contact with the second.
+ */
+function turbulenceOf(state: SimulationState): number {
+  const history = state.history
+  if (history.length < 2) return 0
+  const now = history[history.length - 1].latent
+  const before = history[history.length - 2].latent
+  const movement =
+    Math.abs(now.inflationHeadline - before.inflationHeadline) +
+    Math.abs(now.unemployment - before.unemployment) * 0.8
+  // A point of combined movement in one meeting is a fast quarter.
+  return Math.min(1, movement / 1.0)
 }
 
 function round(value: number, decimals: number): number {
@@ -194,12 +272,35 @@ function observeSeries(
   seed: string,
 ): IndicatorObservation {
   const meetingIndex = state.meetingIndex
+  const turbulence = turbulenceOf(state)
   const lag = effectiveLag(series, difficulty)
   const currentPeriod = meetingIndex - lag
 
+  /*
+   * The mandate's own readings exist from the first meeting.
+   *
+   * > "À chaque début de partie on me dit « this release did not arrive in
+   * > time for the meeting »."
+   *
+   * The grace period in `isMissing` was not enough, because at the opening
+   * the figure is not *missing* — it has never been published. With a
+   * publication lag of one or two meetings, `meetingIndex − lag` is negative
+   * at meeting zero and there is no period to read at all.
+   *
+   * So for the two readings the mandate is about, the first meetings read
+   * the opening state rather than a period that does not exist. That is also
+   * what a real committee has: it inherits a published history, it does not
+   * take office in a statistical vacuum. Every other series still arrives on
+   * its own schedule, and the lag is still the lag.
+   */
+  const essential = meetingIndex < GRACE_MEETINGS && MANDATE_SERIES.includes(series.id)
+
   const readAt = (period: number): number | null => {
+    if (period < 0 && essential) period = 0
     if (period < 0) return null
-    if (isMissing(series, period, difficulty, seed)) return null
+    if (isMissing(series, period, difficulty, seed, meetingIndex, turbulence)) {
+      return null
+    }
     const vintage = vintageOf(series, period, meetingIndex, lag)
     const value = publishedValue(state, series, period, vintage, difficulty, seed)
     return value === null ? null : round(value, series.decimals)
@@ -220,7 +321,7 @@ function observeSeries(
     series.revisionLagMeetings > 0 &&
     revisedPeriod >= 0 &&
     vintageOf(series, revisedPeriod, meetingIndex, lag) > 0 &&
-    !isMissing(series, revisedPeriod, difficulty, seed)
+    !isMissing(series, revisedPeriod, difficulty, seed, meetingIndex, turbulence)
   ) {
     const firstPrint = publishedValue(state, series, revisedPeriod, 0, difficulty, seed)
     const current = publishedValue(state, series, revisedPeriod, 1, difficulty, seed)

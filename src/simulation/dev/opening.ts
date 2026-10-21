@@ -70,6 +70,8 @@ for (const institution of ['fed', 'ecb'] as const) {
   }
   console.log('')
 }
-console.log('Asked for: easy ~5 % / ~7 %, medium ~8 % / ~8.5 % and negative growth,')
-console.log('hard worse. Levels are Fed-shaped; the ECB equivalents run higher')
-console.log('because its sustainable rate is 6.6 % against the Fed’s 4.2 %.')
+console.log('The ladder is the NUMBER of broken readings, not three sizes of the same')
+console.log('problem: easy one (inflation), medium two pulling against each other,')
+console.log('hard three. Unemployment follows the output gap through Okun and growth')
+console.log('is potential plus the gap momentum, so the triplet cannot disagree with')
+console.log('the model it is handed to. See initialState.test.ts for the invariant.')

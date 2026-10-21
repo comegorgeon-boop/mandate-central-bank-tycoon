@@ -6,7 +6,7 @@ import { clamp } from '../config/bounds.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { tenureHorizon } from '../config/tenure.ts'
-import { BANKING, FISCAL, VOLATILITY } from '../config/model.ts'
+import { BANKING, FISCAL, LABOR, VOLATILITY, okunAt } from '../config/model.ts'
 import { INSTRUMENT_EFFECTS } from '../config/instruments.ts'
 import { applyOpeningCrisis } from '../events/openingCrisis.ts'
 import { fillLag } from './lags.ts'
@@ -59,130 +59,188 @@ const OPENING_PERTURBATION_SCALE: Readonly<Record<Difficulty, number>> = {
  * policy and near enough to be reachable before `maxMeetings`.
  */
 /**
- * The wreck every mandate opens on.
+ * The wreck every mandate opens on, and how many things are wrong with it.
  *
- * > "ON COMMENCE DANS LE MUR. Pas 0,5 point d'écart : une vraie situation
- * > dégradée, même en moyen. […] Le joueur doit voir en arrivant qu'il y a un
- * > désastre à réparer."
+ * ## The ladder is the *number* of broken readings
  *
- * This is the answer to *"on se perd, on ne sait pas quoi faire"*, and it is
- * the structural half of it. A player who arrives to an economy 1.4 points
- * from target with unemployment exactly at its sustainable rate has nothing
- * to aim at, so no amount of explaining tells them where they are going.
- * There has to be something broken.
+ * > "L'échelle que je veux — le NOMBRE d'indicateurs cassés monte avec la
+ * > difficulté : FACILE : UN SEUL hors des clous […] MOYEN : DEUX cassés, ET
+ * > ILS TIRENT L'UN CONTRE L'AUTRE […] DIFFICILE : LES TROIS partent en même
+ * > temps."
  *
- * ## Expressed as gaps, not levels
+ * This replaces a table that broke both objectives at every difficulty, which
+ * made easy a trade-off — and a trade-off is not an easy mode. The three
+ * rungs are now qualitatively different problems rather than the same problem
+ * at three sizes:
  *
- * The brief gives absolute figures — *"facile → inflation ~5 %, chômage
- * ~7 %"* — which are right for the Fed, whose sustainable rate is 4.2 %. The
- * ECB's is 6.6 %, so a literal 7 % there would be an economy in excellent
- * health wearing a disaster's number. Each row below is therefore the
- * **distance from that institution's own objective**, which is what the
- * sentence actually means and what the gauges will show.
+ * | | inflation | unemployment | growth | what it teaches |
+ * | --- | --- | --- | --- | --- |
+ * | easy | **high** | at sustainable | healthy | the lever works |
+ * | medium | **high** | **high** | holding | no move fixes both |
+ * | hard | **high** | **high** | **falling** | everything at once |
  *
- * At the Fed those gaps produce roughly the figures asked for; at the ECB
- * they produce the euro-area equivalents, which run higher in levels and
- * identical in trouble.
+ * Medium is the Phillips dilemma on purpose: tightening closes the inflation
+ * gap and widens the employment one, so there is no setting of the dial that
+ * repairs both and the player has to choose which to be wrong about.
  *
- * ## Why it is a supply shock and not just bad numbers
+ * ## The triplet is derived, not drawn
  *
- * High inflation *and* high unemployment is stagflation, and stagflation has
- * a cause: costs pushed in from outside demand. Setting the two readings
- * without the shock that explains them would be an incoherent state the model
- * immediately mean-reverts — which is the trap the previous tutorial opening
- * was carefully designed around (see `TUTORIAL_DAMAGE` below: damaging both
- * halves *heals itself*, and passive play passed 57-69 % of the time).
+ * > "j'ai vu une croissance à +5,5 % avec un chômage à 8,1 % et une inflation
+ * > à 10,2 %, attelage curieux. Les trois chiffres ne doivent pas être tirés
+ * > indépendamment."
  *
- * A live cost-push shock is what makes the wreck stay wrecked and makes the
- * repair cost something. It is also the honest teacher: the rate reaches the
- * demand leg and not the supply one, which is the lesson the order line
- * already states in words at every meeting.
+ * Exactly right, and the cause was that they *were* drawn independently: the
+ * old table set an output gap, an unemployment level and a growth rate as
+ * three separate figures. They are not three facts. The engine holds two
+ * identities between them, in `dynamics.ts`:
+ *
+ *     unemployment_target = natural − okun(gap) · gap        (§11)
+ *     realGrowth          = potentialGrowth + Δgap / dt      (§12)
+ *
+ * So the opening now sets **one** quantity — the output gap — and reads the
+ * other two off those identities. Unemployment follows from Okun; growth is
+ * potential plus whatever the gap is still doing. An opening that disagreed
+ * with its own model snapped violently toward consistency over the first few
+ * meetings, which is exactly what +5.5 % growth beside 8.1 % unemployment
+ * was: not a state, a correction in progress.
+ *
+ * `OPENING_INVARIANT` in `initialState.test.ts` checks the count of broken
+ * readings on **every seed**, not on average.
  */
-export const OPENING_DAMAGE: Readonly<
-  Record<
-    Difficulty,
-    {
-      /** Points of inflation above the objective. */
-      readonly inflationOverTarget: number
-      /** Points of unemployment above the sustainable rate. */
-      readonly unemploymentGap: number
-      /** The output gap that goes with it. */
-      readonly outputGap: number
-      /** Real growth on the opening meeting. */
-      readonly realGrowth: number
-      /** Cost-push pressure, which is what makes it stagflation. */
-      readonly supplyShock: number
-      /** How loose the anchor already is. Subtracted. */
-      readonly anchoring: number
-    }
-  >
-> = {
+
+/** Points from objective beyond which a reading counts as broken. */
+export const BROKEN = { inflation: 1.0, unemployment: 1.0, growth: 0.5 } as const
+
+export interface OpeningDamage {
+  /** Points of inflation above the objective. */
+  readonly inflationOverTarget: number
+  /**
+   * The output gap, from which unemployment and growth both follow.
+   *
+   * Negative opens a slump. Zero leaves employment exactly at its sustainable
+   * rate, which is what makes easy a single-problem board.
+   */
+  readonly outputGap: number
+  /**
+   * How fast the gap is still moving, in points per year.
+   *
+   * This is what growth *is*: `potentialGrowth + Δgap/dt`. Zero means the
+   * economy has stopped falling and is merely in a bad place — which is how
+   * medium keeps growth healthy while unemployment is high. Negative means it
+   * is still going, which is hard's third broken reading.
+   */
+  readonly gapMomentum: number
+  /** Cost-push pressure. Only the harder modes get one. */
+  readonly supplyShock: number
+  /**
+   * Capacity destroyed, in points off trend growth.
+   *
+   * This is what makes hard's third broken reading *stay* broken, and
+   * finding that out was the lesson of the measurement.
+   *
+   * `gapMomentum` alone could not do it. Growth is `potentialGrowth +
+   * Δgap/dt`, and the IS curve mean-reverts the gap at 0.83 a year — so a
+   * gap of −6.5 contributes **+5.4 points of growth** while it closes. In
+   * this model a deep slump *implies* a fast measured recovery, and there is
+   * no opening demand shock large enough to hold it down that does not
+   * decay in a meeting (`demandShock` reverts at 1.5, and Lehman's own is
+   * −2.2). Hard opened with three readings broken and had two by the
+   * following meeting.
+   *
+   * Lower trend growth survives the rebound, because it *is* where the
+   * rebound lands. It is also the right mechanism: a cost-push shock
+   * destroys capacity, which is why three of the catalogue's majors already
+   * carry `potentialGrowth` deltas. The shape it produces — a sharp bounce
+   * out of the hole, then stagnation at a lower trend — is what a supply
+   * shock does to an economy, and it is a better lesson than a number that
+   * sits still.
+   */
+  readonly potentialGrowth: number
+  /** How loose the anchor already is. Subtracted. */
+  readonly anchoring: number
+}
+
+export const OPENING_DAMAGE: Readonly<Record<Difficulty, OpeningDamage>> = {
   /*
-   * ~5 % inflation, ~7 % unemployment at the Fed, growth barely positive —
-   * and **no cost-push shock**.
+   * ONE broken reading: inflation, and nothing else.
    *
-   * The levels are the ones asked for. The *cause* is deliberately different
-   * from medium's: easy's inflation is held up by an unanchored expectation
-   * rather than by costs pushed in from outside. Both produce a high print
-   * beside high unemployment; only one of them can be fixed by the rate.
+   * The gap is zero, so unemployment sits exactly at its sustainable rate and
+   * growth is exactly potential. Inflation is high because the anchor has
+   * come loose — an expectations problem, which is the one kind the rate can
+   * actually reach. So a single lever is enough, and what the player learns
+   * is that the lever works.
    *
-   * Measured, with a 0.6 cost-push on easy, competent play solved 9 of 30
-   * tutorials against passive play's 11 — the tutorial taught that acting
-   * was worse than waiting, because tightening into a supply shock buys
-   * unemployment and the goal needs both halves. An unreachable target is
-   * hard mode's design and was settled as such; it has no business being the
-   * first thing a player meets.
+   * No cost-push. Measured earlier, even a small one made competent play
+   * *worse* than passive on the tutorial: tightening into a supply shock buys
+   * unemployment, and an unreachable objective is hard mode's design.
    */
   easy: {
     inflationOverTarget: 3.0,
-    unemploymentGap: 2.8,
-    outputGap: -3.0,
-    realGrowth: 0.4,
+    outputGap: 0,
+    gapMomentum: 0,
     supplyShock: 0,
+    potentialGrowth: 0,
     anchoring: 0.2,
   },
-  // ~8 % inflation, ~8.5 % unemployment, growth negative: a real stagflation.
+
+  /*
+   * TWO broken readings, pulling against each other, with growth holding.
+   *
+   * A gap of −5 puts unemployment about 2.3 points above sustainable through
+   * Okun; inflation is 5 points above target. Tightening closes the second
+   * and widens the first. There is no move that repairs both, which is the
+   * whole of the Phillips dilemma and the whole of what medium is for.
+   *
+   * `gapMomentum: 0` is the load-bearing part: the economy has *stopped*
+   * falling. Growth comes out at potential, so the third reading is healthy
+   * and the player has two problems rather than three. A slump that is still
+   * deepening would be hard.
+   */
   medium: {
-    inflationOverTarget: 6.0,
-    unemploymentGap: 4.3,
-    outputGap: -4.0,
-    realGrowth: -1.0,
-    supplyShock: 1.6,
+    inflationOverTarget: 5.0,
+    outputGap: -5.0,
+    gapMomentum: 0,
+    supplyShock: 1.4,
+    // Capacity intact: medium's third reading is the healthy one.
+    potentialGrowth: 0,
     anchoring: 0.18,
   },
-  // Worse on every reading, and the cost-push that makes the objective
-  // unreachable by the rate alone is already running. That last part was
-  // settled earlier and is deliberately untouched here.
+
   /*
-   * Worse than medium on every reading, with the cost-push that makes the
-   * objective unreachable by the rate alone already running — which was
-   * settled earlier and is untouched.
+   * THREE broken readings: everything at once.
    *
-   * **Moderated from +7.5 / +5.0 after measuring.** At that opening hard
-   * stopped being a game: median tenure was 8 meetings and competent play
-   * scored only 4.8x a *sabotaging* one, against a suite that requires 5x and
-   * normally sees 20x. Everything died, so skill stopped separating from
-   * vandalism — which is the one property the winnability suite exists to
-   * protect.
-   *
-   * The dial turned is the opening rather than event severity, because
-   * severity is hard's character and the opening is the thing that just
-   * changed underneath it. Measured over 30 seeds, holding severity at 0.88:
-   *
-   *   opening +7.5 / +5.0   fed  4.8x, tenure  8    ecb  5.4x, tenure 10
-   *   opening +6.8 / +4.6   fed 16.5x, tenure 11    ecb  7.4x, tenure 15
-   *   opening +6.3 / +4.3   fed 18.9x, tenure 11    ecb 21.1x, tenure 16
-   *
-   * There is a cliff between the first two rows: it is where competent play
-   * stops being killed regardless of how it plays. +6.8 is the far side of
-   * it, and still the worst board in the game. See `dev/hardFit.ts`.
+   * The same two as medium, worse, and the gap is still opening — so growth
+   * is negative as well. The cost-push that makes the objective unreachable
+   * by the rate alone is running, which was settled earlier and is untouched.
    */
   hard: {
-    inflationOverTarget: 6.8,
-    unemploymentGap: 4.6,
-    outputGap: -4.3,
-    realGrowth: -1.5,
-    supplyShock: 2.0,
+    /*
+     * The slump is −5.5 and the cost-push 1.6, both moderated after
+     * measuring. At −6.5 and 2.0 hard stopped rewarding skill: paired per
+     * seed, a *passive* rule outlasted a competent one 17 times to 11 on the
+     * ECB, because tightening into a cost-push buys unemployment and a slump
+     * that deep leaves the rate nowhere to work.
+     *
+     * Hard is still meant to have an objective the rate cannot reach — that
+     * was settled and is untouched — but an unreachable objective must not
+     * make sitting still the dominant strategy. Over 40 paired seeds:
+     *
+     *   gap −6.5, supply 2.0   fed 14 vs  7    ecb 11 vs 17
+     *   gap −5.5, supply 2.0   fed 14 vs  6    ecb 12 vs 12
+     *   gap −5.5, supply 1.6   fed 16 vs  9    ecb 15 vs 11
+     *
+     * What makes hard hard is now carried by inflation (+6.5 against
+     * medium's +5.0), the capacity loss, the looser anchor, the information
+     * ladder and the event severity — rather than by a hole so deep that
+     * nothing a committee does matters. See `dev/skillGradient.ts`.
+     */
+    inflationOverTarget: 6.5,
+    outputGap: -5.5,
+    gapMomentum: -2.2,
+    supplyShock: 1.6,
+    // Trend growth cut to about a quarter of normal, so the economy bounces
+    // out of the hole and then stops. See the field's own note.
+    potentialGrowth: -1.8,
     anchoring: 0.24,
   },
 }
@@ -311,6 +369,21 @@ function damaged(
   const natural = latent.naturalUnemployment
   const hurtInflation = target + damage.inflationOverTarget
 
+  /*
+   * Unemployment and growth are **read off the engine's own identities**,
+   * not set beside them.
+   *
+   * `dynamics.ts` §11 holds `unemployment_target = natural − okun(gap)·gap`
+   * and §12 holds `realGrowth = potentialGrowth + Δgap/dt`. Setting a gap,
+   * an unemployment level and a growth rate as three independent figures
+   * produces a state the model does not believe, and it does not quietly
+   * tolerate it: it snaps toward consistency over the first meetings, which
+   * is how an opening came to show +5.5 % growth beside 8.1 % unemployment.
+   * That was not a state. It was a correction in progress, rendered as a
+   * dashboard.
+   */
+  const unemployment = natural - okunAt(LABOR.okun, damage.outputGap) * damage.outputGap
+
   return {
     ...latent,
     inflationHeadline: hurtInflation,
@@ -320,12 +393,16 @@ function damaged(
     expectedInflationShort: target + damage.inflationOverTarget * 0.6,
     expectedInflationLong: target + damage.inflationOverTarget * 0.3,
     anchoring: clamp(latent.anchoring - damage.anchoring, 0.2, 1),
-    unemployment: clamp(natural + damage.unemploymentGap, 1.5, 20),
     outputGap: damage.outputGap,
-    realGrowth: damage.realGrowth,
-    // The cause. Without it the two readings above are an incoherent state
-    // the model heals on its own, and a wreck that repairs itself teaches the
-    // opposite of the lesson.
+    unemployment: clamp(unemployment, 1.5, 20),
+    // Growth *is* potential plus what the gap is still doing. A momentum of
+    // zero is an economy that has stopped falling — bad, but not worsening,
+    // which is how medium keeps its third reading healthy.
+    potentialGrowth: Math.max(0.1, latent.potentialGrowth + damage.potentialGrowth),
+    realGrowth:
+      Math.max(0.1, latent.potentialGrowth + damage.potentialGrowth) + damage.gapMomentum,
+    // The cause. Without it the readings above are a state the model heals on
+    // its own, and a wreck that repairs itself teaches the opposite lesson.
     supplyShock: clamp(latent.supplyShock + damage.supplyShock, -4, 5),
     wageGrowth: clamp(latent.wageGrowth + damage.inflationOverTarget * 0.45, 0, 14),
   }

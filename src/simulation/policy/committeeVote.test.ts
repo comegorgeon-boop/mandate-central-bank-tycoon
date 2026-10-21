@@ -156,10 +156,22 @@ describe('in a real mandate', () => {
     expect(opening.vote.ballots).toHaveLength(0)
     expect(opening.vote.headline).toBeNull()
 
-    // And none at the first decision either, which is not an oversight: the
-    // first figures of the term are not published yet, and a committee cannot
-    // be split over numbers nobody has. The ballots appear once the releases
-    // the staff rule depends on have arrived.
+    /*
+     * And the committee **does** vote at the first decision now, which is a
+     * change and an improvement.
+     *
+     * This used to assert the opposite, for a reason that was true at the
+     * time: the first figures of the term were not published yet — with a
+     * publication lag, `meetingIndex − lag` is negative at meeting zero — and
+     * a committee cannot be split over numbers nobody has.
+     *
+     * The opening now publishes the two readings the mandate is about, because
+     * a player who cannot read the economy they inherited cannot make the
+     * first decision either. The committee inherits the same history, so it
+     * has something to disagree about from the start, which is the right way
+     * round: the room should be visible at the meeting the player most needs
+     * to know it is there.
+     */
     let session = opening
     const seen: number[] = []
     for (let index = 0; index < 6; index += 1) {
@@ -168,7 +180,10 @@ describe('in a real mandate', () => {
       session = result.session
       seen.push(session.vote.ballots.length)
     }
-    expect(seen[0], 'the first decision was voted on before any figures existed').toBe(0)
+    expect(
+      seen[0],
+      'the committee should be able to vote once the opening figures exist',
+    ).toBeGreaterThan(0)
     expect(
       seen.some((count) => count > 0),
       'no meeting in a hard mandate ever produced a vote',

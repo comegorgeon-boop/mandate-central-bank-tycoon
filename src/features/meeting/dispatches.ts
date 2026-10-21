@@ -1,5 +1,6 @@
 import {
   explainInflation,
+  inflationTargetFor,
   liveShocks,
   meetingsLeftInTerm,
   TENURE,
@@ -33,6 +34,12 @@ import {
  * the same three dispatches — which is right, because what they explain is
  * how to read the screen, not how to run an economy.
  */
+
+/**
+ * Within this much of target, the emergency is over and the anchor is the
+ * question. The same band `dev/lateGuidance.ts` splits its measurement on.
+ */
+const SPEAKING_PAYS = 1.5
 
 export interface Dispatch {
   /** Stable, so a re-render does not reshuffle the wire. */
@@ -116,6 +123,49 @@ export function readDispatches(
 
   const guide = index < 3 ? guidance(session, index) : null
   if (guide !== null) out.push(guide)
+
+  /*
+   * ── The meeting speaking starts to pay ─────────────────────────────────
+   *
+   * > "si sa valeur est bonne là : parfait, c'est un instrument de fin de
+   * > partie, et le jeu doit me le DIRE au moment où parler commence à
+   * > payer."
+   *
+   * Measured, it is good there. `dev/lateGuidance.ts` pairs the same economy
+   * with and without the committee saying what it is doing: speaking is worth
+   * **+4.7 to +5.9 anchor points**, and consistently more once inflation is
+   * coming back than while it is far out.
+   *
+   * The honest reading is not that the instrument is dead early and alive
+   * late — it is worth about the same five points throughout. What changes is
+   * the *share of what is left to win*. While inflation is six points out,
+   * five anchor points is a rounding error beside the rate's work; once it is
+   * within a point and a half, the anchor is the only thing still in play, so
+   * the same five points is most of the remaining game.
+   *
+   * So the wire says so, once, at the meeting the question changes. Fired on
+   * the crossing rather than on the state, so it is news rather than
+   * furniture — a line that said this every meeting would be ignored by the
+   * third.
+   */
+  if (index >= 3) {
+    const target = inflationTargetFor(session.state.config)
+    const gap = Math.abs(session.state.latent.inflationHeadline - target)
+    const before = session.state.history.at(-2)?.latent ?? null
+    const wasOut =
+      before !== null && Math.abs(before.inflationHeadline - target) > SPEAKING_PAYS
+    if (gap <= SPEAKING_PAYS && wasOut) {
+      out.push({
+        id: 'wire-speaking',
+        tag: 'From here, words count',
+        kind: 'guide',
+        text:
+          'Inflation is back within reach, so the rate has done most of what ' +
+          'it can. What is left is whether people believe it will stay there — ' +
+          'and that is what announcing a path buys. Say what you intend to do.',
+      })
+    }
+  }
 
   // What landed since the last meeting, in the wire's own words.
   for (const record of [

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react'
+import { useEffect, Fragment, useMemo, useState } from 'react'
 import {
   decisionFrontPages,
   getInstitution,
@@ -129,6 +129,7 @@ export function MeetingScreen({
   const [roomOpen, setRoomOpen] = useState(false)
   const quick = tempo === 'quick' && !roomOpen
   const order = readOrder(session)
+
   const { settings } = useSettings()
   // This component is remounted at every meeting, so each of these is shown
   // exactly once, in order: first the interval that has just elapsed, then the
@@ -162,6 +163,31 @@ export function MeetingScreen({
     session.observation,
     inflationTargetFor(session.state.config),
   )
+
+  /*
+   * Every *phase* opens at the top, not just every route.
+   *
+   * > "Quand j'entre dans une réunion la page s'ouvre au milieu et je dois
+   * > scroller VERS LE HAUT pour lire l'ordre. On ne doit JAMAIS avoir à
+   * > remonter."
+   *
+   * `ScrollToTop` handles route changes and is not enough on its own: the
+   * interval player, the reaction screen and the meeting itself are three
+   * phases of the *same* route, and the transitions between them are where a
+   * player actually lands mid-page — they press a button near the bottom of
+   * a long screen and the next phase renders under a scroll position that
+   * belonged to the last one.
+   *
+   * Measured before this: playing twelve meetings on a phone, the screen
+   * opened scrolled by between 451 and 1,399 pixels at *every single one*,
+   * with the order line above the fold each time.
+   */
+  useEffect(() => {
+    globalThis.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    // `showGuide` is in here too: the first-meeting guide scrolls its own
+    // anchors into view, which is right while it is running and leaves the
+    // player a thousand pixels down the page the moment it finishes.
+  }, [session.state.meetingIndex, playingInterval, showReaction, showGuide])
   // How the mandate is going, in both directions. The interface used to
   // signal only danger; a mandate going well now says so, and names why.
   // The mandate's own objective and sustainable rate, not the institution's.
