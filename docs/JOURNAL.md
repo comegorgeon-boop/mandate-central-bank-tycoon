@@ -1057,3 +1057,13 @@ And the Fed tutorial's gradient is thin: competent play solves 19 of 30
 against passive's 16, because an economy this far out partly heals itself over
 twenty-eight meetings. The ECB separates cleanly at 24 against 13; the Fed
 does not, and I have not found the lever.
+
+**Merged and deployed.** `367617b` into main, live, and
+`MANDATE_URL=… npm run check:offline` against the deployed site is clean: 27
+requests all to this origin, a whole mandate played with the wire cut. The
+gates before the merge: build clean, 1134 tests, lint 0 errors, 287 class
+names all real, **0 contrast failures across 658 states in both directions**,
+and both captures regenerated and looked at — which is how the duplicated
+screen was found. The panels rendered twice, top to bottom, because an
+insertion added the new block without removing the old one. Invisible in the
+diff, unmissable in the picture.
