@@ -271,7 +271,28 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
       // 5.0 %" — the goal in the brief, stated so that the ECB gets its own
       // honest equivalent rather than an unreachable one.
       inflationAboveTargetBy: 0.5,
-      unemploymentAboveNaturalBy: 0.8,
+      /*
+       * Widened from 0.8 when the opening became a real wreck.
+       *
+       * The tutorial used to open with unemployment *below* its sustainable
+       * rate — the employment half was met on the first meeting and the job
+       * was to keep it while bringing inflation down. It now opens 2.8 points
+       * above it, which is the brief, and asking the player to close that to
+       * 0.8 while also closing three points of inflation sets two objectives
+       * that pull against each other hard enough to be nearly incompatible.
+       *
+       * Measured over 30 seeds at each setting, competent against passive:
+       *
+       *   0.8   fed 13/30 vs 14    ecb 20/30 vs 13
+       *   1.2   fed 19/30 vs 16    ecb 22/30 vs 13
+       *   1.6   fed 19/30 vs 16    ecb 24/30 vs 13
+       *   2.0   fed 19/30 vs 16    ecb 24/30 vs 13
+       *
+       * 1.6 is where both stop improving. At the Fed that is "unemployment
+       * below 5.8 %" against an opening of 7.0 % — a 1.2-point repair, which
+       * is real work and is reachable. See `dev/tutorialFit.ts`.
+       */
+      unemploymentAboveNaturalBy: 1.6,
       heldForMeetings: 2,
       maxMeetings: 28,
     },

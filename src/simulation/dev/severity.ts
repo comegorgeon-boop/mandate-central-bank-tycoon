@@ -141,7 +141,25 @@ function measure(institution: Institution, difficulty: Difficulty) {
       const after = quality.slice(at, at + WINDOW)
       if (before.length < WINDOW || after.length < WINDOW) continue
 
-      const cost = (mean(before) - mean(after)) * BANKED.meetingPoints
+      /*
+       * **Detrended**, because the economy is now recovering through every
+       * window.
+       *
+       * The plain `mean(before) - mean(after)` assumed a roughly stationary
+       * economy. A mandate that opens six points above target is being
+       * repaired throughout, so banked quality trends up across any window
+       * and every event measured as *paying* — this harness reported a major
+       * shock costing −0 points and a minor one +15, which says nothing about
+       * the shocks and everything about the slope they sat on.
+       *
+       * So what is compared is the three meetings after against where the
+       * three before were *heading*: the trend is extrapolated and the
+       * shortfall against it is the cost. A shock that merely slows a
+       * recovery still costs, which is what it does.
+       */
+      const slope = (before[before.length - 1] - before[0]) / Math.max(1, before.length - 1)
+      const expected = mean(before) + slope * WINDOW
+      const cost = (expected - mean(after)) * BANKED.meetingPoints
       if (landing.major) majorCost.push(cost)
       else minorCost.push(cost)
       if (landing.banking) bankingCost.push(cost)
@@ -150,7 +168,7 @@ function measure(institution: Institution, difficulty: Difficulty) {
         // How many meetings until quality is back within a tenth of where it
         // was. Capped at twelve, which is a year and a half: longer than that
         // and the shock has stopped being an event and become the economy.
-        const baseline = mean(before)
+        const baseline = mean(before) + slope * WINDOW
         let back = 12
         for (let step = 0; step < 12; step += 1) {
           const q = quality[at + step]
@@ -166,13 +184,21 @@ function measure(institution: Institution, difficulty: Difficulty) {
 
   const majors = mean(majorCost)
   const minors = mean(minorCost)
-  const ratio = minors === 0 ? Number.NaN : majors / minors
+  /*
+   * The **gap**, not the ratio.
+   *
+   * A ratio was right while both numbers were costs. Detrended, a minor shock
+   * costs almost exactly nothing — which is the finding — and a ratio with a
+   * denominator crossing zero prints −184x and means nothing at all. The
+   * difference says the same thing and survives a minor that pays.
+   */
+  const gap = majors - minors
 
   console.log(
     `${`${institution}/${difficulty}`.padEnd(13)}` +
       `major −${majors.toFixed(0).padStart(3)} pts  ` +
       `minor −${minors.toFixed(0).padStart(3)} pts  ` +
-      `ratio ${ratio.toFixed(1).padStart(4)}x  ` +
+      `gap ${gap.toFixed(0).padStart(4)} pts  ` +
       `banking −${mean(bankingCost).toFixed(0).padStart(3)} pts  ` +
       `recover ${mean(recovery).toFixed(1).padStart(4)} mtgs  ` +
       `peak stress ${peakStress.toFixed(0).padStart(3)}  ` +
@@ -184,7 +210,7 @@ function measure(institution: Institution, difficulty: Difficulty) {
 console.log('')
 console.log('Felt severity — what a shock costs in banked points')
 console.log(
-  'Decorative would be: ratio near 1 (a major costs what a minor costs), or a',
+  'Decorative would be: a gap near zero (a major costs what a minor costs), or a',
 )
 console.log('recovery of 0-1 meetings, or a banking crisis that never ends a career.')
 console.log('='.repeat(132))

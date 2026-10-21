@@ -98,8 +98,20 @@ describe('cohesion is a lever, not a constant', () => {
       const score = calculateScore(session.state, session.outcome)
       values.push(score.components.find((c) => c.id === 'cohesion')!.raw)
     }
-    values.sort((a, b) => a - b)
-    return values[Math.floor(values.length / 2)]
+    /*
+     * The **mean**, not the median.
+     *
+     * The median tied at a perfect 1.0 for both rules once the opening became
+     * a wreck: hard mandates now end around the fifteenth meeting, and an
+     * area needs longer than that to visibly come apart, so more than half of
+     * every sample is a run that ended before cohesion could be tested at
+     * all. A statistic computed over runs where the thing cannot happen is
+     * not evidence that it does not happen.
+     *
+     * The mean keeps the runs that did go long, which are the ones carrying
+     * the signal, and the comparison this test exists to make survives.
+     */
+    return values.reduce((a, b) => a + b, 0) / values.length
   }
 
   it('leaves a well-held area near the top of the range', () => {

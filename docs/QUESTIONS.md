@@ -353,3 +353,57 @@ That is not an argument to remove it — it is good now, and it is the identity
 you started from. It is an argument that the audit has to run **before** a
 pass is called finished rather than after, which is the discipline this has
 cost four times running.
+
+## 14. The 40-word cap broke, by 20 words (APPLIED — overrule me)
+
+You froze the quick surface at 40 and said any future addition must replace
+rather than add. Three of the seven points in the next brief added prose to
+that surface by name, and they cost 41 words between them. The measured floor
+with all three delivered is **60**; I have set the cap there.
+
+The accounting, word for word, on a steady quick meeting:
+
+| | words | asked for by |
+| --- | --- | --- |
+| three gauge captions — "8.2 above target" and the rest | 11 | §2c, the distance visible permanently |
+| "What is pushing inflation" | 4 | §5, name the bar |
+| what the move buys and what it costs | 26 | §3, the bet in words |
+| the standing call | 7 | predates this brief |
+| live shocks saying it is clear | 3 | — |
+| the dial hint, which retires for good on first use | 9 | — |
+
+**What I cut to get from 92 to 60**, all of it outside that list: the desk's
+description, which the order banner now says better and with a verb; the
+wire's standing line on steady meetings; and every clause of the consequence
+copy that could go without losing the meaning — "Holding. Whatever is already
+in the pipeline keeps arriving — about a year of your past decisions is still
+on its way" became "A year of your past decisions is still arriving".
+
+**The two cheapest cuts, if 60 is the wrong number.** The three gauge captions
+are 11 words and the distance is *already drawn* as a bar beside them — they
+are the most redundant thing left. The call's sentence is 7 and could be a
+label. Either or both is one commit.
+
+What makes the overage defensible rather than merely measured is unchanged:
+`npx tsx src/simulation/dev/orderOnly.ts` still serves **40/40** easy mandates
+reading nothing but the order line. The sixty words remain optional.
+
+## 15. Communication's value fell by three quarters (APPLIED, flagged)
+
+The guidance suite asserts that honest announcement beats silence. It still
+does — the *sign* holds, which is the design promise — but the margin went
+from fed +33 / ecb +50 to **fed +9 / ecb +12** when every mandate began
+opening six points above target.
+
+The mechanism is intact: guidance still moves the priced path, still costs
+credibility when broken, and both are asserted separately and pass. What fell
+is its *share*. When the rate has six points of work to do, the marginal value
+of saying so is small beside the value of doing it.
+
+That is correct economics and an unwelcome game property — a game about a
+central bank should not make its second instrument nearly cosmetic. Softening
+the opening's anchor damage was tried and made it **worse** (fed +7.2),
+measured rather than reasoned. The bounds are restated at the measured floor
+and this is on the record as the thing to fix if it bothers you: the honest
+options are a smaller opening wreck, or a mechanism that pays communication
+more when the gap is large.

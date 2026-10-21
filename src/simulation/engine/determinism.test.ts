@@ -8,6 +8,7 @@ import { decodeDecisionLog, encodeDecisionLog } from '../replay/decisionLog.ts'
 import { replayRun, startRun, submitMeeting } from '../replay/replayRun.ts'
 import type { RunSession } from '../replay/replayRun.ts'
 import { testConfig } from '../testing/harness.ts'
+import type { LatentState } from '../types/state.ts'
 
 /**
  * Reproducibility.
@@ -134,8 +135,29 @@ describe('different seeds give different economies', () => {
   })
 
   it('produces different opening conditions, not just different shocks', () => {
-    const openings = runs.map((run) => run.state.history[0].latent.outputGap)
-    expect(new Set(openings).size).toBe(openings.length)
+    /*
+     * Read off a variable the seed still draws.
+     *
+     * The output gap is now *set* by the opening damage — every mandate
+     * begins the stated distance from its objectives, because a disaster
+     * that is sometimes only half a disaster is a lottery rather than a
+     * brief. So the gap is identical across seeds by design, and this test
+     * was asserting the opposite.
+     *
+     * What the test is actually for survives: two seeds must be two
+     * economies, not one economy with different weather. Banking stress,
+     * market pressure, geopolitics, credibility and the debt position are all
+     * still drawn, and they are what makes the board underneath the stated
+     * damage different every time.
+     */
+    for (const read of [
+      (l: LatentState) => l.bankingStress,
+      (l: LatentState) => l.credibility,
+      (l: LatentState) => l.assetPricePressure,
+    ]) {
+      const openings = runs.map((run) => read(run.state.history[0].latent))
+      expect(new Set(openings).size).toBe(openings.length)
+    }
   })
 })
 

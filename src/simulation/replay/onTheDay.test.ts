@@ -33,6 +33,22 @@ const hike: PolicyPackage = {
 
 const hold: PolicyPackage = { actions: [], communication: null }
 
+/**
+ * A move the market is not expecting.
+ *
+ * `hike` used to be one. It is not any more: a mandate that opens six points
+ * above target has a priced path running far ahead of it, and a 50 bp rise is
+ * now almost exactly what was already in the price — so it moves volatility
+ * by nothing, and the test that asserted it did read 21.9 against 21.9.
+ *
+ * A *cut* into that path is unambiguously a surprise whatever the opening,
+ * which is what this test needs and what `hike` used to supply by accident.
+ */
+const surprise: PolicyPackage = {
+  actions: [{ instrument: 'policy_rate', magnitude: -50 }],
+  communication: null,
+}
+
 function advance(pkg: PolicyPackage) {
   const opening = startRun(config)
   const result = submitMeeting(opening, pkg)
@@ -51,7 +67,7 @@ describe('the observation taken the instant a decision is confirmed', () => {
   })
 
   it('registers the surprise in market volatility', () => {
-    const { opening, session } = advance(hike)
+    const { opening, session } = advance(surprise)
 
     const before = opening.observation.indicators.market_volatility!.value!
     const onTheDay = session.onTheDay!.indicators.market_volatility!.value!

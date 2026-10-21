@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import type { InflationExplanation, LiveShock } from '../../simulation/index.ts'
+import type {
+  InflationExplanation,
+  LiveShock,
+  MandateBoard,
+  ReadingId,
+} from '../../simulation/index.ts'
 import { meaningOf } from '../../simulation/index.ts'
 import type { SeriesId } from '../../simulation/index.ts'
 import { Panel, Row } from './Terminal.tsx'
@@ -241,8 +246,11 @@ export function CauseBar({
 export function ShockPanel({
   shocks,
   compact = false,
+  weight = 2,
 }: {
   readonly shocks: readonly LiveShock[]
+  /** Where this sits in the eye's path. See `Panel`. */
+  readonly weight?: 1 | 2 | 3
   /**
    * On the quick surface, the data without the paragraph.
    *
@@ -264,6 +272,7 @@ export function ShockPanel({
     <Panel
       title="Live shocks"
       span={2}
+      weight={weight}
       right={shocks.length === 0 ? 'clear' : `${shocks.length} running`}
     >
       {shocks.length === 0 ? (
@@ -429,6 +438,146 @@ export function HeadlineFigure({
           {because}
         </p>
       )}
+    </div>
+  )
+}
+
+/**
+ * The three gauges: where I am, how far, and which way I am going.
+ *
+ * > "LA DISTANCE EST VISIBLE EN PERMANENCE. Pour chaque cible : où j'en suis,
+ * > à quelle distance, et dans quel sens je vais. Pas un tableau — trois
+ * > jauges qu'on lit d'un coup d'œil."
+ *
+ * A gauge rather than a row of figures, because the question is *how far*,
+ * and distance is a length. The bar fills from the objective outward, so an
+ * empty gauge is a discharged mandate and a full one is a disaster — which
+ * means the board can be read without reading any of the numbers on it.
+ *
+ * The two institutions get different boards, because they have different
+ * mandates: the ECB's readings are ranked (PRIMARY / without prejudice) and
+ * the Fed's are not. That is Article 127(1) against the Federal Reserve Act,
+ * and it is a difference the player is supposed to feel rather than be told
+ * about once.
+ */
+export function MandateGauges({
+  board,
+  previous,
+}: {
+  readonly board: MandateBoard
+  /** The same readings one meeting ago, for the direction arrows. */
+  readonly previous: Readonly<Partial<Record<ReadingId, number>>>
+}) {
+  const reduced = useReducedMotion()
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3">
+      {board.readings.map((reading) => {
+        const before = previous[reading.id]
+        const moved =
+          before === undefined || Math.abs(reading.value - before) < 0.05
+            ? 'flat'
+            : reading.value > before
+              ? 'up'
+              : 'down'
+
+        // Closing is good, whichever direction closing happens to be in. For
+        // the guard it is simply up.
+        const closing =
+          reading.kind === 'guard'
+            ? moved === 'up'
+            : moved === 'flat'
+              ? false
+              : Math.abs(reading.value - (before ?? reading.value)) > 0 &&
+                Math.abs(reading.distance) <
+                  Math.abs((before ?? reading.value) - reading.objective)
+
+        const breached = reading.kind === 'guard' && reading.value <= reading.objective
+        const met =
+          reading.kind === 'target' ? Math.abs(reading.distance) <= 0.5 : !breached
+
+        return (
+          <div
+            key={reading.id}
+            className="min-w-0 border-b border-edge px-2 py-2 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+            data-gauge={reading.id}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="truncate font-mono text-2xs uppercase tracking-[0.16em] text-ink-faint">
+                {reading.label}
+              </span>
+              <span
+                className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.14em] ${
+                  reading.rank === 'primary'
+                    ? 'text-accent-strong'
+                    : reading.rank === 'guard'
+                      ? 'text-ink-faint'
+                      : 'text-ink-faint'
+                }`}
+              >
+                {reading.rank === 'primary'
+                  ? 'primary'
+                  : reading.rank === 'subordinate'
+                    ? 'without prejudice'
+                    : reading.rank === 'guard'
+                      ? 'do not break'
+                      : 'equal'}
+              </span>
+            </div>
+
+            <p className="flex items-baseline gap-2">
+              <span className="font-mono text-3xl font-semibold tabular-nums text-ink">
+                <RollingNumber
+                  value={reading.value}
+                  decimals={reading.decimals}
+                  suffix={reading.unit}
+                />
+              </span>
+              <span
+                className={`font-mono text-lg ${
+                  moved === 'flat'
+                    ? 'text-ink-faint'
+                    : closing
+                      ? 'text-good'
+                      : 'text-bad'
+                }`}
+                aria-label={moved === 'flat' ? 'unchanged' : moved === 'up' ? 'rising' : 'falling'}
+              >
+                {moved === 'up' ? '▲' : moved === 'down' ? '▼' : '→'}
+              </span>
+            </p>
+
+            {/* The gauge. Fills from the objective outward, so empty is
+                "done" — the board is readable without reading a number. */}
+            <div className="mt-1 flex h-1.5 w-full border border-edge">
+              <motion.span
+                initial={reduced ? false : { width: 0 }}
+                animate={{ width: `${reading.fill * 100}%` }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  background: met
+                    ? 'var(--good)'
+                    : breached
+                      ? 'var(--bad)'
+                      : 'var(--accent)',
+                }}
+              />
+            </div>
+
+            <p className="mt-1 font-mono text-2xs text-ink-soft">
+              {reading.kind === 'guard'
+                ? breached
+                  ? 'the economy is shrinking'
+                  : 'still growing'
+                : met
+                  ? 'at the objective'
+                  : `${Math.abs(reading.distance).toFixed(1)} ${
+                      reading.distance > 0 ? 'above' : 'below'
+                    } ${reading.id === 'inflation' ? 'target' : 'sustainable'}`}
+            </p>
+          </div>
+        )
+      })}
     </div>
   )
 }

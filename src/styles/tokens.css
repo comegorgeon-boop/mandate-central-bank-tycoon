@@ -435,6 +435,29 @@
    */
   --scrim: var(--color-term-850);
 
+  /*
+   * The spotlight wash — **translucent**, and this reverses an earlier call.
+   *
+   * The scrim above is opaque, for a reason that was good at the time: a
+   * translucent wash composites with whatever is under it, so the text it
+   * covers lands at an unpredictable ratio. That argument holds for a modal
+   * that covers a *document*. It is wrong for a spotlight, and on a terminal
+   * it fails badly.
+   *
+   * An opaque near-black pane over a near-black chassis does not read as
+   * "dimmed". It reads as **gone**. On a phone, where the spotlighted control
+   * is a forty-pixel strip, the first-meeting guide painted four opaque panes
+   * over the other eight hundred pixels and a player reported, correctly,
+   * that the game went to big black screens.
+   *
+   * A wash dims instead of deleting: the room stays visible and quiet, which
+   * is the whole idea of pointing at one thing. The contrast objection does
+   * not apply, because text under a spotlight is not text anyone is being
+   * asked to read — and the caption, which *is* read, sits on its own opaque
+   * panel.
+   */
+  --scrim-wash: rgba(0, 0, 0, 0.66);
+
   /* The focus ring. One ring everywhere, bright enough to find on both
    * grounds, because a keyboard player who loses the caret has lost the
    * screen. */
@@ -555,6 +578,8 @@
 
   /* A sheet is lit; its scrim is the paper itself going quiet, not a dark. */
   --scrim: var(--color-paper-200);
+  /* And its wash is ink thinned, not black: a shadow across a page. */
+  --scrim-wash: rgba(42, 35, 27, 0.5);
 
   /*
    * Brass as a fill, with paper on it: the one place a note is solid.
@@ -632,6 +657,7 @@
      work because `inline` substitutes the text and the material layer answers
      it at the use site. It resolved; it was still a cycle on the page. */
   --color-scrim: var(--scrim);
+  --color-scrim-wash: var(--scrim-wash);
   --color-focus: var(--focus);
 }
 

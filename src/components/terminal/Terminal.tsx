@@ -53,6 +53,7 @@ export function Panel({
   title,
   right,
   span = 1,
+  weight = 2,
   children,
   className = '',
 }: {
@@ -60,18 +61,71 @@ export function Panel({
   /** A reading or a status, set hard right in the title strip. */
   readonly right?: React.ReactNode
   readonly span?: 1 | 2 | 3
+  /**
+   * Where this panel sits in the eye's path. **1 is brightest.**
+   *
+   * > "L'ŒIL N'A AUCUN CHEMIN. Les six panneaux ont tous le même poids […].
+   * > Un vrai terminal fait ça aussi, mais ses utilisateurs ont mis des mois
+   * > à apprendre où regarder ; un joueur arrive froid."
+   *
+   * Which is the fair version of the objection — a dealing screen really is
+   * uniform, and its users really did learn it over months. A player has one
+   * meeting. So the terminal's own grammar is kept and a hierarchy is laid
+   * over it in the only dimension a terminal has spare: **brightness**.
+   *
+   *   1  the order and the three readings — where you are
+   *   2  the dial and what the move would do — the decision
+   *   3  everything else — available, not competing
+   *
+   * Rank three is dimmed to about half until it is hovered or focused, which
+   * is the dark table with one lit area this project has been asked for from
+   * the beginning, said in the language of a terminal rather than a lamp.
+   */
+  readonly weight?: 1 | 2 | 3
   readonly children: React.ReactNode
   readonly className?: string
 }) {
   const spanClass =
     span === 3 ? 'sm:col-span-3' : span === 2 ? 'sm:col-span-2' : 'sm:col-span-1'
+  /*
+   * Rank three is **unlit**, not translucent.
+   *
+   * The first version dimmed it with `opacity-[0.62]`, and the comment here
+   * claimed that value was measured safe. It was not: the audit accumulates
+   * ancestor opacity, and at 0.62 fifty-four readings across the screen fell
+   * under AA — including `text-bad` at 3.05:1 and the panel titles at 2.73:1.
+   *
+   * Worse, it broke a rule this project wrote down two passes ago after the
+   * fourth occurrence of the same defect: **dimming is a token choice, not an
+   * opacity**, because a token's ratio is documented and an opacity
+   * multiplied into it is not. Putting it on a container rather than on the
+   * text was a distinction without a difference — the composite is the same.
+   *
+   * The terminal has a better answer anyway. A panel is a *lit surface* on a
+   * dark chassis; a panel that is not lit sits at chassis level and recedes
+   * on its own. So rank three drops to `bg-page`, keeps every text token at
+   * full strength, and lights up on hover or focus. Same hierarchy, no
+   * composite, and more like a terminal than a dimmer ever was.
+   */
+  const weightClass =
+    weight === 3
+      ? 'bg-page transition-colors duration-200 hover:bg-panel focus-within:bg-panel'
+      : 'bg-panel'
   return (
     <section
-      className={`flex min-w-0 flex-col bg-panel ${spanClass} ${className}`}
+      className={`flex min-w-0 flex-col ${spanClass} ${weightClass} ${className}`}
       aria-label={title}
     >
-      <header className="flex items-baseline justify-between gap-2 border-b border-edge bg-raised px-2 py-1">
-        <h2 className="truncate font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
+      <header
+        className={`flex items-baseline justify-between gap-2 border-b border-edge px-2 py-1 ${
+          weight === 1 ? 'bg-raised' : ''
+        }`}
+      >
+        <h2
+          className={`truncate font-mono text-2xs font-semibold uppercase tracking-[0.18em] ${
+            weight === 1 ? 'text-accent-strong' : 'text-ink-faint'
+          }`}
+        >
           {title}
         </h2>
         {right !== undefined && (

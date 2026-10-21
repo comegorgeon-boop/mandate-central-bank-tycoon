@@ -494,9 +494,26 @@ describe('markets answer words harder during a crisis', () => {
     expect(calmResult.ok && crisisResult.ok).toBe(true)
     if (!calmResult.ok || !crisisResult.ok) return
 
-    const calmJump = calmResult.state.latent.marketExpectedRate - calm.latent.marketExpectedRate
-    const crisisJump =
-      crisisResult.state.latent.marketExpectedRate - crisis.latent.marketExpectedRate
+    /*
+     * Compared by **magnitude**, because the sign is no longer fixed.
+     *
+     * The claim is that the same words move the market *further* when it is
+     * frightened. That was asserted on the signed jump while a hawkish
+     * announcement was hawkish by construction — but a mandate now opens six
+     * points above target, so the market already prices well above the
+     * announced path and the same words pull the curve *down*. Both jumps are
+     * negative, the more frightened one is more negative, and the signed
+     * comparison read it as smaller.
+     *
+     * How far the market moves is the mechanism. Which way it moves is a fact
+     * about the economy it was moved in.
+     */
+    const calmJump = Math.abs(
+      calmResult.state.latent.marketExpectedRate - calm.latent.marketExpectedRate,
+    )
+    const crisisJump = Math.abs(
+      crisisResult.state.latent.marketExpectedRate - crisis.latent.marketExpectedRate,
+    )
     expect(crisisJump).toBeGreaterThan(calmJump)
   })
 

@@ -245,10 +245,28 @@ export const BANKED = {
    */
   floor: -0.4,
 
-  /** Inflation miss, in points, at which the price term is ~0.37. */
-  priceScale: 1.7,
+  /*
+   * **Widened when every mandate began opening on a wreck.**
+   *
+   * These were 1.7 and 1.9, which were right for an economy that opened
+   * around a point from target. Against one that opens six points out they
+   * saturate: `exp(-(6/1.7)^2)` is 0.0000044, so a meeting at 8 % inflation
+   * and a meeting at 9 % both bank the floor and improving between them earns
+   * nothing at all. The score stopped discriminating exactly where the game
+   * now lives.
+   *
+   * Measured, the symptom was unmistakable and would have been easy to miss:
+   * `dev/severity.ts` reported a *major shock* costing **−0 points** and a
+   * minor one **+15**, because with quality pinned at the floor the only
+   * direction an event could move it was up. A crisis that pays is worse than
+   * a crisis that is decorative.
+   *
+   * At 3.4 a six-point miss still banks 0.04 of the price term rather than
+   * zero, and the gradient between 9 % and 8 % is real.
+   */
+  priceScale: 3.4,
   /** Unemployment gap, in points, at which the jobs term is ~0.37. */
-  jobsScale: 1.9,
+  jobsScale: 3.4,
   /** Stress index above the floor at which the stability term is ~0.37. */
   stabilityScale: 26,
 

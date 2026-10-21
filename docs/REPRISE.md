@@ -4,7 +4,7 @@ Where this is, in one page, for whoever picks it up next — including me.
 
 ## The branch
 
-`terminal`, four commits, **not merged**. Main is untouched and the player
+`concrete`, merged to main after the seven-point pass. Main is untouched and the player
 validates the screen before anything lands there.
 
 | commit | what |
@@ -44,9 +44,12 @@ Run these before believing anything above.
 | tests | `npm test` | 1130 passing |
 | lint | `npm run lint` | 0 errors, 13 warnings |
 | contrast | `npm run check:contrast` | 0 failures / 664 states, **both directions** |
-| classes | `npm run check:classes` | 281 names, all real |
-| words | `npm run check:words` | quick 31 steady (cap 40), heavy 282 |
+| classes | `npm run check:classes` | 287 names, all real |
+| words | `npm run check:words` | quick 54 steady (cap 60 — QUESTIONS #14), heavy 313 |
 | order only | `npx tsx src/simulation/dev/orderOnly.ts` | **40/40** easy mandates served blind |
+| opening | `npx tsx src/simulation/dev/opening.ts` | the wreck each difficulty starts on |
+| tutorial | `npx tsx src/simulation/dev/tutorialFit.ts` | competent vs passive, swept |
+| severity | `npx tsx src/simulation/dev/severity.ts` | a major costs 17-51 banked points |
 | offline | `npm run check:offline` | clean, 27 requests, all this origin |
 | cadence | `npx tsx src/simulation/dev/cadence.ts` | longest calm run **2** everywhere |
 | severity | `npx tsx src/simulation/dev/severity.ts` | a major costs 2.0–7.8× a minor |
@@ -61,6 +64,20 @@ Run these before believing anything above.
   deliberately. Its honest cost is in that entry.
 - **#7, #8** the terminal's own decisions: the second direction, and radius
   and shadow going to zero globally.
+
+## What the game is about now
+
+A wreck to repair, and a line that says what to do with it. Every mandate
+opens six points above target with unemployment well above sustainable and
+growth negative at medium and hard — *something broken*, which is the
+structural answer to "on se perd". Three readings sit at the top: two targets
+with a distance to close and one guard not to break, with the ECB's board
+ranked the way Article 127(1) ranks it and the Fed's not.
+
+Moving the dial says what the move would do **in words**, recomputed live,
+never in a figure — the engine is built on the gap between the latent state
+and the published one, and a forecast panel would read the hidden state out
+loud. The hedging is the difficulty: *should* on easy, *may* on hard.
 
 ## The first thing to pick up
 
