@@ -39,15 +39,68 @@ export const INSTRUMENTS: readonly InstrumentDefinition[] = [
   {
     id: 'policy_rate',
     unit: 'basis_points',
-    min: -150,
-    max: 150,
+    /*
+     * **The ceiling is a cost, not a wall.**
+     *
+     * > "Avec une inflation à 8 %, j'ai voulu monter de 400 points et le jeu
+     * > m'a dit non. C'est le jeu qui refuse, pas le monde qui résiste — et
+     * > c'est exactement le sentiment de n'avoir aucun contrôle dont je me
+     * > plains depuis le début."
+     *
+     * Correct, and it is the oldest complaint on this project arriving in a
+     * new place. A committee that wants 400 basis points can vote 400 basis
+     * points; what stops it is what happens next, not a form that refuses to
+     * accept the number. So the ceiling goes out to 500 — further than any
+     * real committee has moved in one meeting, and far enough that nobody
+     * meets it by accident — and the consequence panel says in words what a
+     * move that size does *before* the button is pressed.
+     *
+     * Volcker's largest single move was 400 basis points, on 6 October 1979,
+     * at a Saturday emergency meeting. The dial reaches it.
+     *
+     * **The floor stays.** It is not a game rule, it is a property of the
+     * world: nominal rates near zero is the whole of 2008 and 2021, and the
+     * player is supposed to meet it and learn what it costs. See
+     * `pricedPathFloor` and the explanation surfaced when the dial reaches
+     * it — a limit that explains itself is a lesson; one that merely refuses
+     * is the same wall in the other direction.
+     */
+    /*
+     * **Symmetric, because this is the size of a move and not the floor.**
+     *
+     * Two different guards were being conflated. `POLICY_RATE_FLOOR` is the
+     * effective lower bound on the *rate* — a property of the world, kept,
+     * and explained when the dial reaches it. This is a cap on how far the
+     * rate may move in one *meeting*, which is a game rule in exactly the way
+     * the ceiling was.
+     *
+     * Leaving it at −150 while the ceiling went to 500 meant a committee
+     * could raise 400 basis points and then be forbidden from unwinding it —
+     * the same wall, discovered from the other side the moment a doctrine
+     * rule tried to return a 7 % rate toward neutral and the engine refused
+     * the package.
+     */
+    min: -500,
+    max: 500,
     increment: 25,
     availableTo: BOTH,
     availableFrom: 'easy',
-    // Easy mode keeps the choice simple; hard mode allows emergency moves.
+    // Easy keeps the *downside* simple. The ceiling is the same everywhere:
+    // the difficulty is in what a move that size costs, which is modelled,
+    // rather than in whether the committee is permitted to vote for it.
     rangeByDifficulty: {
-      easy: { min: -100, max: 100, increment: 25 },
-      hard: { min: -200, max: 200, increment: 25 },
+      /*
+       * Easy narrows both ends: a tutorial should not be deciding whether to
+       * move five points in a quarter. Medium is wide enough to make a real
+       * mistake with; hard reaches past Volcker's largest single move.
+       *
+       * Medium is stated rather than left to fall through to the base range,
+       * which is how it silently inherited hard's full ±500 the moment the
+       * ceiling was raised — an unstated default is not a decision.
+       */
+      easy: { min: -200, max: 200, increment: 25 },
+      medium: { min: -350, max: 350, increment: 25 },
+      hard: { min: -500, max: 500, increment: 25 },
     },
     channels: ['interest_rate', 'credit', 'exchange_rate', 'expectations'],
     lagMeetings: [3, 8],

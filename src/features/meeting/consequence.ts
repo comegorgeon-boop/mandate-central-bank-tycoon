@@ -1,3 +1,4 @@
+import { POLICY_RATE_FLOOR } from '../../simulation/index.ts'
 import type { Difficulty, RunSession } from '../../simulation/index.ts'
 
 /**
@@ -60,7 +61,7 @@ export interface Consequence {
   /** What it costs. Never absent: every move costs something. */
   readonly risk: string
   /** How hard the move is, for styling. */
-  readonly weight: 'none' | 'light' | 'real' | 'heavy'
+  readonly weight: 'none' | 'light' | 'real' | 'heavy' | 'shock' | 'floor'
 }
 
 /** `should` on easy, `may` on hard. The forecast's uncertainty, as grammar. */
@@ -86,12 +87,49 @@ function hedge(difficulty: Difficulty): string {
 const LIGHT = 13
 const REAL = 60
 const HEAVY = 110
+/** Beyond this, the move is itself the event. */
+const SHOCK = 200
 
 export function readConsequence(session: RunSession, move: number): Consequence {
   const difficulty = session.state.config.difficulty
   const will = hedge(difficulty)
   const size = Math.abs(move)
   const tightening = move > 0
+
+  /*
+   * ── At the floor, the game explains the floor ─────────────────────────
+   *
+   * > "VERS LE BAS : garde le plancher. Le taux plancher effectif est une
+   * > vraie limite du monde réel, c'est tout l'enjeu de 2008 et de 2021, et
+   * > je dois l'apprendre. Mais quand je le touche, le jeu m'EXPLIQUE
+   * > pourquoi il existe et ce qu'il me reste comme instruments."
+   *
+   * The asymmetry is right and it is not arbitrary. The ceiling was a *game*
+   * rule — a committee can vote whatever it likes — so it became a cost. The
+   * floor is a property of the world: below roughly zero, people hold cash
+   * instead of lending it, and no announcement changes that. Keeping it is
+   * teaching something true.
+   *
+   * But a limit that merely refuses is the same wall the ceiling was. So
+   * when the dial arrives there, it says why it exists and what is left —
+   * which is the actual lesson of 2008 and 2021, and is the moment the
+   * toolkit stops being a tab nobody opens.
+   */
+  const floor = POLICY_RATE_FLOOR[session.state.config.institution]
+  const resulting = session.state.stance.targetRate + move / 100
+  if (!tightening && resulting <= floor + 0.26) {
+    return {
+      weight: 'floor',
+      gain:
+        'You are at the effective lower bound. Below about zero, people hold ' +
+        'cash rather than lend it, so the dial stops transmitting — this is ' +
+        'the limit of 2008 and of 2021, and no announcement moves it.',
+      risk:
+        'The rate is no longer your instrument. What is left is the balance ' +
+        'sheet, the facilities, and your word about how long this lasts — ' +
+        'open the room and use them.',
+    }
+  }
 
   if (size < LIGHT) {
     return {
@@ -120,6 +158,40 @@ export function readConsequence(session: RunSession, move: number): Consequence 
       risk: tightening
         ? 'Investment stalls and hiring slows on the way.'
         : 'Demand added to an economy that may have no room. Prices answer later.',
+    }
+  }
+
+  /*
+   * ── Beyond 200 basis points: the move is the event ────────────────────
+   *
+   * The ceiling used to be 150 and the game simply refused anything larger.
+   * It now reaches 500, and what replaces the refusal is this: a sentence
+   * that escalates with the size, said *before* the button is pressed.
+   *
+   * > "La contrainte devient une conséquence au lieu d'un refus."
+   *
+   * Every clause names something the engine actually does with a surprise
+   * that large — `VOLATILITY.policySurprise` scales with the gap to the
+   * priced path, `INSTITUTIONAL.marketTrust.surprise` charges credibility
+   * against it, and banking stress follows volatility through the financial
+   * block. It is a warning, not a threat: the player may absolutely do it,
+   * and Volcker did, on a Saturday, in October 1979.
+   */
+  if (size >= SHOCK) {
+    const extreme = size >= 350
+    return {
+      weight: 'shock',
+      gain: tightening
+        ? `A move nobody has priced. Inflation ${will} break, and fast — this ` +
+          'is the kind of decision a mandate is remembered by.'
+        : `An emergency easing. Credit ${will} reopen at once, if anything is ` +
+          'left standing to lend to.',
+      risk: extreme
+        ? 'Your word is broken: a surprise this size is not policy, it is a ' +
+          'reversal. Expect volatility off the scale, banks in trouble, and an ' +
+          'emergency meeting called about you.'
+        : 'Credibility takes real damage, volatility spikes, and the banking ' +
+          'system feels it within two meetings.',
     }
   }
 

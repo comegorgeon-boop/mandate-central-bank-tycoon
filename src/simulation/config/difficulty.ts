@@ -281,18 +281,22 @@ export const DIFFICULTIES: Readonly<Record<Difficulty, DifficultyConfig>> = {
        * 0.8 while also closing three points of inflation sets two objectives
        * that pull against each other hard enough to be nearly incompatible.
        *
-       * Measured over 30 seeds at each setting, competent against passive:
+       * Re-measured once the easy opening went back to **one** broken
+       * reading — employment now starts at its sustainable rate, so the bar
+       * is about not *losing* it rather than about repairing it. Over 30
+       * seeds, competent against passive:
        *
-       *   0.8   fed 13/30 vs 14    ecb 20/30 vs 13
-       *   1.2   fed 19/30 vs 16    ecb 22/30 vs 13
-       *   1.6   fed 19/30 vs 16    ecb 24/30 vs 13
-       *   2.0   fed 19/30 vs 16    ecb 24/30 vs 13
+       *   0.8   fed 14/30 vs  8    ecb 19/30 vs 10
+       *   1.2   fed 19/30 vs  8    ecb 22/30 vs 10
+       *   1.6   fed 19/30 vs  8    ecb 22/30 vs 10
        *
-       * 1.6 is where both stop improving. At the Fed that is "unemployment
-       * below 5.8 %" against an opening of 7.0 % — a 1.2-point repair, which
-       * is real work and is reachable. See `dev/tutorialFit.ts`.
+       * 1.2 is where it stops improving, so it is the tightest setting that
+       * costs nothing — a looser one would only forgive more. Note what the
+       * one-problem opening did to the gradient: passive play fell from 16 of
+       * 30 to 8, because an economy broken on both halves heals itself and an
+       * economy broken on one does not. See `dev/tutorialFit.ts`.
        */
-      unemploymentAboveNaturalBy: 1.6,
+      unemploymentAboveNaturalBy: 1.2,
       heldForMeetings: 2,
       maxMeetings: 28,
     },

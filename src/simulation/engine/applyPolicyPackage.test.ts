@@ -114,7 +114,12 @@ describe('an action is rejected when it is out of bounds', () => {
   const state = stateFor('fed', 'hard')
 
   it('rejects a magnitude below the minimum', () => {
-    expect(codesFor(state, only([{ instrument: 'policy_rate', magnitude: -500 }]))).toEqual(
+    // −525, because −500 is now *inside* hard's range: the move-size cap went
+    // symmetric when the ceiling went to 500, so a committee that can raise
+    // 500 in a meeting can unwind it. −500 is rejected now, but for the right
+    // reason — it takes the rate through the floor — which is a different
+    // code and a different lesson.
+    expect(codesFor(state, only([{ instrument: 'policy_rate', magnitude: -525 }]))).toEqual(
       ['below_minimum'],
     )
   })
@@ -143,12 +148,22 @@ describe('an action is rejected when it is out of bounds', () => {
   })
 
   it('narrows the rate range on easy and widens it on hard', () => {
+    /*
+     * The bounds moved when the ceiling stopped being a wall.
+     *
+     * Easy was ±100 and is now ±200; hard was ±200 and is now ±500, which is
+     * past Volcker's largest single move. What a committee may *vote for* is
+     * no longer where the difficulty lives — a move that size is now
+     * permitted everywhere and priced by what it costs, which the consequence
+     * panel states in words before the button is pressed. What easy still
+     * narrows is the range of sizes a tutorial has to think about.
+     */
     const easy = stateFor('fed', 'easy')
-    expect(codesFor(easy, only([{ instrument: 'policy_rate', magnitude: 150 }]))).toEqual([
+    expect(codesFor(easy, only([{ instrument: 'policy_rate', magnitude: 250 }]))).toEqual([
       'above_maximum',
     ])
     expect(
-      validatePolicyPackage(state, only([{ instrument: 'policy_rate', magnitude: 150 }])).ok,
+      validatePolicyPackage(state, only([{ instrument: 'policy_rate', magnitude: 250 }])).ok,
     ).toBe(true)
   })
 })

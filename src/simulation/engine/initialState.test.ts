@@ -5,7 +5,8 @@ import { SIMULATION_VERSION } from '../version.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { BANKING } from '../config/model.ts'
-import { OPENING_DAMAGE, createInitialState, createRunConfig } from './initialState.ts'
+import { BROKEN, OPENING_DAMAGE, createInitialState, createRunConfig } from './initialState.ts'
+import { LABOR, okunAt } from '../config/model.ts'
 
 /**
  * The easy-mode opening: tightly clustered, and deliberately damaged.
@@ -62,33 +63,127 @@ describe('every mandate opens on a wreck', () => {
    * So both halves now open broken, at every difficulty, and what this file
    * guards is that the wreck is the stated one rather than a lottery.
    */
-  it('opens at the stated distance from both objectives, whatever the seed', () => {
+  /**
+   * **The invariant.**
+   *
+   * > "ET ÇA DOIT TENIR SUR TOUTES LES GRAINES, pas en moyenne. Écris
+   * > l'invariant et teste-le sur tout le catalogue : en facile jamais plus
+   * > d'un indicateur hors des clous, en moyen exactement deux et en
+   * > opposition, en difficile trois."
+   *
+   * Three readings, and the count of broken ones is the difficulty. A
+   * reading is broken when it is more than `BROKEN` from its objective —
+   * inflation from target, unemployment from its sustainable rate, growth
+   * from zero.
+   */
+  function brokenCount(latent: {
+    inflationHeadline: number
+    unemployment: number
+    naturalUnemployment: number
+    realGrowth: number
+  }, target: number): readonly string[] {
+    const broken: string[] = []
+    if (Math.abs(latent.inflationHeadline - target) > BROKEN.inflation) {
+      broken.push('inflation')
+    }
+    if (Math.abs(latent.unemployment - latent.naturalUnemployment) > BROKEN.unemployment) {
+      broken.push('unemployment')
+    }
+    if (latent.realGrowth < BROKEN.growth) broken.push('growth')
+    return broken
+  }
+
+  it('breaks exactly one reading on easy, on every seed', () => {
     for (const institution of ['fed', 'ecb'] as const) {
-      const base = getInstitution(institution)
+      const target = getInstitution(institution).inflationTarget
+      for (const latent of openings(institution, 'easy')) {
+        const broken = brokenCount(latent, target)
+        expect(broken, `${institution}: ${broken.join(', ')}`).toEqual(['inflation'])
+      }
+    }
+  })
+
+  it('breaks exactly two on medium, and they pull against each other', () => {
+    for (const institution of ['fed', 'ecb'] as const) {
+      const target = getInstitution(institution).inflationTarget
+      for (const latent of openings(institution, 'medium')) {
+        const broken = brokenCount(latent, target)
+        expect(broken, `${institution}: ${broken.join(', ')}`).toEqual([
+          'inflation',
+          'unemployment',
+        ])
+        /*
+         * **In opposition**, which is the whole of what medium is for.
+         *
+         * Tightening closes one and widens the other, so no setting of the
+         * dial repairs both. Mechanically that is inflation *above* target
+         * while the output gap is *negative*: the rate reaches inflation
+         * through demand, and there is already too little of it.
+         */
+        expect(latent.inflationHeadline, institution).toBeGreaterThan(target)
+        expect(latent.outputGap, institution).toBeLessThan(0)
+      }
+    }
+  })
+
+  it('breaks all three on hard, on every seed', () => {
+    for (const institution of ['fed', 'ecb'] as const) {
+      const target = getInstitution(institution).inflationTarget
+      for (const latent of openings(institution, 'hard')) {
+        const broken = brokenCount(latent, target)
+        expect([...broken].sort(), `${institution}: ${broken.join(', ')}`).toEqual([
+          'growth',
+          'inflation',
+          'unemployment',
+        ])
+      }
+    }
+  })
+
+  it('derives the triplet from one quantity instead of drawing three', () => {
+    /*
+     * The coherence check.
+     *
+     * > "j'ai vu une croissance à +5,5 % avec un chômage à 8,1 % et une
+     * > inflation à 10,2 %, attelage curieux."
+     *
+     * The engine holds two identities between the three readings, and the
+     * opening must satisfy both or it is a correction in progress rendered
+     * as a dashboard. Unemployment follows the output gap through Okun, and
+     * growth is potential plus whatever the gap is still doing.
+     */
+    for (const institution of ['fed', 'ecb'] as const) {
       for (const difficulty of ['easy', 'medium', 'hard'] as const) {
         const damage = OPENING_DAMAGE[difficulty]
         const where = `${institution}/${difficulty}`
         for (const latent of openings(institution, difficulty)) {
-          // Set to the objective plus the damage, not nudged by an offset: a
-          // disaster that is sometimes only half a disaster is not a brief.
-          expect(latent.inflationHeadline, where).toBeCloseTo(
-            base.inflationTarget + damage.inflationOverTarget,
-            6,
-          )
-          expect(latent.unemployment - latent.naturalUnemployment, where).toBeCloseTo(
-            damage.unemploymentGap,
-            6,
-          )
-          expect(latent.realGrowth, where).toBeCloseTo(damage.realGrowth, 6)
+          const okun = okunAt(LABOR.okun, latent.outputGap)
+          expect(
+            latent.unemployment - latent.naturalUnemployment,
+            `${where}: unemployment must satisfy Okun against the gap`,
+          ).toBeCloseTo(-okun * latent.outputGap, 6)
+          expect(
+            latent.realGrowth - latent.potentialGrowth,
+            `${where}: growth must be potential plus the gap's momentum`,
+          ).toBeCloseTo(damage.gapMomentum, 6)
         }
       }
     }
   })
 
-  it('leaves both objectives genuinely unmet at the first meeting', () => {
-    // If either were already met, the opening would be asking the player to
-    // hold still — which is what the previous design did on purpose for the
-    // employment half, and what the instruction above reverses.
+  it('leaves easy with inflation to fix and employment already in hand', () => {
+    /*
+     * One broken reading means the tutorial's employment objective is *met*
+     * at the opening — which is not an oversight, it is the rung:
+     *
+     * > "FACILE : UN SEUL hors des clous, les deux autres sains. […] Un seul
+     * > levier suffit, et le joueur apprend que le levier marche."
+     *
+     * So the lesson is "bring inflation down without losing the jobs you
+     * have", which is a single lever with a consequence rather than a
+     * trade-off with no right answer. A previous pass broke both halves here
+     * and measured competent play solving 13 of 30 against passive's 14.
+     */
     const goal = getDifficulty('easy').tutorialGoal
     expect(goal).not.toBeNull()
     if (goal === null) return
@@ -100,25 +195,34 @@ describe('every mandate opens on a wreck', () => {
         config.initial.naturalUnemployment + goal.unemploymentAboveNaturalBy
       for (const latent of openings(institution, 'easy')) {
         expect(latent.inflationHeadline, institution).toBeGreaterThan(inflationBar)
-        expect(latent.unemployment, institution).toBeGreaterThan(unemploymentBar)
+        expect(latent.unemployment, institution).toBeLessThan(unemploymentBar)
       }
     }
   })
 
-  it('gets worse as the difficulty rises, on every reading', () => {
-    // The ladder, asserted rather than assumed: a "harder" mode whose opening
-    // was gentler on one reading would be teaching the wrong thing about what
-    // difficulty means here.
+  it('raises the number of broken readings with the difficulty', () => {
+    /*
+     * The ladder, asserted as a *count* rather than as every reading getting
+     * monotonically worse — which is what it used to assert and is now wrong
+     * by design. Medium's growth is deliberately healthy: the economy has
+     * stopped falling, so the third reading holds and the player has two
+     * problems instead of three.
+     */
     for (const institution of ['fed', 'ecb'] as const) {
+      const target = getInstitution(institution).inflationTarget
+      const counts = (['easy', 'medium', 'hard'] as const).map(
+        (difficulty) => brokenCount(openings(institution, difficulty)[0], target).length,
+      )
+      expect(counts, institution).toEqual([1, 2, 3])
+
+      // And inflation, the one reading broken at every rung, gets worse.
       const [easy] = openings(institution, 'easy')
       const [medium] = openings(institution, 'medium')
       const [hard] = openings(institution, 'hard')
       expect(medium.inflationHeadline).toBeGreaterThan(easy.inflationHeadline)
       expect(hard.inflationHeadline).toBeGreaterThan(medium.inflationHeadline)
-      expect(medium.unemployment).toBeGreaterThan(easy.unemployment)
-      expect(hard.unemployment).toBeGreaterThan(medium.unemployment)
-      expect(medium.realGrowth).toBeLessThan(easy.realGrowth)
-      expect(hard.realGrowth).toBeLessThan(medium.realGrowth)
+      // As does the slump, once there is one.
+      expect(hard.outputGap).toBeLessThan(medium.outputGap)
     }
   })
 

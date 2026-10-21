@@ -190,6 +190,12 @@ export async function startMandate(
     await click(`[data-institution="${institution}"]`)
     await click(`[data-difficulty="${difficulty}"]`)
   } else {
+    // The choice is two steps now — historical or fictional, and only then
+    // which record — so the catalogue is not on screen until it is asked for.
+    // A tool that clicked straight at a scenario id waited thirty seconds for
+    // a button behind a door it had not opened, and reported a timeout that
+    // looked like the game hanging.
+    await click('[data-scenario-kind="historical"]')
     await click(`[data-scenario="${scenario}"]`)
   }
 

@@ -91,26 +91,28 @@ describe('the tutorial goal', () => {
     }
   })
 
-  it('opens with both halves of the objective genuinely unmet', () => {
+  it('opens with inflation to fix and employment already in hand', () => {
     /*
-     * Rewritten with the opening it describes.
+     * Employment is met at the opening, and that is the rung rather than an
+     * oversight.
      *
-     * It used to assert employment was *already* met at meeting one — the old
-     * tutorial opened on an overheating economy and the lesson was "fix
-     * prices without losing the jobs you have". The player replaced that:
+     * This flipped twice in two passes, which is worth recording. It first
+     * asserted employment was already met (the overheating tutorial). Then
+     * "on commence dans le mur" broke both halves and it asserted neither
+     * was. Then measurement showed a two-problem tutorial is not a tutorial —
+     * competent play solved 13 of 30 against passive's 14 — and the ladder
+     * became the *number* of broken readings:
      *
-     * > "ON COMMENCE DANS LE MUR. […] Le joueur doit voir en arrivant qu'il y
-     * > a un désastre à réparer."
+     * > "FACILE : UN SEUL hors des clous, les deux autres sains."
      *
-     * So both are broken now, and the tutorial is a repair rather than a
-     * defence. What has *not* changed is why the assertion exists: if either
-     * half were met at the opening, the tutorial would be asking the player
-     * to hold still.
+     * So it is back to one problem, for a reason this time: the lesson is
+     * that the lever works, and a lever that fixes one thing while costing
+     * another is the lesson *after* it.
      */
     for (const institution of INSTITUTIONS) {
       const progress = tutorialProgress(fresh(institution))!
       expect(progress.inflation, institution).toBeGreaterThan(progress.inflationBelow)
-      expect(progress.unemployment, institution).toBeGreaterThan(
+      expect(progress.unemployment, institution).toBeLessThan(
         progress.unemploymentBelow,
       )
       expect(progress.onTarget, institution).toBe(false)
@@ -183,7 +185,19 @@ describe('the tutorial goal', () => {
 describe('the tutorial is winnable, and not by doing nothing', () => {
   // Deliberately few seeds: this runs in the ordinary suite and the effects it
   // guards are large. The full measurement is in docs/BALANCE.md.
-  const RUNS = 14
+  /*
+   * Thirty, not fourteen.
+   *
+   * The bar below is "competent play solves more than half", and at fourteen
+   * seeds the estimate landed on exactly 7 — a dead heat with the bar, which
+   * fails the assertion while telling you nothing. The same policy measured
+   * over thirty seeds solves 0.73 of them (`dev/tutorialFit.ts`).
+   *
+   * A sample that cannot resolve its own threshold is not a weak test, it is
+   * a coin flip wearing one, and this project has now been bitten by that
+   * twice — see the forty-seed note in `winnability.test.ts`.
+   */
+  const RUNS = 30
 
   function solvedRate(
     institution: Institution,

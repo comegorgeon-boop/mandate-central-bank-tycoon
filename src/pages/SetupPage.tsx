@@ -68,6 +68,8 @@ export default function SetupPage() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
   const [institution, setInstitution] = useState<Institution>('fed')
   const [scenario, setScenario] = useState<ScenarioId | null>(null)
+  /** Which of the two questions the player has answered. */
+  const [kind, setKind] = useState<'fictional' | 'historical'>('fictional')
 
   const trimmed = sanitizeSeed(seed)
   const chosen = SCENARIOS.find((entry) => entry.id === scenario) ?? null
@@ -87,6 +89,19 @@ export default function SetupPage() {
           : 'A simplified model of a real period, played from sourced starting conditions. The decisions are yours and the economy is a model; nothing here is a record of what anyone said. Not affiliated with, and not an official product of, any central bank.'}
       </p>
 
+      {/*
+        Two steps, not one list of nine.
+
+        > "Aujourd'hui on se tape toute la liste des scénarios historiques à
+        > faire défiler, c'est trop. D'abord un choix simple : HISTORIQUE ou
+        > FICTIF. Si historique, alors seulement on choisit lequel."
+
+        The first screen of a game was a scrolling catalogue of seven dated
+        crises, each with a paragraph — a reading task before the reading
+        task. The question is binary and it is now asked as one: an invented
+        economy, or one that happened. The catalogue only appears for the
+        player who has said they want it.
+      */}
       <fieldset className="mt-8">
         <legend className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
           Mandate
@@ -94,14 +109,17 @@ export default function SetupPage() {
         <p className="mt-1 text-sm text-onwood-soft">
           An economy this build invents, or one that happened.
         </p>
-        <div className="mt-2 flex flex-col gap-2">
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <button
             type="button"
             data-scenario="fictional"
-            aria-pressed={scenario === null}
-            onClick={() => setScenario(null)}
+            aria-pressed={kind === 'fictional'}
+            onClick={() => {
+              setKind('fictional')
+              setScenario(null)
+            }}
             className={`rounded border p-3 text-left ${
-              scenario === null
+              kind === 'fictional'
                 ? 'border-edge-accent bg-inset'
                 : 'border-edge-room bg-room hover:bg-inset'
             }`}
@@ -109,34 +127,57 @@ export default function SetupPage() {
             <span className="font-medium text-onwood">A fictional mandate</span>
             <span className="mt-1 block text-sm text-onwood-soft">
               A seeded economy, an institution you pick and a difficulty you
-              set.
+              set. No two seeds are the same mandate.
             </span>
           </button>
-          {SCENARIOS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              // The id, for the tools in `tools/` to select a scenario by.
-              // Matching on the title would be matching on copy, and the
-              // screenshot board exists precisely to catch copy changing.
-              data-scenario={entry.id}
-              aria-pressed={scenario === entry.id}
-              onClick={() => setScenario(entry.id)}
-              className={`rounded border p-3 text-left ${
-                scenario === entry.id
-                  ? 'border-edge-accent bg-inset'
-                  : 'border-edge-room bg-room hover:bg-inset'
-              }`}
-            >
-              <span className="font-medium text-onwood">
-                {entry.title} — {entry.subtitle}
-              </span>
-              <span className="mt-1 block text-sm text-onwood-soft">
-                {entry.briefing}
-              </span>
-            </button>
-          ))}
+          <button
+            type="button"
+            data-scenario-kind="historical"
+            aria-pressed={kind === 'historical'}
+            onClick={() => setKind('historical')}
+            className={`rounded border p-3 text-left ${
+              kind === 'historical'
+                ? 'border-edge-accent bg-inset'
+                : 'border-edge-room bg-room hover:bg-inset'
+            }`}
+          >
+            <span className="font-medium text-onwood">One that happened</span>
+            <span className="mt-1 block text-sm text-onwood-soft">
+              Seven dated records, with the figures that were published at the
+              time rather than the ones we have now.
+            </span>
+          </button>
         </div>
+
+        {/* Step two, and only for the player who asked for it. */}
+        {kind === 'historical' && (
+          <div className="mt-3 flex flex-col gap-2 border-l-2 border-edge-accent pl-3">
+            {SCENARIOS.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                // The id, for the tools in `tools/` to select a scenario by.
+                // Matching on the title would be matching on copy, and the
+                // screenshot board exists precisely to catch copy changing.
+                data-scenario={entry.id}
+                aria-pressed={scenario === entry.id}
+                onClick={() => setScenario(entry.id)}
+                className={`rounded border p-3 text-left ${
+                  scenario === entry.id
+                    ? 'border-edge-accent bg-inset'
+                    : 'border-edge-room bg-room hover:bg-inset'
+                }`}
+              >
+                <span className="font-medium text-onwood">
+                  {entry.title} — {entry.subtitle}
+                </span>
+                <span className="mt-1 block text-sm text-onwood-soft">
+                  {entry.briefing}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </fieldset>
 
       {chosen !== null && (
@@ -279,7 +320,11 @@ export default function SetupPage() {
         <button
           type="button"
           onClick={start}
-          disabled={trimmed.length === 0}
+          /* A historical mandate needs its record chosen. Without this the
+             button would start a *fictional* run for a player who had just
+             said they wanted a historical one — the quietest possible way to
+             ignore an answer. */
+          disabled={trimmed.length === 0 || (kind === 'historical' && scenario === null)}
           className="rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood disabled:cursor-not-allowed disabled:opacity-50"
         >
           Start the mandate

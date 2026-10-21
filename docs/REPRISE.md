@@ -4,7 +4,7 @@ Where this is, in one page, for whoever picks it up next — including me.
 
 ## The branch
 
-`concrete`, merged to main after the seven-point pass. Main is untouched and the player
+`coherent`, merged to main after the opening-states pass. Main is untouched and the player
 validates the screen before anything lands there.
 
 | commit | what |
@@ -46,7 +46,10 @@ Run these before believing anything above.
 | contrast | `npm run check:contrast` | 0 failures / 664 states, **both directions** |
 | classes | `npm run check:classes` | 287 names, all real |
 | words | `npm run check:words` | quick 54 steady (cap 60 — QUESTIONS #14), heavy 313 |
-| order only | `npx tsx src/simulation/dev/orderOnly.ts` | **40/40** easy mandates served blind |
+| order only | `npm test` (`orderOnly.test.ts`) | **40/40** easy mandates served blind |
+| persistence | `npx tsx src/simulation/dev/persistence.ts` | how long the opening damage lasts |
+| skill gradient | `npx tsx src/simulation/dev/skillGradient.ts` | does skill outlast idleness on hard |
+| late guidance | `npx tsx src/simulation/dev/lateGuidance.ts` | what speaking is worth, early and late |
 | opening | `npx tsx src/simulation/dev/opening.ts` | the wreck each difficulty starts on |
 | tutorial | `npx tsx src/simulation/dev/tutorialFit.ts` | competent vs passive, swept |
 | severity | `npx tsx src/simulation/dev/severity.ts` | a major costs 17-51 banked points |
@@ -64,6 +67,23 @@ Run these before believing anything above.
   deliberately. Its honest cost is in that entry.
 - **#7, #8** the terminal's own decisions: the second direction, and radius
   and shadow going to zero globally.
+
+## The opening ladder
+
+The difficulty is the **number of broken readings**, and it holds on every
+seed (`initialState.test.ts`):
+
+| | inflation | unemployment | growth | what it teaches |
+| --- | --- | --- | --- | --- |
+| easy | high | at sustainable | healthy | the lever works |
+| medium | high | high | holding | no move fixes both |
+| hard | high | high | falling | everything at once |
+
+The triplet is **derived, not drawn**: the opening sets an output gap, and
+unemployment follows through Okun while growth is potential plus whatever the
+gap is still doing. Setting three figures independently produces a state the
+model does not believe and corrects violently — which is what +5.5 % growth
+beside 8.1 % unemployment was.
 
 ## What the game is about now
 
