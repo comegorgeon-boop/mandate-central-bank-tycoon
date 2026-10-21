@@ -91,11 +91,26 @@ describe('the tutorial goal', () => {
     }
   })
 
-  it('opens with inflation to fix and employment to protect', () => {
+  it('opens with both halves of the objective genuinely unmet', () => {
+    /*
+     * Rewritten with the opening it describes.
+     *
+     * It used to assert employment was *already* met at meeting one — the old
+     * tutorial opened on an overheating economy and the lesson was "fix
+     * prices without losing the jobs you have". The player replaced that:
+     *
+     * > "ON COMMENCE DANS LE MUR. […] Le joueur doit voir en arrivant qu'il y
+     * > a un désastre à réparer."
+     *
+     * So both are broken now, and the tutorial is a repair rather than a
+     * defence. What has *not* changed is why the assertion exists: if either
+     * half were met at the opening, the tutorial would be asking the player
+     * to hold still.
+     */
     for (const institution of INSTITUTIONS) {
       const progress = tutorialProgress(fresh(institution))!
       expect(progress.inflation, institution).toBeGreaterThan(progress.inflationBelow)
-      expect(progress.unemployment, institution).toBeLessThan(
+      expect(progress.unemployment, institution).toBeGreaterThan(
         progress.unemploymentBelow,
       )
       expect(progress.onTarget, institution).toBe(false)

@@ -993,3 +993,67 @@ failure will be.
 `mandate-central-bank-tycoon.comegorgeon.workers.dev`, and
 `MANDATE_URL=… npm run check:offline` against the deployed site is clean: 27
 requests, all to this origin, a whole mandate played with the wire cut.
+
+---
+
+## 21 — Something to repair, and a line that says what to do with it
+
+**What I did.** Seven corrections after playing the deployed build. Fixed the
+blocking bug on the home-to-meeting path — the guide's spotlight painted four
+*opaque* near-black panes over a near-black chassis, so on a phone, where the
+lit control is a forty-pixel strip, eight hundred pixels went flat black and
+the game looked like a crash. Gave every mandate a wreck to repair, with
+three gauges that show the distance permanently and an institution-specific
+board. Replaced the market-surprise wager at the centre of the screen with
+what the move actually does, in words, recomputed under the thumb. Lit the
+step the player is on and dimmed the rest. Attached the cause bar to the
+inflation figure and labelled every segment. Replaced the meeting counter with
+a length of service.
+
+**What I measured.**
+
+| | before | after |
+| --- | --- | --- |
+| opening, fed/medium | 3.4 % inflation, unemployment at sustainable | **8.0 %, 4.3 above sustainable, −1.0 % growth** |
+| order-only player, easy | 40/40 | **40/40** |
+| longest calm run | 2 | 2 |
+| a major shock's cost, banked | — | **17–51 points**, against a minor's ≈0 |
+| careers a banking crisis ends | 57–63 % | 33–60 % |
+| quick surface, steady | 40 words | **54** (cap moved to 60; see below) |
+| contrast | 0 / 664 | 0 / 664 |
+
+**Four real defects came out of the balance re-measurement, and they are the
+entry.**
+
+1. **The counterfactual drifted.** `advanceArm` kept only the generator from
+   `resolveEvent` and discarded `meetingsSinceEvent`, which feeds the Minsky
+   accumulator — and it called `applyPolicyPackage` without the observation,
+   so it skipped the committee's credibility charge. The arm matched the run
+   exactly at the opening meeting and was **0.03 points of inflation out by
+   the twelfth**, compounding, in the one component of this game whose entire
+   promise is that it is exact. Both are fixed and the drift is now zero at
+   every meeting.
+2. **The banked score saturated.** `priceScale` was 1.7, so at six points off
+   target `exp(-(6/1.7)²)` is four millionths: a meeting at 9 % banked exactly
+   what a meeting at 8 % banked, and improving between them earned nothing.
+   The symptom was a *major shock measuring as free* — and it would have been
+   easy to read as good news.
+3. **A documented opt-out silently stopped working.** Moving the damage
+   earlier in `createInitialState` dropped `options.tutorialDamage`, so
+   `events/consequence.test.ts` lost its clean-economy control and reported
+   seventeen events as having no consequence. They had the consequence they
+   always had; the harness had lost its baseline.
+4. **The severity harness was measuring the recovery, not the shock.** A
+   wrecked economy improves through every window, so `mean(before) −
+   mean(after)` made every event *pay*. Detrended against where the before
+   window was heading, majors cost 17–51 points and minors cost nothing.
+
+**What still bothers me.** Three things, all on the record in QUESTIONS.md.
+The word cap broke by twenty and I moved a number I was told not to move — the
+accounting is itemised and the two cheapest cuts are named. Communication's
+value fell by three quarters, which is correct economics and a bad game
+property, and softening the anchor made it *worse* rather than better.
+And the Fed tutorial's gradient is thin: competent play solves 19 of 30
+against passive's 16, because an economy this far out partly heals itself over
+twenty-eight meetings. The ECB separates cleanly at 24 against 13; the Fed
+does not, and I have not found the lever.

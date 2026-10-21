@@ -223,7 +223,7 @@ function playThroughTheInterface(): {
      * a catastrophic engine failure and was a stale label.
      */
     const heading = screen.queryByRole('heading', {
-      name: new RegExp(`^Meeting ${meeting}\\b`),
+      name: meeting === 1 ? /Sworn in today/ : new RegExp(`In post ${meeting - 1} meeting`),
     })
     if (heading === null) break
 

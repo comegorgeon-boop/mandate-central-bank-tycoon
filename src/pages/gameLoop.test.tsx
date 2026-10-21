@@ -111,7 +111,11 @@ describe('the playable loop', () => {
     // meetings. The cap only bounds the loop.
     let played = 0
     for (let meeting = 1; meeting <= MEETING_CAP; meeting += 1) {
-      const heading = screen.queryByRole('heading', { name: `Meeting ${meeting}` })
+      // The heading is a length of service now, not a counter toward an end:
+      // "In post 3 meetings · hearing in 29". See `tenureLine.ts`.
+      const heading = screen.queryByRole('heading', {
+        name: meeting === 1 ? /Sworn in today/ : new RegExp(`In post ${meeting - 1} meeting`),
+      })
       if (heading === null) break
       played += 1
       decideThisMeeting()
@@ -185,7 +189,9 @@ describe('the playable loop', () => {
 
     decideThisMeeting(-25)
 
-    expect(screen.getByRole('heading', { name: 'Meeting 2' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /In post 1 meeting/ }),
+    ).toBeInTheDocument()
     expect(policyRateInForce()).toBeCloseTo(before - 0.25, 5)
   })
 
@@ -253,11 +259,13 @@ describe('route guards', () => {
 
   it('advances the URL to the meeting the engine says is current', () => {
     startRunOnSeed('GUARD')
-    expect(screen.getByRole('heading', { name: 'Meeting 1' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Sworn in today/ })).toBeInTheDocument()
 
     // Nothing navigates on confirmation: the guard notices that the URL still
     // points at meeting one while the run has moved on, and redirects.
     decideThisMeeting()
-    expect(screen.getByRole('heading', { name: 'Meeting 2' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /In post 1 meeting/ }),
+    ).toBeInTheDocument()
   })
 })

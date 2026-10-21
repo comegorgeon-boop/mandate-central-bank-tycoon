@@ -39,6 +39,20 @@ export function tenureLine(session: RunSession): string {
   if (config.mode === 'historical') return `Meeting ${meeting}`
 
   /*
+   * **Time served, not progress toward an end.**
+   *
+   * > "« MEETING 3 » me remet dans le cadre d'une partie de longueur connue,
+   * > alors qu'on est passés en survie. Affiche une DURÉE DE SERVICE, pas une
+   * > progression vers une fin."
+   *
+   * Right, and the first version of this only did half the job: it dropped
+   * the "of 16" but kept "Meeting 3", which still reads as step three of
+   * something. A counter counts *toward*. What a governor has is a length of
+   * service and the date of the next thing that can end it — which is the
+   * same information in the only framing that is true.
+   */
+
+  /*
    * The tutorial keeps a plain count, and this branch is the implementation
    * of a sentence the doc comment above was already making before the code
    * did — which is its own small lesson: a comment is not a feature.
@@ -48,26 +62,27 @@ export function tenureLine(session: RunSession): string {
    * would be perverse for the gentlest difficulty to be the only one coy
    * about how long it runs.
    */
+  const served =
+    meetingIndex === 0
+      ? 'Sworn in today'
+      : `In post ${meetingIndex} meeting${meetingIndex === 1 ? '' : 's'}`
+
   if (getDifficulty(config.difficulty).tutorialGoal !== undefined) {
-    return `Meeting ${meeting}`
+    return served
   }
 
   const tenure = TENURE[config.institution]
 
   if (!tenure.renewable) {
-    const year = Math.floor(meetingIndex / 8) + 1
-    const years = tenure.term / 8
-    return `Meeting ${meeting} · year ${year} of ${years} · no second term`
+    const left = tenure.term - meetingIndex
+    return `${served} · ${left} left of a term nobody can cut short`
   }
 
-  const term = termOf(config.institution, meetingIndex)
   const left = meetingsLeftInTerm(config.institution, meetingIndex)
+  const term = termOf(config.institution, meetingIndex)
   const last = term >= tenure.maxTerms
 
-  if (left <= 1) {
-    return `Meeting ${meeting} · term ${term} · the hearing is next`
-  }
-  return `Meeting ${meeting} · term ${term} · ${left} to ${
-    last ? 'the end of the last term' : 'the hearing'
-  }`
+  if (left <= 1) return `${served} · the hearing is next`
+  if (last) return `${served} · ${left} left of the last term`
+  return `${served} · hearing in ${left}`
 }

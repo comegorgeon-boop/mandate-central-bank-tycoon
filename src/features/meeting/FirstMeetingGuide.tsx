@@ -226,25 +226,33 @@ export function FirstMeetingGuide({
       data-guide-overlay=""
       className="fixed inset-0 z-50"
     >
-      {/* The dimmed ground, drawn as four panes around the spotlight rather
-          than as one box with a hole in it: a `box-shadow` cutout would tint
-          the control it is meant to be showing, and this interface has already
-          shipped one invisible panel for exactly that kind of shortcut. */}
+      {/*
+        The dimmed ground, drawn as four panes around the spotlight rather
+        than as one box with a hole in it: a `box-shadow` cutout would tint
+        the control it is meant to be showing, and this interface has already
+        shipped one invisible panel for exactly that kind of shortcut.
+
+        **Washed, not filled.** These were `bg-scrim`, which is opaque — and
+        an opaque near-black pane over a near-black chassis does not read as
+        dimmed, it reads as gone. On a phone, where the spotlighted control is
+        a forty-pixel strip, that painted eight hundred pixels of flat black
+        and the guide looked like a crash. See `--scrim-wash` in tokens.css.
+      */}
       <div aria-hidden="true" className="absolute inset-0">
         <div
-          className="absolute left-0 right-0 top-0 bg-scrim transition-all duration-200"
+          className="absolute left-0 right-0 top-0 bg-scrim-wash transition-all duration-200"
           style={{ height: Math.max(0, box.top) }}
         />
         <div
-          className="absolute left-0 right-0 bottom-0 bg-scrim transition-all duration-200"
+          className="absolute left-0 right-0 bottom-0 bg-scrim-wash transition-all duration-200"
           style={{ top: box.top + box.height }}
         />
         <div
-          className="absolute left-0 bg-scrim transition-all duration-200"
+          className="absolute left-0 bg-scrim-wash transition-all duration-200"
           style={{ top: box.top, height: box.height, width: Math.max(0, box.left) }}
         />
         <div
-          className="absolute right-0 bg-scrim transition-all duration-200"
+          className="absolute right-0 bg-scrim-wash transition-all duration-200"
           style={{ top: box.top, height: box.height, left: box.left + box.width }}
         />
         {/* The ring itself. This is the sentence's subject. */}

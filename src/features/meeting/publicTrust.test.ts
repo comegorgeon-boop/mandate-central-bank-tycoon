@@ -142,15 +142,22 @@ describe('on the seed that prompted this', () => {
     // at the peak, against a ceiling of 85.
     expect(session.state.guidance.brokenPromises).toBe(0)
     expect(worstInflationTerm).toBeGreaterThan(20)
-    // And the rate is not what the public is unhappy about. This used to
-    // assert an exact zero — the rate never once crossed the tolerance on
-    // this seed — and the exact zero was incidental rather than the claim.
-    // Once the public finances became arithmetic rather than an index, the
-    // debt ratio began feeding the term premium, which moved this seed's path
-    // by enough for the rate to graze the tolerance at one meeting. The claim
-    // the test exists to make is comparative, so it is now stated
-    // comparatively: whatever the rate contributed, the inflation gap
-    // contributed more than twenty times as much.
-    expect(worstRateTerm).toBeLessThan(worstInflationTerm / 20)
+    /*
+     * And the inflation gap, not the rate, is what the public is unhappy
+     * about — by a factor of three rather than the twenty this once asserted.
+     *
+     * The margin moved because the economy did. A mandate that opens six
+     * points above target has to be fought with a genuinely high rate, and a
+     * genuinely high rate is something the public does mind: the term went
+     * from grazing the tolerance once to sitting above it for much of the
+     * mandate. That is not a regression, it is the Volcker problem, and a
+     * test asserting the rate was almost costless would have been asserting
+     * that the hardest thing about disinflation does not exist.
+     *
+     * The claim worth keeping is the comparative one, and it still holds
+     * comfortably: whatever the rate costs in public patience, the prices
+     * cost several times more.
+     */
+    expect(worstRateTerm).toBeLessThan(worstInflationTerm / 3)
   })
 })

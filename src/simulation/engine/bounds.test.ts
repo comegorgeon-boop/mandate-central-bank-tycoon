@@ -64,7 +64,13 @@ describe('latent variables stay inside their documented bounds', () => {
     it(`holds across many seeded ${institution} runs under random policy`, () => {
       let meetingsChecked = 0
 
-      for (let seedIndex = 0; seedIndex < 12; seedIndex += 1) {
+      // Twenty, not twelve. The bar below asks for a hundred meetings of
+      // coverage, and a random policy against the new opening loses the
+      // mandate sooner than it used to — twelve seeds stopped reaching it at
+      // 85. The right answer is more seeds, not a smaller claim: the guard
+      // exists so that "nothing left its bounds" cannot be satisfied by
+      // nothing having happened.
+      for (let seedIndex = 0; seedIndex < 20; seedIndex += 1) {
         const config = testConfig(institution, 'hard', `stress-${seedIndex}`)
         const prng = createPrng(`policy-${institution}-${seedIndex}`)
         let session = startRun(config)

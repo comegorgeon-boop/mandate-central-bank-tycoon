@@ -147,3 +147,58 @@ describe('shown once per browser', () => {
     }
   })
 })
+
+describe('the dimmed ground dims rather than deletes', () => {
+  /*
+   * The bug this guards, reported from a deployed build and reproduced in a
+   * 390 x 844 phone viewport:
+   *
+   * > "Au moment où le jeu explique les points un par un, ça part en gros
+   * > écrans noirs sur mon téléphone."
+   *
+   * The four panes around the spotlight were `bg-scrim`, which is **opaque**.
+   * On the walnut boardroom that was fine: walnut-900 panes over walnut-950
+   * panels still read as a dimmed room. On the terminal it is near-black over
+   * near-black, so the dimmed area is indistinguishable from an empty screen
+   * — and on a phone, where the spotlighted control is a forty-pixel strip,
+   * that is eight hundred pixels of flat black and the guide looks like a
+   * crash.
+   *
+   * Nothing caught it. The build passes, the tests passed, the contrast audit
+   * passes — and the audit is structurally blind here, because it resolves
+   * the background by walking *ancestors*, and an overlay is a sibling. It
+   * measured the text behind the panes as though the panes were not there.
+   *
+   * So the rule is asserted directly: the panes use the translucent wash, not
+   * the opaque scrim. It is a class-name assertion, which is weak evidence of
+   * beauty and strong evidence of the one thing that went wrong.
+   */
+  beforeEach(() => {
+    clearGuideSeen()
+    document.body.replaceChildren()
+  })
+
+  it('washes the ground instead of filling it', async () => {
+    harness()
+    await screen.findByText(`1 of ${GUIDE_STEPS.length}`)
+
+    const overlay = document.querySelector('[data-guide-overlay=""]')
+    expect(overlay).not.toBeNull()
+
+    const panes = overlay?.querySelectorAll('[aria-hidden="true"] > div') ?? []
+    // Four panes and a ring.
+    expect(panes.length).toBeGreaterThanOrEqual(4)
+
+    let washed = 0
+    for (const pane of panes) {
+      const className = pane.className
+      expect(
+        className,
+        'a spotlight pane must never use the opaque scrim: on a near-black ' +
+          'chassis that reads as a blank screen rather than a dimmed room',
+      ).not.toMatch(/\bbg-scrim(?![\w-])/)
+      if (/\bbg-scrim-wash\b/.test(className)) washed += 1
+    }
+    expect(washed).toBe(4)
+  })
+})

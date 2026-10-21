@@ -162,16 +162,38 @@ export function explainInflation(
     }))
     .sort((a, b) => Math.abs(b.points) - Math.abs(a.points))
 
-  // What the rate can reach: the demand leg in full, the two partial legs at
-  // half. Not a model quantity — a reading of the model, and it exists so the
-  // order line can say "two points of this, the rate cannot touch".
-  const reachable = causes.reduce(
-    (sum, leg) =>
-      sum +
-      leg.points *
-        (leg.answersToRates === 'yes' ? 1 : leg.answersToRates === 'partly' ? 0.5 : 0),
-    0,
-  )
+  /*
+   * What the rate can reach.
+   *
+   * Not a model quantity — a reading of the model — and it exists so the
+   * order line can say *"two points of this, the rate cannot touch"*.
+   *
+   * The weights are per leg rather than a flat half for everything that is
+   * "partly", because they are not equally partial. **Expectations are the
+   * channel a central bank works through**, not a channel it is locked out
+   * of: breaking an anchor loose is what 1979-83 was, and the engine models
+   * it directly — `EXPECTATIONS.longTargetSlope` makes the pull back toward
+   * the objective proportional to credibility. Weighting them at a half said
+   * the opposite.
+   *
+   * It mattered at the display. On a mandate opening 8.2 points above target
+   * with energy doing most of the pushing, the flat half produced *"8.1 of
+   * them will not answer to the rate"* — a figure that tells the player their
+   * instrument is useless, out of a model in which it is not.
+   */
+  const REACH: Readonly<Record<InflationCauseId, number>> = {
+    // The leg the rate is for.
+    demand: 1,
+    // The channel it works through. Slow, costly, and absolutely reachable.
+    expectations: 0.9,
+    // Reached through the demand it prices: a cooler labour market settles.
+    wages: 0.6,
+    // Reached through the rate differential, with a long lag.
+    currency: 0.5,
+    // A barrel of oil does not care what the rate is.
+    energy: 0,
+  }
+  const reachable = causes.reduce((sum, leg) => sum + leg.points * REACH[leg.id], 0)
 
   return {
     headline: latent.inflationHeadline,

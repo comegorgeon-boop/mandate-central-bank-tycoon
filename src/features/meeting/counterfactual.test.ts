@@ -86,7 +86,12 @@ function playWithArms(
     )
     const next: Partial<Record<FrozenSet, SimulationState>> = {}
     for (const frozen of ARMS) {
-      next[frozen] = advanceArm(arms[frozen]!, withoutGroup(pkg, frozen), events)
+      next[frozen] = advanceArm(
+        arms[frozen]!,
+        withoutGroup(pkg, frozen),
+        events,
+        before.observation,
+      )
     }
     arms = next
 
@@ -128,7 +133,7 @@ describe('the counterfactual is exact, not an estimate', () => {
       const events = session.state.eventLog.filter(
         (record) => record.meetingIndex === before.state.meetingIndex,
       )
-      mirror = advanceArm(mirror, pkg, events)
+      mirror = advanceArm(mirror, pkg, events, before.observation)
 
       expect(mirror.latent.inflationHeadline, `meeting ${meeting}`).toBeCloseTo(
         session.state.latent.inflationHeadline,

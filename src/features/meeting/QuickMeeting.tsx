@@ -7,23 +7,24 @@ import {
   getInstitution,
   explainInflation,
   liveShocks,
-  unemploymentGap,
+  readMandate,
+  type ReadingId,
   type CallBand,
   type MeetingResult,
   type PolicyPackage,
   type RunSession,
 } from '../../simulation/index.ts'
 import { RateSlider, type GhostMarker } from '../policy/RateSlider.tsx'
-import { meetingLine } from './meetingLine.ts'
 import { pricedMoveBp, surpriseStake } from './surprise.ts'
 import { CallPanel } from './CallPanel.tsx'
 import { Chip, Seal, SerialNumber } from '../../components/engraving/Chip.tsx'
 import {
   CauseBar,
-  HeadlineFigure,
+  MandateGauges,
   ShockPanel,
 } from '../../components/terminal/Explain.tsx'
 import { readDispatches } from './dispatches.ts'
+import { readConsequence } from './consequence.ts'
 import {
   Arrow,
   Figure,
@@ -171,37 +172,31 @@ export function QuickMeeting({
     })
   }
 
-  const stake = surpriseStake(session, move)
-  const line = meetingLine(session)
-
   /* ── The explanation. The order itself is drawn above, by the
         meeting screen; these are the readings it is an order about. ── */
-  const inflation = explainInflation(session.state.latent, config)
-  const shocks = liveShocks(session.state)
-  const dispatches = readDispatches(session, { compact: true })
-  const jobsGap = unemploymentGap(session.state.latent)
-
-  // Direction is read against the previous meeting's snapshot rather than
-  // against a stored flag, so it is true after a replay and cannot drift.
-  const previous = session.state.history.at(-2)?.latent ?? null
-  const movedBy = (now: number, before: number | null): 'up' | 'down' | 'flat' =>
-    before === null || Math.abs(now - before) < 0.05
-      ? 'flat'
-      : now > before
-        ? 'up'
-        : 'down'
-  const headlineDirection = movedBy(
-    session.state.latent.inflationHeadline,
-    previous?.inflationHeadline ?? null,
-  )
-  const jobsDirection = movedBy(
-    session.state.latent.unemployment,
-    previous?.unemployment ?? null,
-  )
+  const stake = surpriseStake(session, move)
   const label =
     rateInstrumentLabel(config) ?? instrument?.label[config.institution] ?? 'Policy rate'
   const chips = stake.beyondPriced ? Math.max(1, Math.round(stake.trust)) : 0
   const direction = move > 0 ? 'up' : move < 0 ? 'down' : 'flat'
+
+  const inflation = explainInflation(session.state.latent, config)
+  const shocks = liveShocks(session.state)
+  const dispatches = readDispatches(session, { compact: true })
+  const board = readMandate(session.state.latent, config)
+  const consequence = readConsequence(session, move)
+
+  // The previous meeting's readings, for the gauges' direction arrows. Read
+  // from history rather than stored, so it is true after a replay.
+  const before = session.state.history.at(-2)?.latent ?? null
+  const previousReadings: Partial<Record<ReadingId, number>> =
+    before === null
+      ? {}
+      : {
+          inflation: before.inflationHeadline,
+          unemployment: before.unemployment,
+          growth: before.realGrowth,
+        }
 
   const confirm = () => {
     const pkg: PolicyPackage = {
@@ -228,55 +223,47 @@ export function QuickMeeting({
           above the room alike — one banner at the top of both surfaces,
           rather than one per surface that could drift apart. */}
       <PanelGrid>
-        <Panel title="Where it stands" span={3}>
-          <div className="grid grid-cols-1 sm:grid-cols-2">
-            <HeadlineFigure
-              label="Headline inflation"
-              value={inflation.headline}
-              because={
-                inflation.leading === null || inflation.leading.share < 0.25
-                  ? null
-                  : `driven by ${inflation.leading.label}`
-              }
-              direction={headlineDirection}
-            />
-            <HeadlineFigure
-              label="Unemployment"
-              value={session.state.latent.unemployment}
-              because={
-                jobsGap > 0.4
-                  ? `${jobsGap.toFixed(1)} above the sustainable rate`
-                  : jobsGap < -0.4
-                    ? `${Math.abs(jobsGap).toFixed(1)} below the sustainable rate`
-                    : 'at the sustainable rate'
-              }
-              direction={jobsDirection}
-            />
-          </div>
-          {/* The cause as a picture. On a quick meeting the bar is here
-              without its legend: the shape is the information, and naming
-              every segment is what the heavy meeting is for. */}
-          <div className="flex items-center gap-2 border-t border-edge px-2 py-1.5">
-            <span className="w-[17ch] shrink-0 font-mono text-2xs uppercase tracking-[0.1em] text-ink-soft">
-              What is causing it
-            </span>
-            <span className="min-w-0 flex-1">
-              <CauseBar explanation={inflation} compact />
-            </span>
+        <Panel title="Where it stands" span={3} weight={1}>
+          {/* Three readings: two to close, one not to break. The gauges make
+              the distance a *length*, so the board is readable without
+              reading a number — and the two institutions get different
+              boards, because their mandates are different. */}
+          <MandateGauges board={board} previous={previousReadings} />
+          {/*
+            Attached to the inflation figure, not laid under all three.
+
+            > "« WHAT IS CAUSING IT » : je ne sais même pas de quoi ça parle.
+            > La barre est posée sous les deux chiffres, donc c'est ambigu."
+
+            Exactly the defect: a bar spanning the whole row has no subject.
+            It now sits in the first of the three columns, directly beneath
+            the number it decomposes, and says what it is — *what is pushing
+            inflation* — rather than an unattached "what is causing it".
+          */}
+          <div className="grid grid-cols-1 border-t border-edge sm:grid-cols-3">
+            <div className="min-w-0 px-2 py-1.5 sm:border-r sm:border-edge">
+              <p className="font-mono text-2xs uppercase tracking-[0.14em] text-ink-faint">
+                What is pushing inflation
+              </p>
+              <div className="mt-1">
+                <CauseBar explanation={inflation} compact />
+              </div>
+            </div>
+            <div className="hidden sm:col-span-2 sm:block" />
           </div>
         </Panel>
 
         {/* ── Rank one and a half: what is still arriving. The most visible
               thing after the order, because "qu'est-ce qu'il y a, et comment
               on le traite" is most of the game. ───────────────────────── */}
-        <ShockPanel shocks={shocks} compact />
+        <ShockPanel shocks={shocks} compact weight={3} />
 
         {/* The wire. Guidance for the first three meetings of every mandate
             at every difficulty, then whatever actually landed — through the
             same slot and in the same voice, so the game stops guiding without
             a seam. No help box: "tout vit dans le terminal". */}
         {dispatches.length > 0 && (
-        <Panel title="Dispatches">
+        <Panel title="Dispatches" weight={3}>
           {(
             <ul>
               {dispatches.map((dispatch) => (
@@ -301,26 +288,22 @@ export function QuickMeeting({
         </Panel>
         )}
 
-        {/* The desk's own sentence, and the only serif on the screen —
-            shown only when it is saying something the shock lines are not.
+        {/* The desk's own sentence is **not** on the quick surface any more.
 
-            A quick meeting's prose budget is twenty-four words and frozen.
-            The desk repeating the title of the shock immediately beside it
-            spent a third of that budget saying the same thing twice, and the
-            order at the top has already said what the meeting is for. */}
-        {line !== null &&
-          !shocks.some((shock) => line.startsWith(shock.title.slice(0, 12))) && (
-            <Panel title="The desk">
-              <p className="px-2 py-2 font-display text-xs leading-relaxed text-ink-soft">
-                {line}
-              </p>
-            </Panel>
-          )}
+            It said "Inflation is 4.9 points above the objective, and there is
+            slack in the labour market" — fifteen words describing what the
+            order banner two inches above already commands, with a verb and
+            the same figure. A description beside an instruction is the exact
+            thing this whole pass is about removing, and it was the largest
+            single item left in a frozen word budget. It is still the desk's
+            line and it is still in the room. */}
+
         {/* ── The instrument. Two columns of three, because the dial is the
               thing being operated and everything else reports on it. ──── */}
         <Panel
           title={label}
           span={2}
+          weight={2}
           right={`from ${currentRate.toFixed(2)}`}
           className="p-0"
         >
@@ -376,8 +359,38 @@ export function QuickMeeting({
           </div>
         </Panel>
 
-        {/* ── The book. Recomputes under the thumb, continuously. ─────── */}
-        <Panel title="The book" right={stake.beyondPriced ? 'live' : 'priced in'}>
+        {/* ── What the move would do, in words, live under the thumb.
+              Never a figure: this engine is built on the gap between the
+              latent state and the published one, and printing a forecast
+              would read the hidden state out loud. See `consequence.ts`. ── */}
+        <Panel
+          title="If you take it"
+          weight={2}
+          right={move === 0 ? 'holding' : `${move > 0 ? '+' : '−'}${Math.abs(move)} bp`}
+        >
+          <div className="border-b border-edge px-2 py-1.5">
+            <p className="font-mono text-2xs uppercase tracking-[0.16em] text-good">
+              What it buys
+            </p>
+            <p className="mt-0.5 font-mono text-2xs leading-relaxed text-ink">
+              {consequence.gain}
+            </p>
+          </div>
+          <div className="px-2 py-1.5">
+            <p className="font-mono text-2xs uppercase tracking-[0.16em] text-bad">
+              What it costs
+            </p>
+            <p className="mt-0.5 font-mono text-2xs leading-relaxed text-ink">
+              {consequence.risk}
+            </p>
+          </div>
+        </Panel>
+
+        {/* ── The wager, demoted. It is a real mechanic about a second-order
+              thing — surprising the market — and it was occupying the place
+              where "what does this do to the economy" belonged. Rank three:
+              present, quiet, and not what the screen is about. ── */}
+        <Panel title="Against the priced path" weight={3} right={stake.beyondPriced ? 'live' : 'priced in'}>
           <Row label="Priced">
             {priced === null ? (
               <span className="text-ink-faint">—</span>
@@ -385,18 +398,11 @@ export function QuickMeeting({
               <RollingNumber value={priced} decimals={0} suffix=" bp" />
             )}
           </Row>
-          <Row label="Your move">
-            <RollingNumber value={move} decimals={0} suffix=" bp" />
-          </Row>
           <Row label="Surprise">
             {priced === null ? (
               <span className="text-ink-faint">—</span>
             ) : (
-              <Figure
-                value={Math.abs(stake.surprise) * 100}
-                decimals={0}
-                suffix=" bp"
-              />
+              <Figure value={Math.abs(stake.surprise) * 100} decimals={0} suffix=" bp" />
             )}
           </Row>
           <Row label="Returns">
@@ -408,13 +414,6 @@ export function QuickMeeting({
               <span className="text-ink-faint">nothing bought</span>
             )}
           </Row>
-          {/* The chips are capped at four and the row never wraps.
-              `whitespace-nowrap` is not a detail here: a stack of six 14 px
-              chips plus the figure is wider than the value column on a phone,
-              and what that produced was a two-line Stake row — the one thing
-              this layout promises never to do. A terminal row that reflows
-              has broken its whole contract, so the decoration yields and the
-              figure, which is the information, does not. */}
           <Row label="Stake">
             {stake.beyondPriced ? (
               <span className="flex items-center justify-end gap-1.5 whitespace-nowrap">
@@ -435,8 +434,16 @@ export function QuickMeeting({
           </Row>
         </Panel>
 
+        {/* NOTE: a second copy of the dial, the wire, the desk and the old
+            "The book" panel used to live here. They were left behind when
+            the book was replaced by the consequence panel — an insertion
+            that added the new block without removing the old one, so the
+            screen rendered every one of them twice. Visible instantly in a
+            capture and invisible in the diff, which is the whole argument
+            for looking at the pictures. */}
+
         {/* ── The standing call. ──────────────────────────────────────── */}
-        <Panel title="Your call" span={3}>
+        <Panel title="Your call" span={3} weight={3}>
           <div className="px-2 py-1">
             <CallPanel
               session={session}

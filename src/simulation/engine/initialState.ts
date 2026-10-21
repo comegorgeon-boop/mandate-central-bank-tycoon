@@ -58,6 +58,135 @@ const OPENING_PERTURBATION_SCALE: Readonly<Record<Difficulty, number>> = {
  * together — the opening has to be far enough from the goal to need real
  * policy and near enough to be reachable before `maxMeetings`.
  */
+/**
+ * The wreck every mandate opens on.
+ *
+ * > "ON COMMENCE DANS LE MUR. Pas 0,5 point d'écart : une vraie situation
+ * > dégradée, même en moyen. […] Le joueur doit voir en arrivant qu'il y a un
+ * > désastre à réparer."
+ *
+ * This is the answer to *"on se perd, on ne sait pas quoi faire"*, and it is
+ * the structural half of it. A player who arrives to an economy 1.4 points
+ * from target with unemployment exactly at its sustainable rate has nothing
+ * to aim at, so no amount of explaining tells them where they are going.
+ * There has to be something broken.
+ *
+ * ## Expressed as gaps, not levels
+ *
+ * The brief gives absolute figures — *"facile → inflation ~5 %, chômage
+ * ~7 %"* — which are right for the Fed, whose sustainable rate is 4.2 %. The
+ * ECB's is 6.6 %, so a literal 7 % there would be an economy in excellent
+ * health wearing a disaster's number. Each row below is therefore the
+ * **distance from that institution's own objective**, which is what the
+ * sentence actually means and what the gauges will show.
+ *
+ * At the Fed those gaps produce roughly the figures asked for; at the ECB
+ * they produce the euro-area equivalents, which run higher in levels and
+ * identical in trouble.
+ *
+ * ## Why it is a supply shock and not just bad numbers
+ *
+ * High inflation *and* high unemployment is stagflation, and stagflation has
+ * a cause: costs pushed in from outside demand. Setting the two readings
+ * without the shock that explains them would be an incoherent state the model
+ * immediately mean-reverts — which is the trap the previous tutorial opening
+ * was carefully designed around (see `TUTORIAL_DAMAGE` below: damaging both
+ * halves *heals itself*, and passive play passed 57-69 % of the time).
+ *
+ * A live cost-push shock is what makes the wreck stay wrecked and makes the
+ * repair cost something. It is also the honest teacher: the rate reaches the
+ * demand leg and not the supply one, which is the lesson the order line
+ * already states in words at every meeting.
+ */
+export const OPENING_DAMAGE: Readonly<
+  Record<
+    Difficulty,
+    {
+      /** Points of inflation above the objective. */
+      readonly inflationOverTarget: number
+      /** Points of unemployment above the sustainable rate. */
+      readonly unemploymentGap: number
+      /** The output gap that goes with it. */
+      readonly outputGap: number
+      /** Real growth on the opening meeting. */
+      readonly realGrowth: number
+      /** Cost-push pressure, which is what makes it stagflation. */
+      readonly supplyShock: number
+      /** How loose the anchor already is. Subtracted. */
+      readonly anchoring: number
+    }
+  >
+> = {
+  /*
+   * ~5 % inflation, ~7 % unemployment at the Fed, growth barely positive —
+   * and **no cost-push shock**.
+   *
+   * The levels are the ones asked for. The *cause* is deliberately different
+   * from medium's: easy's inflation is held up by an unanchored expectation
+   * rather than by costs pushed in from outside. Both produce a high print
+   * beside high unemployment; only one of them can be fixed by the rate.
+   *
+   * Measured, with a 0.6 cost-push on easy, competent play solved 9 of 30
+   * tutorials against passive play's 11 — the tutorial taught that acting
+   * was worse than waiting, because tightening into a supply shock buys
+   * unemployment and the goal needs both halves. An unreachable target is
+   * hard mode's design and was settled as such; it has no business being the
+   * first thing a player meets.
+   */
+  easy: {
+    inflationOverTarget: 3.0,
+    unemploymentGap: 2.8,
+    outputGap: -3.0,
+    realGrowth: 0.4,
+    supplyShock: 0,
+    anchoring: 0.2,
+  },
+  // ~8 % inflation, ~8.5 % unemployment, growth negative: a real stagflation.
+  medium: {
+    inflationOverTarget: 6.0,
+    unemploymentGap: 4.3,
+    outputGap: -4.0,
+    realGrowth: -1.0,
+    supplyShock: 1.6,
+    anchoring: 0.18,
+  },
+  // Worse on every reading, and the cost-push that makes the objective
+  // unreachable by the rate alone is already running. That last part was
+  // settled earlier and is deliberately untouched here.
+  /*
+   * Worse than medium on every reading, with the cost-push that makes the
+   * objective unreachable by the rate alone already running — which was
+   * settled earlier and is untouched.
+   *
+   * **Moderated from +7.5 / +5.0 after measuring.** At that opening hard
+   * stopped being a game: median tenure was 8 meetings and competent play
+   * scored only 4.8x a *sabotaging* one, against a suite that requires 5x and
+   * normally sees 20x. Everything died, so skill stopped separating from
+   * vandalism — which is the one property the winnability suite exists to
+   * protect.
+   *
+   * The dial turned is the opening rather than event severity, because
+   * severity is hard's character and the opening is the thing that just
+   * changed underneath it. Measured over 30 seeds, holding severity at 0.88:
+   *
+   *   opening +7.5 / +5.0   fed  4.8x, tenure  8    ecb  5.4x, tenure 10
+   *   opening +6.8 / +4.6   fed 16.5x, tenure 11    ecb  7.4x, tenure 15
+   *   opening +6.3 / +4.3   fed 18.9x, tenure 11    ecb 21.1x, tenure 16
+   *
+   * There is a cliff between the first two rows: it is where competent play
+   * stops being killed regardless of how it plays. +6.8 is the far side of
+   * it, and still the worst board in the game. See `dev/hardFit.ts`.
+   */
+  hard: {
+    inflationOverTarget: 6.8,
+    unemploymentGap: 4.6,
+    outputGap: -4.3,
+    realGrowth: -1.5,
+    supplyShock: 2.0,
+    anchoring: 0.24,
+  },
+}
+
 export const TUTORIAL_DAMAGE = {
   /** Added to headline and core inflation. */
   inflation: 2.4,
@@ -150,6 +279,58 @@ export function runSeedString(config: RunConfig): string {
 }
 
 /** Assembles a RunConfig, filling in the mandate length for the difficulty. */
+/**
+ * The wreck, applied to an opening latent state.
+ *
+ * Separate from `createInitialState` so it can run *before* the lag buffers
+ * are filled — see the call site. A scenario is exempt: its opening is the
+ * situation that actually obtained, with sources.
+ */
+function damaged(
+  latent: LatentState,
+  config: RunConfig,
+  inst: { readonly inflationTarget: number },
+  /**
+   * Opt-out, honoured.
+   *
+   * Several measurement harnesses open on a *clean* economy on purpose —
+   * `events/consequence.test.ts` asks whether each event changes a competent
+   * committee's package, and an economy already six points from target pins
+   * that committee at its rate rail, where nothing changes anything. When
+   * this moved out of the late block it silently stopped reading the option
+   * and seventeen events were reported as having no consequence. They had
+   * the same consequence they always had; the harness had lost its control.
+   */
+  apply: boolean,
+): LatentState {
+  if (!apply) return latent
+  if (config.scenario !== null) return latent
+
+  const damage = OPENING_DAMAGE[config.difficulty]
+  const target = inst.inflationTarget
+  const natural = latent.naturalUnemployment
+  const hurtInflation = target + damage.inflationOverTarget
+
+  return {
+    ...latent,
+    inflationHeadline: hurtInflation,
+    inflationCore: hurtInflation - 0.4,
+    // Expectations have followed it most of the way up, which is what makes
+    // the repair cost something rather than being a matter of waiting.
+    expectedInflationShort: target + damage.inflationOverTarget * 0.6,
+    expectedInflationLong: target + damage.inflationOverTarget * 0.3,
+    anchoring: clamp(latent.anchoring - damage.anchoring, 0.2, 1),
+    unemployment: clamp(natural + damage.unemploymentGap, 1.5, 20),
+    outputGap: damage.outputGap,
+    realGrowth: damage.realGrowth,
+    // The cause. Without it the two readings above are an incoherent state
+    // the model heals on its own, and a wreck that repairs itself teaches the
+    // opposite of the lesson.
+    supplyShock: clamp(latent.supplyShock + damage.supplyShock, -4, 5),
+    wageGrowth: clamp(latent.wageGrowth + damage.inflationOverTarget * 0.45, 0, 14),
+  }
+}
+
 export function createRunConfig(options: {
   readonly institution: Institution
   readonly difficulty: RunConfig['difficulty']
@@ -469,7 +650,24 @@ export function createInitialState(
             exchangeRate: scenario.opening.exchangeRate,
           }),
         }
-  const latentAtOpen = opened
+  /*
+   * The damage goes on **here**, before the lag buffers are filled.
+   *
+   * It used to be applied further down, after the state was built — which
+   * meant `fillLag` encoded the *undamaged* economy as the opening steady
+   * state. A committee inheriting a wreck would get a convolution history
+   * belonging to a calm economy, and the first few meetings would be pulled
+   * by a past that never happened.
+   *
+   * That was survivable while only the tutorial was damaged and the damage
+   * was small. It stopped being survivable the moment every difficulty opened
+   * on a real stagflation, and the counterfactual test caught it: the
+   * replayed arm drifted 8.5e-7 from the live run by the second meeting,
+   * against a tolerance of 1e-9. A counterfactual that drifts is measuring
+   * the replay rather than the policy, which is the one thing it exists not
+   * to do.
+   */
+  const latentAtOpen = damaged(opened, config, inst, options.tutorialDamage ?? true)
 
   // The market opens priced roughly on the benchmark, not on a blank slate.
   // The ceiling is the fictional modes' own, and a scenario needs more room:
@@ -527,30 +725,6 @@ export function createInitialState(
   // `DifficultyConfig.openingCrisisCharacters` — `applyOpeningCrisis` is a
   // no-op where that is null, so the difficulty rule lives in the config
   // rather than being spelled a second time here.
-  // The tutorial opens damaged, so that repairing it is the lesson. Applied
-  // before the opening crisis, which then lands on an economy already in
-  // trouble — which is also what a real committee inherits.
-  const damage = getDifficulty(config.difficulty).tutorialGoal
-  if (damage !== null && (options.tutorialDamage ?? true)) {
-    const hurt: LatentState = {
-      ...state.latent,
-      inflationHeadline: state.latent.inflationHeadline + TUTORIAL_DAMAGE.inflation,
-      inflationCore: state.latent.inflationCore + TUTORIAL_DAMAGE.inflation,
-      expectedInflationShort:
-        state.latent.expectedInflationShort + TUTORIAL_DAMAGE.shortExpectations,
-      expectedInflationLong:
-        state.latent.expectedInflationLong + TUTORIAL_DAMAGE.longExpectations,
-      anchoring: clamp(state.latent.anchoring + TUTORIAL_DAMAGE.anchoring, 0, 1),
-      unemployment: state.latent.unemployment + TUTORIAL_DAMAGE.unemployment,
-      outputGap: state.latent.outputGap + TUTORIAL_DAMAGE.outputGap,
-    }
-    state = {
-      ...state,
-      latent: hurt,
-      history: [{ meetingIndex: 0, timeYears: 0, latent: hurt, members }],
-    }
-  }
-
   // A historical mandate does not get a drawn opening crisis. Its opening is
   // the situation that actually obtained, and the things that broke it are on
   // the scenario's calendar with dates on them.

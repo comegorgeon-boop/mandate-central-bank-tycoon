@@ -177,7 +177,7 @@ export function advanceScoreboard(
   // ---- 1. Carry every open trial one meeting further ----------------------
   const carried = board.open.map((trial) => ({
     ...trial,
-    arm: advanceArm(trial.arm, pkg, events),
+    arm: advanceArm(trial.arm, pkg, events, before.observation),
   }))
 
   // ---- 2. Judge the ones that have come due -------------------------------
@@ -219,7 +219,12 @@ export function advanceScoreboard(
       doctrine: doctrine.id,
       decidedAt: meetingIndex,
       dueAt: meetingIndex + HORIZON,
-      arm: advanceArm(before.state, asDoctrineWould(pkg, recommended), events),
+      arm: advanceArm(
+        before.state,
+        asDoctrineWould(pkg, recommended),
+        events,
+        before.observation,
+      ),
       recommended,
       played,
     })

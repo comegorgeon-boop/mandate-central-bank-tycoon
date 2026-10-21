@@ -7,6 +7,7 @@ import { advanceTrueState, applyEffects } from '../engine/advanceTrueState.ts'
 import { applyPolicyPackage } from '../engine/applyPolicyPackage.ts'
 import { resolveEvent } from '../events/resolveEvent.ts'
 import { getSeries } from '../observation/series.ts'
+import type { ObservationSet } from '../types/observation.ts'
 
 /**
  * The same world, without your policy in it.
@@ -110,8 +111,27 @@ export function advanceArm(
   state: SimulationState,
   pkg: PolicyPackage,
   events: readonly ResolvedEventRecord[],
+  /**
+   * What was published before the decision — the same set the real committee
+   * voted on.
+   *
+   * **Required for exactness, and omitting it is not a neutral default.**
+   * `applyPolicyPackage` charges credibility from the committee's reaction,
+   * and with no observation it skips that charge entirely. An arm that
+   * skipped it carried a different credibility from the run, which moves
+   * anchoring, which moves long expectations, which moves inflation — and it
+   * compounds: measured on ecb/medium, the arm matched the run exactly at the
+   * opening meeting and was **0.03 points of inflation out by the twelfth**.
+   *
+   * The observation belongs to the *world*, not to the decision: it is the
+   * measurement of the state before anyone voted, and it is already fixed by
+   * the time a package is submitted. So the arm is entitled to it, and
+   * handing it over is what makes "the counterfactual is exact, not an
+   * estimate" true rather than nearly true.
+   */
+  observation?: ObservationSet,
 ): SimulationState {
-  const applied = applyPolicyPackage(state, pkg)
+  const applied = applyPolicyPackage(state, pkg, observation)
   // A package the real run accepted can still be rejected here — a rate the
   // frozen arm never raised may leave a cut below the floor. Holding instead
   // is the honest fallback: the arm did nothing that meeting.
@@ -138,13 +158,40 @@ export function advanceArm(
     })),
   )
 
+  /*
+   * The world's own bookkeeping, taken from the world and not from the arm.
+   *
+   * `resolveEvent` above is called only for its generator — everything else
+   * it returns is discarded, because the arm is *told* which events fired
+   * rather than drawing its own. That discarded everything included
+   * `meetingsSinceEvent`, which the resolver maintains and which feeds the
+   * Minsky fragility accumulator in `dynamics`. So the arm carried a stale
+   * counter, its fragility diverged from the run's, and the difference
+   * compounded.
+   *
+   * Measured before the fix, on ecb/medium: the arm matched the run exactly
+   * at the opening meeting, was 8.5e-7 out by the second and **0.03 points
+   * of inflation out by the twelfth** — which is visible at the one decimal
+   * place the postmortem prints, in the one component of this game whose
+   * entire promise is that it is exact.
+   *
+   * It is derived from `events` rather than copied from the resolution,
+   * because `events` *is* the real run's record of what landed. That makes
+   * the arm's counter correct by construction rather than correct by two
+   * code paths agreeing.
+   */
+  const sinceEvent =
+    events.length > 0 ? 0 : base.latent.meetingsSinceEvent + 1
+
+  const withEffects =
+    immediate.length === 0
+      ? base.latent
+      : clampLatentState(applyEffects(base.latent, immediate), base.stepIndex, [])
+
   return advanceTrueState({
     ...base,
     rng: drawn,
-    latent:
-      immediate.length === 0
-        ? base.latent
-        : clampLatentState(applyEffects(base.latent, immediate), base.stepIndex, []),
+    latent: { ...withEffects, meetingsSinceEvent: sinceEvent },
     pendingEffects: [...base.pendingEffects, ...pending],
     eventLog: events.length === 0 ? base.eventLog : [...base.eventLog, ...events],
   })

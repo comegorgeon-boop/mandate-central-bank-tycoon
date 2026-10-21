@@ -78,7 +78,15 @@ export function advanceArms(
   for (const frozen of ARMS) {
     const state = arms[frozen]
     if (state === undefined) continue
-    next[frozen] = advanceArm(state, withoutGroup(pkg, frozen), events)
+    // The observation the real committee voted on. Without it the arm skips
+    // the credibility charge and drifts — 0.03 points of inflation by the
+    // twelfth meeting, in the one component whose promise is exactness.
+    next[frozen] = advanceArm(
+      state,
+      withoutGroup(pkg, frozen),
+      events,
+      before.observation,
+    )
   }
   return next
 }
