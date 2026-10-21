@@ -988,3 +988,8 @@ because it was asked for and because it is now good. The honest cost is that
 every future component has to be checked twice, by the slowest check there is,
 and the history of this project says that is exactly where the next silent
 failure will be.
+
+**Merged and deployed.** `84fa4f3` into main, live at
+`mandate-central-bank-tycoon.comegorgeon.workers.dev`, and
+`MANDATE_URL=… npm run check:offline` against the deployed site is clean: 27
+requests, all to this origin, a whole mandate played with the wire cut.
