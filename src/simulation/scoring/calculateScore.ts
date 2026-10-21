@@ -23,12 +23,11 @@ import {
   SCORE_WEIGHTS,
   SHOCK_RESPONSE,
   STRESS_PENALTY_FLOOR,
-  COHESION_BLEND,
   SUPPLY_REGIME,
   VALUATION_TOLERANCE,
 } from '../config/scoring.ts'
 import { supplyRegimePressure, unemploymentGap } from '../engine/indices.ts'
-import { dispersion } from '../engine/members.ts'
+import { cohesionChannels } from './cohesionPenalty.ts'
 // The equity index is read through its own series definition rather than
 // recomputed here, so the number the scorecard judges is the number the player
 // watched all mandate.
@@ -290,19 +289,14 @@ export function calculateScore(
   // economy the mandate produced, not about how well it was measured. A
   // scorecard that graded dispersion on noisy releases would reward a mandate
   // for a quiet quarter of measurement error.
-  const cohesionPenalty = mean(
-    history.map((snapshot) => {
-      const members = snapshot.members
-      if (members.length === 0) return 0
-      const spreads = members.map((member) => member.spread)
-      const range = Math.max(...spreads) - Math.min(...spreads)
-      return (
-        COHESION_BLEND.inflation * dispersion(members, 'inflationOffset') +
-        COHESION_BLEND.unemployment * dispersion(members, 'unemploymentOffset') +
-        range / COHESION_BLEND.spreadRange
-      )
-    }),
-  )
+  //
+  // Built in `scoring/cohesionPenalty.ts` rather than here, because the
+  // committed script that calibrates `COHESION_TOLERANCE` against this number
+  // was computing a different statistic from these same three lines — a
+  // standard deviation where the score charges a weighted mean absolute
+  // deviation. One place, now, and everything that needs the penalty calls it.
+  const cohesion = cohesionChannels(history)
+  const cohesionPenalty = cohesion.total
   // Only the part the chair could have done something about. See
   // `COHESION_TOLERANCE`: the area is structurally dispersed and always will
   // be, and scoring that is scoring the weather.

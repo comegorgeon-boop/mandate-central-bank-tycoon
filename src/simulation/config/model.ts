@@ -395,8 +395,19 @@ export const FRAGMENTATION = {
     volatilitySensitivity: 3.0,
     /** Widening in a recession. */
     gapSensitivity: 16.0,
-    /** Compression from the transmission-protection instrument. */
-    protectionSupport: 190,
+    /*
+     * There was a `protectionSupport: 190` here, documented as "compression
+     * from the transmission-protection instrument", and **nothing read it**.
+     * The compression the engine actually applies is
+     * `INSTRUMENT_EFFECTS.transmissionProtection.fragmentationRelief`, which
+     * is 95 — so this file stated the instrument was twice as strong as it is,
+     * in a constant no code path could reach. A balance pass that trusted it
+     * would have tuned the wrong number and measured no change.
+     *
+     * Every instrument's strength lives in `INSTRUMENT_EFFECTS`, beside the
+     * instrument it belongs to. The same deletion removed `facilitySupport:
+     * 16` from the Fed block below, for the same reason.
+     */
     adjustment: 3.0,
     /** Share of policy transmission lost at full impairment. */
     impairment: 0.35,
@@ -410,8 +421,6 @@ export const FRAGMENTATION = {
     tighteningSpeed: 11.0,
     assetBust: 0.5,
     stressSensitivity: 0.45,
-    /** Relief from the discount window and standing facilities. */
-    facilitySupport: 16,
     adjustment: 2.4,
     impairment: 0.25,
     impairmentScale: 100,

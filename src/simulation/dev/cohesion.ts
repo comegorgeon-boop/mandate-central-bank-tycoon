@@ -15,7 +15,16 @@
  * that this constant would need re-measuring and that the script which did it
  * lived in a scratchpad that did not survive. This is that script, committed.
  *
- * Run with: node src/simulation/dev/cohesion.ts
+ * **It got this wrong once, and the correction is the reason to read it.** This
+ * script used to declare its own `dispersion` — an unweighted population
+ * standard deviation — and say in its own docstring that it "duplicates the
+ * three lines of `calculateScore` that build the penalty". The score charges a
+ * *GDP-weighted mean absolute deviation*, which is a different statistic, so
+ * the tolerance that decides whether the chair is charged anything at all was
+ * calibrated against a number the chair is never charged on. Both now call
+ * `scoring/cohesionPenalty.ts`, which exists so there is one of it.
+ *
+ * Run with: npx tsx src/simulation/dev/cohesion.ts
  *
  * Read the output as: **the tolerance belongs at about the `competent` floor**
  * — the lowest penalty a well-played area reaches — and the gap between the
@@ -26,56 +35,16 @@
 
 import type { Difficulty } from '../types/core.ts'
 import { SIMULATION_VERSION } from '../version.ts'
-import { COHESION_BLEND, COHESION_TOLERANCE } from '../config/scoring.ts'
+import { COHESION_TOLERANCE } from '../config/scoring.ts'
 import { createRunConfig } from '../engine/initialState.ts'
 import { calculateScore } from '../scoring/calculateScore.ts'
+import { cohesionPenalty } from '../scoring/cohesionPenalty.ts'
 import { playRun } from '../replay/replayRun.ts'
 import { toolkitPackage } from '../policy/toolkitRule.ts'
 
 const RUNS = 100
 
-const DIFFICULTIES: readonly Difficulty[] = ['medium', 'hard']
-
-function dispersion(
-  members: readonly { readonly inflationOffset: number; readonly unemploymentOffset: number }[],
-  key: 'inflationOffset' | 'unemploymentOffset',
-): number {
-  const values = members.map((member) => member[key])
-  const mean = values.reduce((a, b) => a + b, 0) / values.length
-  return Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length)
-}
-
-/**
- * The blended penalty, recomputed here rather than read off the score.
- *
- * The score only exposes the component *after* the tolerance has been
- * subtracted and the scale applied, so it cannot say where the floor is. This
- * duplicates the three lines of `calculateScore` that build the penalty, which
- * is the price of being able to measure the input to a constant that is itself
- * an input to the score.
- */
-function penaltyOf(
-  history: readonly {
-    readonly members: readonly {
-      readonly inflationOffset: number
-      readonly unemploymentOffset: number
-      readonly spread: number
-    }[]
-  }[],
-): number {
-  const perMeeting = history.map((snapshot) => {
-    const members = snapshot.members
-    if (members.length === 0) return 0
-    const spreads = members.map((member) => member.spread)
-    const range = Math.max(...spreads) - Math.min(...spreads)
-    return (
-      COHESION_BLEND.inflation * dispersion(members, 'inflationOffset') +
-      COHESION_BLEND.unemployment * dispersion(members, 'unemploymentOffset') +
-      range / COHESION_BLEND.spreadRange
-    )
-  })
-  return perMeeting.reduce((a, b) => a + b, 0) / Math.max(1, perMeeting.length)
-}
+const DIFFICULTIES: readonly Difficulty[] = ['easy', 'medium', 'hard']
 
 function quantile(values: readonly number[], fraction: number): number {
   const sorted = [...values].sort((a, b) => a - b)
@@ -108,7 +77,7 @@ function main(): void {
             ? toolkitPackage(current, 'ecb', difficulty)
             : { actions: [], communication: null },
         )
-        penalties.push(penaltyOf(session.state.history))
+        penalties.push(cohesionPenalty(session.state.history))
         const score = calculateScore(session.state, session.outcome)
         const cohesion = score.components.find((c) => c.id === 'cohesion')
         if (cohesion) components.push(cohesion.raw)
