@@ -132,10 +132,22 @@ describe('every meeting opens with an order, never a description', () => {
     }
   })
 
-  it('names the leg the rate cannot reach when energy is doing the work', () => {
-    // The thing the engine always knew and never said. Not asserted on every
-    // meeting — it depends on the economy — but it has to be reachable, or
-    // the decomposition is decoration.
+  it('warns in the FIRST sentence when the rate cannot close the gap', () => {
+    /*
+     * The thing the engine always knew and never said — and it has to be in
+     * the **first** sentence, not the second.
+     *
+     * `dev/orderOnly.ts` found out why. The quick surface shows one sentence
+     * to stay inside its word budget, and the warning was in the second one,
+     * so the screen that shows a single sentence was showing the single
+     * sentence without the warning in it. A reader with only that line
+     * tightened into a cost-push shock the rate could not touch and broke the
+     * banking system in nine of forty easy mandates. Moving the clause took
+     * that to zero and the easy criterion from 78 % to 100 %.
+     *
+     * So this asserts the wording *and*, by taking the first sentence the way
+     * `firstSentence` does, that it survives the compaction.
+     */
     const config = createRunConfig({
       institution: 'fed',
       difficulty: 'hard',
@@ -145,7 +157,32 @@ describe('every meeting opens with an order, never a description', () => {
     let session = startRun(config)
     let sawIt = false
     for (let meeting = 0; meeting < 40; meeting += 1) {
-      if (readOrder(session).detail.includes('cannot reach')) sawIt = true
+      // The wording moved into the first sentence, so the quick surface — which
+      // shows only that sentence — carries the warning too. See `order.ts`.
+      if (readOrder(session).detail.includes('will not answer to the rate')) sawIt = true
+      const result = submitMeeting(session, toolkitPackage(session, 'fed', 'hard'))
+      if (!result.ok) break
+      session = result.session
+      if (session.outcome.status !== 'active') break
+    }
+    expect(sawIt).toBe(true)
+  })
+
+  it('keeps the unreachable warning inside the compacted first sentence', () => {
+    const config = createRunConfig({
+      institution: 'fed',
+      difficulty: 'hard',
+      seed: 'order-energy',
+      simulationVersion: SIMULATION_VERSION,
+    })
+    let session = startRun(config)
+    let sawIt = false
+    for (let meeting = 0; meeting < 40; meeting += 1) {
+      const { detail } = readOrder(session)
+      // The same rule `OrderBanner` applies in compact mode: everything up to
+      // the first period that is followed by a space and a capital.
+      const first = detail.match(/^.*?\.(?=\s+[A-Z]|\s*$)/)?.[0] ?? detail
+      if (first.includes('will not answer to the rate')) sawIt = true
       const result = submitMeeting(session, toolkitPackage(session, 'fed', 'hard'))
       if (!result.ok) break
       session = result.session

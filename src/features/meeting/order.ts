@@ -94,16 +94,31 @@ export function readOrder(session: RunSession): MeetingOrder {
       ? 'Bring inflation back down.'
       : 'Get inflation back up to target.'
 
+    /*
+     * **The unreachable share goes in the first sentence, not the second.**
+     *
+     * This was the other way round, and `dev/orderOnly.ts` found it: a reader
+     * that sees only the order line kept tightening into a cost-push shock
+     * the rate could not touch, and nine of forty easy mandates ended in a
+     * banking crisis of the reader's own making. The clause that prevents
+     * exactly that — *"1.2 of those points will not answer to you"* — was in
+     * the second sentence, which the quick surface drops to stay inside its
+     * word budget.
+     *
+     * So the one screen that shows a single sentence was showing the single
+     * sentence that does not contain the warning. Distance and reachability
+     * now travel together, because a distance you cannot close is a
+     * different instruction from a distance you can.
+     */
+    const unreachable = leg !== null && leg.answersToRates === 'no' && leg.share > 0.3
     const parts: string[] = [
-      `${absPrice.toFixed(1)} points ${rising ? 'above' : 'below'} the ${target.toFixed(1)} % objective.`,
+      unreachable
+        ? `${absPrice.toFixed(1)} points ${rising ? 'above' : 'below'} the ${target.toFixed(1)} % objective, and ${outOfReach.toFixed(1)} of them will not answer to the rate — it is mostly ${leg.label}.`
+        : `${absPrice.toFixed(1)} points ${rising ? 'above' : 'below'} the ${target.toFixed(1)} % objective.`,
     ]
 
-    if (leg !== null && leg.share > 0.3) {
-      parts.push(
-        leg.answersToRates === 'no'
-          ? `Mostly ${leg.label}, which the rate cannot reach — ${outOfReach.toFixed(1)} of those points will not answer to you.`
-          : `Mostly ${leg.label}.`,
-      )
+    if (leg !== null && leg.share > 0.3 && !unreachable) {
+      parts.push(`Mostly ${leg.label}.`)
     }
 
     // The cost of inaction, from the engine's own persistence: an unanchored

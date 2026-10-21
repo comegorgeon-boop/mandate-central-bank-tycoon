@@ -929,3 +929,62 @@ ten, which is why it keeps being the last thing run and the last thing
 believed — and both of those are the wrong way round.
 
 **Not merged.** Four commits on `terminal`, nothing on main, as asked.
+
+---
+
+## 20 — The order carries its own warning, and the second direction becomes a note
+
+**What I did.** Four corrections after the terminal was accepted. Built
+`dev/orderOnly.ts` — a player that cannot see the screen and reads *only* the
+order line — because that is the right test to hang a word budget on: a budget
+measures how much there is to read, and what matters is how much is
+**compulsory**. Deleted the last piece of the old world ("The mandate is on an
+even keel / The record so far") and absorbed its severe warnings into the
+order banner, which now sits at the top of both surfaces. Labelled every
+segment of the cause bar — inside the segment where it fits, in a legend where
+it does not. Turned the second visual direction from a hybrid into a single
+printed sheet with the engraved braid at its head.
+
+**What I measured.** The order-only player:
+
+| | served | median tenure | what ended it |
+| --- | --- | --- | --- |
+| fed/easy | **40/40** | 20 meetings | objective met ×23, missed ×17 |
+| ecb/easy | **40/40** | 28 meetings | objective met ×16, missed ×24 |
+| fed/medium | 0/40 | 32 meetings | not reappointed ×15, banking ×11 |
+| fed/hard | 0/40 | 16 meetings | banking ×21, spiral ×8 |
+
+So the forty words are confirmed optional: the easy tutorial is servable
+blind, on one line, every seed. And the ladder still works — one line keeps
+you alive on medium for a full four-year term and still loses you the hearing.
+
+**Getting there found a real defect, and it is the entry.** The first run
+served 45 %, with 22 of 40 easy mandates ending in a banking crisis of the
+reader's own making, because it tightened a quarter point every meeting for
+eighteen meetings. Two causes, and only one of them was the reader:
+
+1. It had no memory, so it compounded its own dose while the order went on
+   truthfully reporting an inflation rate that policy would not reach for a
+   year. Giving it the one sentence the game's own second dispatch teaches —
+   *act, then wait* — took it to 78 %.
+2. **The clause that prevents the other failure was in the second sentence.**
+   The order said *"1.2 of those points will not answer to you"* — and the
+   quick surface shows only the first sentence, to stay inside its budget. So
+   the one screen that shows a single sentence was showing the single sentence
+   without the warning in it. Moving distance and reachability into the same
+   sentence took it to **100 %**, and banking crises on easy from nine to
+   zero.
+
+That is the best thing the word budget has done. It forced a one-sentence
+form, the one-sentence form was tested, and the test found that the sentence
+was the wrong half.
+
+**What still bothers me.** The second direction is now genuinely a note rather
+than the terminal bleached — one sheet, ink on cream, an engraved braid, the
+seal and the serial finally meaning something. But it still doubles the audit
+forever, and today's failures were *all* in it: 2,467 across 300 states, three
+distinct bugs, none visible in the direction I was working in. It is kept
+because it was asked for and because it is now good. The honest cost is that
+every future component has to be checked twice, by the slowest check there is,
+and the history of this project says that is exactly where the next silent
+failure will be.

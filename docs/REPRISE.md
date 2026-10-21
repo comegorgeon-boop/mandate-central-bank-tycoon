@@ -44,7 +44,9 @@ Run these before believing anything above.
 | tests | `npm test` | 1130 passing |
 | lint | `npm run lint` | 0 errors, 13 warnings |
 | contrast | `npm run check:contrast` | 0 failures / 664 states, **both directions** |
-| classes | `npm run check:classes` | 278 names, all real |
+| classes | `npm run check:classes` | 281 names, all real |
+| words | `npm run check:words` | quick 31 steady (cap 40), heavy 282 |
+| order only | `npx tsx src/simulation/dev/orderOnly.ts` | **40/40** easy mandates served blind |
 | offline | `npm run check:offline` | clean, 27 requests, all this origin |
 | cadence | `npx tsx src/simulation/dev/cadence.ts` | longest calm run **2** everywhere |
 | severity | `npx tsx src/simulation/dev/severity.ts` | a major costs 2.0–7.8× a minor |
@@ -52,12 +54,11 @@ Run these before believing anything above.
 
 ## Open, in QUESTIONS.md
 
-- **#9** the quick surface is 40 words against a budget frozen at 24. Every
-  remaining word is something the brief asks for by name. Mine to be
-  overruled on, with the exact accounting and the cheapest two cuts named.
-- **#10** "papers on the table" is a cream paper direction inside a game whose
-  other face is a dealing screen. Kept because removing a setting was not
-  asked for.
+- **#12** the 40-word cap is settled and executable: `npm run check:words`
+  fails above it, and `orderOnly.ts` proves the words are optional.
+- **#13** the second direction is now **The banknote** — one printed sheet,
+  ink on cream, an engraved braid at its head — rather than a hybrid. Kept
+  deliberately. Its honest cost is in that entry.
 - **#7, #8** the terminal's own decisions: the second direction, and radius
   and shadow going to zero globally.
 

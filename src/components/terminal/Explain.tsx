@@ -54,10 +54,21 @@ export function OrderBanner({
   detail,
   severity,
   compact = false,
+  warnings = [],
 }: {
   readonly command: string
   readonly detail: string
   readonly severity: 'calm' | 'watch' | 'urgent'
+  /**
+   * Severe end-condition warnings, absorbed from the standing line.
+   *
+   * These are the alarms that say a mandate is about to end, and they used
+   * to live in a panel above this banner. An alarm above the instruction is
+   * an alarm that gets read second — and an alarm in its own box is an alarm
+   * the eye learns to skip. They belong inside the one thing the screen
+   * promises is worth reading.
+   */
+  readonly warnings?: readonly string[]
   /**
    * On the quick surface, the first sentence only.
    *
@@ -89,6 +100,19 @@ export function OrderBanner({
       <p className="mt-0.5 font-mono text-xs leading-relaxed text-ink-soft">
         {compact ? firstSentence(detail) : detail}
       </p>
+      {warnings.length > 0 && (
+        <ul className="mt-1 border-t border-bad pt-1">
+          {warnings.map((warning) => (
+            <li
+              key={warning}
+              role="alert"
+              className="font-mono text-2xs leading-relaxed text-bad"
+            >
+              {warning}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
@@ -134,8 +158,20 @@ export function CauseBar({
 
   return (
     <div data-cause-bar="">
+      {/*
+        Taller than a progress bar, because the segments carry their names.
+
+        > "LA BARRE « WHAT IS CAUSING IT » N'EST PAS ÉTIQUETÉE. Je vois des
+        > segments, je ne sais pas lesquels. Chaque segment porte son nom en
+        > deux mots, sinon l'image ne dit rien — et c'était tout l'intérêt."
+
+        Exactly right, and it was the whole point of drawing it. An unlabelled
+        stack of coloured blocks is not a decomposition, it is a progress bar
+        with ideas — and a progress bar of nothing in particular is worse than
+        the sentence it replaced, because at least the sentence said "energy".
+      */}
       <div
-        className="flex h-3 w-full overflow-hidden border border-edge"
+        className="flex h-5 w-full overflow-hidden border border-edge"
         role="img"
         aria-label={ordered
           .map((c) => `${c.label} ${(c.share * 100).toFixed(0)} per cent`)
@@ -147,33 +183,49 @@ export function CauseBar({
             initial={reduced ? false : { width: 0 }}
             animate={{ width: `${cause.share * 100}%` }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            style={{ background: CAUSE_FILL[cause.id] }}
+            style={{ background: CAUSE_FILL[cause.id], color: 'var(--color-term-void)' }}
+            className="flex items-center justify-center overflow-hidden whitespace-nowrap px-1 font-mono text-[9px] font-semibold uppercase tracking-[0.06em]"
             title={`${cause.label}: ${cause.points >= 0 ? '+' : '−'}${Math.abs(cause.points).toFixed(2)} points`}
-          />
+          >
+            {/* The name goes *in* the segment when it fits. Below about a
+                sixth of the bar it cannot, and the legend underneath carries
+                it instead — so every segment is named either way, which is
+                the rule, rather than only the ones that happen to be wide. */}
+            {cause.share >= 0.17 ? cause.label : ''}
+          </motion.span>
         ))}
       </div>
-      {!compact && (
-        <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-          {ordered
-            .filter((cause) => cause.share > 0.04)
-            .map((cause) => (
-              <li
-                key={cause.id}
-                className="flex items-center gap-1 font-mono text-2xs text-ink-soft"
-              >
-                <span
-                  aria-hidden="true"
-                  className="inline-block h-2 w-2"
-                  style={{ background: CAUSE_FILL[cause.id] }}
-                />
-                {cause.label}{' '}
+
+      {/* The legend names everything the bar could not, and repeats the
+          shares. It is a list of labels rather than prose, so it costs the
+          quick meeting's word budget nothing — which is why it can be here
+          on both surfaces instead of only the heavy one. */}
+      <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+        {ordered
+          .filter((cause) => cause.share > 0.02)
+          .map((cause) => (
+            <li
+              key={cause.id}
+              className="flex items-center gap-1 font-mono text-2xs text-ink-soft"
+            >
+              <span
+                aria-hidden="true"
+                className="inline-block h-2 w-2 shrink-0"
+                style={{ background: CAUSE_FILL[cause.id] }}
+              />
+              {cause.label}{' '}
+              <span className="tabular-nums text-ink-faint">
+                {(cause.share * 100).toFixed(0)}%
+              </span>
+              {!compact && (
                 <span className="tabular-nums text-ink-faint">
-                  {(cause.share * 100).toFixed(0)}%
+                  ({cause.points >= 0 ? '+' : '−'}
+                  {Math.abs(cause.points).toFixed(2)})
                 </span>
-              </li>
-            ))}
-        </ul>
-      )}
+              )}
+            </li>
+          ))}
+      </ul>
     </div>
   )
 }

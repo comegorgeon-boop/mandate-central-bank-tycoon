@@ -21,10 +21,8 @@ import { Chip, Seal, SerialNumber } from '../../components/engraving/Chip.tsx'
 import {
   CauseBar,
   HeadlineFigure,
-  OrderBanner,
   ShockPanel,
 } from '../../components/terminal/Explain.tsx'
-import { readOrder } from './order.ts'
 import { readDispatches } from './dispatches.ts'
 import {
   Arrow,
@@ -176,8 +174,8 @@ export function QuickMeeting({
   const stake = surpriseStake(session, move)
   const line = meetingLine(session)
 
-  /* ── The explanation, which is now the top of the screen. ──────────── */
-  const order = readOrder(session)
+  /* ── The explanation. The order itself is drawn above, by the
+        meeting screen; these are the readings it is an order about. ── */
   const inflation = explainInflation(session.state.latent, config)
   const shocks = liveShocks(session.state)
   const dispatches = readDispatches(session, { compact: true })
@@ -226,15 +224,9 @@ export function QuickMeeting({
       style={shake === false ? undefined : shake}
       className="mt-3 border-y border-edge-strong bg-page"
     >
-      {/* ── Rank one: the order, then the two figures with their causes.
-            Always here, at the top, whatever the meeting weighs. ─────── */}
-      <OrderBanner
-        command={order.command}
-        detail={order.detail}
-        severity={order.severity}
-        compact
-      />
-
+      {/* The order is drawn by `MeetingScreen`, above this component and
+          above the room alike — one banner at the top of both surfaces,
+          rather than one per surface that could drift apart. */}
       <PanelGrid>
         <Panel title="Where it stands" span={3}>
           <div className="grid grid-cols-1 sm:grid-cols-2">

@@ -17,17 +17,17 @@ const DIRECTIONS: readonly {
 }[] = [
   {
     id: 'after-hours',
-    name: 'The room after hours',
+    name: 'The terminal',
     detail:
-      'Walnut throughout, warm off-white text, brass carrying the emphasis. ' +
-      'One material, so the eye adjusts once rather than on every panel.',
+      'Amber on a near-black chassis, panels tiled edge to edge, every ' +
+      'figure in one monospace. A dealing screen.',
   },
   {
     id: 'papers-on-the-table',
-    name: 'Papers on the table',
+    name: 'The banknote',
     detail:
-      'The briefing documents laid out in cream and ink on the dark room. ' +
-      'More striking, and a harder read over a whole mandate.',
+      'The same instrument printed rather than lit: ink on cream, engraved ' +
+      'rules, the seal and the serial. One sheet, not panels on a table.',
   },
 ]
 

@@ -146,6 +146,23 @@ for (const row of rows) {
   )
 }
 console.log('')
-console.log('The steady quick surface is the one held to 24. The guided opening')
+console.log('The steady quick surface is CAPPED AT 40, agreed and frozen there:')
+console.log('any future addition replaces rather than adds. The guided opening')
 console.log('carries three lessons and retires after meeting three; the heavy')
 console.log('surface may grow, because explaining is what it is for.')
+console.log('')
+console.log('What makes the cap safe is `npx tsx src/simulation/dev/orderOnly.ts`:')
+console.log('a player who reads ONLY the order line serves 40/40 easy mandates.')
+console.log('The other words are optional, which is the thing that actually')
+console.log('matters — a budget measures how much there is to read, not how')
+console.log('much of it is compulsory.')
+
+const CAP = 40
+const over = rows.filter((row) => (row.steady ?? 0) > CAP)
+if (over.length > 0) {
+  console.log('')
+  for (const row of over) {
+    console.log(`  OVER CAP: ${row.label} steady surface is ${row.steady} words, cap ${CAP}`)
+  }
+  process.exitCode = 1
+}

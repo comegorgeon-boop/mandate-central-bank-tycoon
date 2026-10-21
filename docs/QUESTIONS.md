@@ -304,3 +304,52 @@ audit noticed, and only because the two directions disagree. A one-file check
 that reads the generated CSS and fails on any `className` token with no
 matching rule would catch the whole class in under a second, and it does not
 exist. It is the first thing in REPRISE.
+
+
+## 12. The 40-word cap, and what it is now enforced against (SETTLED)
+
+You accepted 40 and froze it there: **from now on, any addition replaces.**
+
+The guarantee moved to where it belongs. `npx tsx src/simulation/dev/orderOnly.ts`
+plays a reader that cannot see the screen and parses only the order line:
+
+| | served | median tenure |
+| --- | --- | --- |
+| fed/easy | **40/40** | 20 meetings |
+| ecb/easy | **40/40** | 28 meetings |
+| fed/medium | 0/40 | 32 meetings |
+| fed/hard | 0/40 | 16 meetings |
+
+So the other ~29 words are genuinely optional: the tutorial is servable blind
+on one line, every seed, and the ladder still bites — one line survives a full
+four-year term on medium and still loses the hearing.
+
+**It also found a real defect**, which is the entry worth keeping: the clause
+that prevents the commonest way of losing — *"1.2 of them will not answer to
+the rate"* — was in the order's **second** sentence, and the quick surface
+shows only the first. Nine of forty easy mandates ended in a banking crisis
+the reader inflicted on itself. Moving distance and reachability into one
+sentence took it to 40/40.
+
+## 13. The second direction is now a banknote, not an inversion (APPLIED)
+
+Your decision applied. `papers-on-the-table` was a **hybrid** — cream panels
+floating on a dark walnut room — which against a terminal reads as the
+terminal with the panels bleached. It is now one printed sheet to the edges:
+ink on cream, brass rules, a guilloché braid at the head (`direction-paper:`,
+one custom variant), and the seal and seeded serial finally meaning something.
+
+Renamed in the settings: **The terminal** and **The banknote**.
+
+**The honest cost, since you asked for it straight.** It doubles the contrast
+audit forever — 640 of its 664 states exist to prove the pair, at ten minutes
+a run — and every silent failure this week was in it and only in it: 2,467
+failures across 300 states, three distinct causes, none visible in the
+direction I was working in. Today a fourth: `brass-600` as the fill, which is
+the one value that cannot work because a mid-tone fails against ink *and*
+paper at once.
+
+That is not an argument to remove it — it is good now, and it is the identity
+you started from. It is an argument that the audit has to run **before** a
+pass is called finished rather than after, which is the discipline this has
+cost four times running.

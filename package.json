@@ -15,7 +15,8 @@
     "check:offline": "node tools/offline.mjs",
     "check:contrast": "node tools/contrast.mjs",
     "board": "node tools/board.mjs",
-    "check:classes": "node tools/classes.mjs"
+    "check:classes": "node tools/classes.mjs",
+    "check:words": "node tools/words.mjs"
   },
   "dependencies": {
     "motion": "^14.4.0",
