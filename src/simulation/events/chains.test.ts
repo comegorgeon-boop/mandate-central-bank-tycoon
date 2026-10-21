@@ -47,6 +47,7 @@ function contextFrom(
       Object.keys(occurrences).map((id) => [id, 2]),
     ),
     unlockedFollowUps: [],
+    openerId: null,
   }
 }
 

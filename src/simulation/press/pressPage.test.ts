@@ -163,6 +163,7 @@ describe('an asymmetric event names who it hit', () => {
       occurrences: {},
       lastOccurrence: {},
       unlockedFollowUps: [],
+    openerId: null,
     }) ?? []
     const applied = applyMemberShocks(base.members, shocks, 1)
     const record: ResolvedEventRecord = {

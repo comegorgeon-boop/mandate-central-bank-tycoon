@@ -87,6 +87,15 @@ const MAX_RATIO = 1.5
  * meetings shorter, so the cumulative figure fell — -2.0 points against the
  * -2.3 the four-year term delivered.
  */
+/**
+ * Meetings each measurement run plays, regardless of the run's own fate.
+ *
+ * Thirty-two: a full Fed term, long enough that the slow relief events which
+ * follow a shock are inside the window, and the same for every bucket so the
+ * statistic cannot move with a mode's length.
+ */
+const WINDOW_MEETINGS = 32
+
 const MIN_NET_PER_MEETING = -0.08
 const MAX_NET_PER_MEETING = 0.08
 
@@ -122,7 +131,26 @@ function deliveredImpulses(
   let outcome = evaluateEndConditions(state)
   const impulses: number[] = []
 
-  while (outcome.status === 'active') {
+  /*
+   * A **fixed window**, not "until the run ends".
+   *
+   * This suite measures the *catalogue's* balance, which is the same argument
+   * the severity division below is already making: the statistic must not
+   * move when something that is not the catalogue moves. Playing until the
+   * outcome stops being active was harmless while every mandate was the same
+   * length. Under the survival structure it is not: a run ends when the
+   * player is revoked, revocation follows catastrophes, and catastrophes are
+   * events — so the sample became conditioned on the very stream it is
+   * measuring.
+   *
+   * The size of that effect is not small. Measured over the same seeds, the
+   * net delivered impulse on fed/medium reads −0.019 per meeting over a fixed
+   * window and −0.116 over runs truncated at their revocation. The catalogue
+   * had not changed at all between those two numbers. One of them is a
+   * property of the event table and the other is a property of how mandates
+   * end, and only the first is what this file is named after.
+   */
+  for (let meeting = 0; meeting < WINDOW_MEETINGS; meeting += 1) {
     const applied = applyPolicyPackage(state, { actions: [], communication: null })
     if (!applied.ok) throw new Error('hold was rejected')
     const ctx = buildEventContext(applied.state)
@@ -135,6 +163,9 @@ function deliveredImpulses(
     }
     state = advanceTrueState(resolution.state)
     outcome = evaluateEndConditions(state, outcome.breachCounters)
+    // The economy is still simulated to the end of the window even once the
+    // run would have ended, because the question is what the catalogue
+    // delivers — not what a player would have been there to see.
   }
 
   return impulses
@@ -183,7 +214,12 @@ describe('the event catalog does not write the inflation outcome by itself', () 
             if (impulse > 0) delivered += impulse
             else relieved += -impulse
           }
-          meetings += getDifficulty(difficulty).meetingCount
+          // The window actually played, not the difficulty's nominal length.
+          // `difficulty.meetingCount` stopped being how long a mandate runs
+          // when length became a result rather than a setting, and dividing a
+          // 32-meeting window's impulses by easy's 12 inflated the statistic
+          // by a factor of nearly three.
+          meetings += WINDOW_MEETINGS
         }
 
         // A catalog that never fires its good news is the failure mode, so an

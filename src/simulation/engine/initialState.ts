@@ -5,7 +5,7 @@ import { createPrng } from '../rng/prng.ts'
 import { clamp } from '../config/bounds.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { getInstitution } from '../config/institutions.ts'
-import { MEETING_COUNT } from '../config/time.ts'
+import { tenureHorizon } from '../config/tenure.ts'
 import { BANKING, FISCAL, VOLATILITY } from '../config/model.ts'
 import { INSTRUMENT_EFFECTS } from '../config/instruments.ts'
 import { applyOpeningCrisis } from '../events/openingCrisis.ts'
@@ -181,13 +181,22 @@ export function createRunConfig(options: {
     seed: options.seed,
     mode: options.mode ?? 'fictional',
     scenario: null,
-    // A tutorial has no scheduled length, so its "count" is the point at which
-    // it ends unfinished — the only sense in which it has one. Everything that
-    // divides by `meetingCount` (the share served, the churn allowance) then
-    // still means something rather than dividing by a number the mode ignores.
+    /*
+     * The horizon, not a scheduled end.
+     *
+     * A fictional mandate is now served until revoked — see
+     * `config/tenure.ts`. `meetingCount` is the longest the player could
+     * possibly serve, which is what everything dividing by it (the share
+     * served, the churn allowance, the tempo schedule) needs a denominator
+     * for. It is set by the *institution*, not by the difficulty: a Fed Chair
+     * term is four years whether the economy is kind or not.
+     *
+     * A tutorial keeps its own cap, because it genuinely has one — the point
+     * at which it ends unfinished.
+     */
     meetingCount:
       getDifficulty(options.difficulty).tutorialGoal?.maxMeetings ??
-      MEETING_COUNT[options.difficulty],
+      tenureHorizon(options.institution),
   }
 }
 

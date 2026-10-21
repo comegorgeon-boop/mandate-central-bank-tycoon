@@ -5,6 +5,7 @@ import {
 } from '../simulation/index.ts'
 import { plainHeadline, type Register } from '../features/meeting/register.ts'
 import { TrendChart } from './TrendChart.tsx'
+import { meaningOf } from '../simulation/index.ts'
 
 /**
  * One published indicator.
@@ -66,6 +67,7 @@ export function IndicatorRow({
   readonly register?: Register
 }) {
   const decimals = getSeries(observation.seriesId)?.decimals ?? 2
+  const meaning = meaningOf(observation.seriesId)
   const change = formatChange(observation.value, observation.previous, decimals)
   const figure = (
     <span className="tabular-nums text-lg text-ink">
@@ -102,6 +104,31 @@ export function IndicatorRow({
         reference={reference}
         referenceLabel={referenceLabel}
       />
+
+      {/* The card. What it is, what it does to a real person, and what it
+          should make you do — the third being the one every version of this
+          interface has been missing. The glossary told the player what a
+          credit spread *is*; nothing ever told them that a widening one means
+          their last two rises are already in the economy.
+
+          Folded, so it costs nothing until it is wanted — which is also why
+          it can exist at all: a closed disclosure is outside the word budget,
+          because it is available rather than imposed.
+
+          > "C'est ça le glossaire, pas une page que personne n'ouvre." */}
+      {meaning !== null && (
+        <details className="group mt-2">
+          <summary className="cursor-pointer list-none text-xs text-accent-strong underline decoration-dotted underline-offset-2 marker:content-none">
+            <span className="group-open:hidden">What this means for the decision</span>
+            <span className="hidden group-open:inline">Close</span>
+          </summary>
+          <p className="mt-1 text-xs text-ink-soft">{meaning.is}</p>
+          <p className="mt-1 text-sm text-ink">{meaning.means}</p>
+          <p className="mt-1 border-l-2 border-edge-accent pl-2 text-sm text-accent-strong">
+            {meaning.do}
+          </p>
+        </details>
+      )}
 
       <p className="mt-2 text-xs text-ink-faint">
         {observation.missing ? (

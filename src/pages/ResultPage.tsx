@@ -3,7 +3,6 @@ import {
   MAX_SCORE,
   SCENARIOS,
   getInstitution,
-  tutorialProgress,
   type RunSession,
 } from '../simulation/index.ts'
 import { LineChart, type ChartSeries } from '../components/LineChart.tsx'
@@ -16,6 +15,9 @@ import { TheStandardPanel } from '../features/result/TheStandardPanel.tsx'
 import { AchievementsPanel } from '../features/result/AchievementsPanel.tsx'
 import { AgainstYourselfPanel } from '../features/result/AgainstYourselfPanel.tsx'
 import { buildTheStandard } from '../features/result/theStandard.ts'
+import { bankedTotal } from '../simulation/index.ts'
+import { scenarioVerdict } from '../features/result/scenarioVerdict.ts'
+import { Tally } from '../components/engraving/motion.tsx'
 
 /**
  * The post-mandate report.
@@ -58,11 +60,11 @@ export default function ResultPage() {
   const { config } = session.state
   const institution = getInstitution(config.institution)
   const outcome = session.outcome
-  // Null at every difficulty but easy, which ends on a goal rather than a clock.
-  const tutorial = tutorialProgress(session.state)
   const history = session.state.history
   const meetingsServed = session.state.meetingIndex
   const report = buildMandateReport(session.state, outcome, score)
+  const banked = bankedTotal(session.state)
+  const verdict = scenarioVerdict(session.state, outcome)
 
   const line = (
     label: string,
@@ -85,6 +87,16 @@ export default function ResultPage() {
     navigate('/play/briefing')
   }
 
+  /*
+   * `onwood`, like the meeting screen's chrome and for the same reason: this
+   * header sits straight on the room, which is dark in both directions. The
+   * postmortem *document* below it is on paper and keeps `ink`.
+   *
+   * It was swept to `ink` with everything else this pass and came back at
+   * 1.09:1 in papers-on-the-table — a 36 px heading in near-black on dark
+   * walnut. Correct in the terminal, invisible in the other direction, and
+   * the second time the same sweep made the same mistake in the same pass.
+   */
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8 text-onwood">
       <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
@@ -99,16 +111,41 @@ export default function ResultPage() {
           ? 'Objective met — well done'
           : (outcome.label ?? 'Mandate ended')}
       </h1>
-      <p className="mt-1 text-sm text-onwood-soft">
-        {/* A tutorial has no schedule, so "N of M scheduled meetings" would be
-            reporting against a number it never promised. What it has is the
-            number of meetings it took, which is the interesting figure. */}
-        {tutorial === null
-          ? `${meetingsServed} of ${config.meetingCount} scheduled meetings served.`
-          : outcome.triggered === 'objective_met'
-            ? `The economy was repaired and held in ${meetingsServed} meetings.`
-            : `${meetingsServed} meetings served.`}
+      <p className="mt-1 font-mono text-sm text-onwood-soft">
+        {/* "N of M scheduled meetings" is gone for the same reason "Meeting 3
+            of 16" is: under a survival structure there is no M. What there is
+            is how long you held it, which is now half the result rather than
+            a footnote on it. */}
+        {outcome.triggered === 'objective_met'
+          ? `The economy was repaired and held in ${meetingsServed} meetings.`
+          : `${meetingsServed} meetings served — ${(meetingsServed / 8).toFixed(1)} years in office.`}
       </p>
+
+      {/* The verdict against the record, for a historical scenario that ended
+          early. The scenarios kept their calendars and got this instead. */}
+      {verdict !== null && (
+        <p className="mt-2 border-l-2 border-edge-accent pl-2 font-mono text-sm text-accent-onwood">
+          {verdict}
+        </p>
+      )}
+
+      {/* The banked total: both halves, always. The total alone is a
+          leaderboard of length and the rate alone is the average this whole
+          structure exists to get rid of. */}
+      <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-y border-edge py-1.5 font-mono text-sm">
+        <div className="flex items-baseline gap-2">
+          <dt className="text-2xs uppercase tracking-[0.16em] text-onwood-faint">Banked</dt>
+          <dd className="tabular-nums text-onwood">
+            <Tally value={banked.total} delayMs={240} durationMs={1100} />
+          </dd>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <dt className="text-2xs uppercase tracking-[0.16em] text-onwood-faint">
+            A meeting
+          </dt>
+          <dd className="tabular-nums text-onwood-soft">{banked.perMeeting}</dd>
+        </div>
+      </dl>
 
       {outcome.triggered === 'objective_met' && (
         <section

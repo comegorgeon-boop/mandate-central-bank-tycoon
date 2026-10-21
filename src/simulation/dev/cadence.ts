@@ -60,6 +60,7 @@ function measure(institution: Institution, difficulty: Difficulty) {
   let overlapMeetings = 0
   let meetings = 0
   let mandates = 0
+  const tenures: number[] = []
   const fragilities: number[] = []
   const quietRuns: number[] = []
 
@@ -75,7 +76,14 @@ function measure(institution: Institution, difficulty: Difficulty) {
     let quiet = 0
     let majors = 0
 
-    for (let meeting = 0; meeting < 60; meeting += 1) {
+    /*
+     * Above the 64-meeting tenure horizon, so the loop never truncates a run
+     * the engine would have carried on. Under the old fixed mandate 60 was
+     * generous; under survival an ECB presidency can legitimately reach 64,
+     * and a cap below the horizon would have silently reported every long
+     * mandate as ending where the harness stopped looking.
+     */
+    for (let meeting = 0; meeting < 70; meeting += 1) {
       meetings += 1
       // "Nothing to decide" is a quick meeting at which **nothing landed** —
       // the state described as clicking hold eight times. A quick meeting
@@ -124,6 +132,7 @@ function measure(institution: Institution, difficulty: Difficulty) {
       if (session.outcome.status !== 'active') break
     }
     if (quiet > 0) quietRuns.push(quiet)
+    tenures.push(session.state.meetingIndex)
     totalMajors += majors
   }
 
@@ -135,7 +144,11 @@ function measure(institution: Institution, difficulty: Difficulty) {
       `median run ${String(median).padStart(2)}  ` +
       `majors/mandate ${(totalMajors / mandates).toFixed(2).padStart(5)}  ` +
       `overlap ${((overlapMeetings / meetings) * 100).toFixed(0).padStart(3)} %  ` +
-      `fragility med ${median2(fragilities).toFixed(0).padStart(3)} p90 ${p90(fragilities).toFixed(0).padStart(3)}`,
+      `fragility med ${median2(fragilities).toFixed(0).padStart(3)}  ` +
+      // Added for the survival structure: the guarantee below was measured on
+      // mandates of fixed length, and under tenure a run's length is itself a
+      // result — so the streak has to be read beside how long the runs were.
+      `tenure med ${String(median2(tenures)).padStart(2)} p90 ${String(p90(tenures)).padStart(2)}`,
   )
 }
 

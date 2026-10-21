@@ -126,14 +126,19 @@ describe('the playable loop', () => {
     // A score out of 10,000, with its components broken down.
     expect(screen.getByText('/ 10,000')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Price stability/ })).toBeInTheDocument()
-    expect(screen.getByRole('row', { name: /Mandate completion/ })).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /Tenure/ })).toBeInTheDocument()
 
     // The four post-mandate charts, each with an accessible summary.
     expect(screen.getByRole('img', { name: /^Inflation\./ })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Unemployment\./ })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Policy rate\./ })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Output gap\./ })).toBeInTheDocument()
-  })
+    // Fifteen seconds, not the default five. This renders a whole mandate
+    // through React and both halves of it grew: more meetings open the full
+    // apparatus now, and the decision screen animates its figures. The
+    // assertions are unchanged — a timeout raised because the run got slower
+    // is honest, one raised because an assertion got flakier would not be.
+  }, 15_000)
 
   it('shows every panel at a meeting', () => {
     startRunOnSeed('PANELS')

@@ -11,7 +11,16 @@ import { EXCHANGE, VOLATILITY } from '../config/model.ts'
 import type { ThresholdSet } from '../config/thresholds.ts'
 import { inflationTargetFor, thresholdsFor } from '../scenarios/scenarios.ts'
 import { tutorialExhausted, tutorialProgress } from './tutorialGoal.ts'
+import {
+  COUNCIL,
+  HEARING,
+  TENURE,
+  atTermEnd,
+  hearingBar,
+  termOf,
+} from '../config/tenure.ts'
 import { realRateGap, unemploymentGap } from '../engine/indices.ts'
+import { dispersion } from '../engine/members.ts'
 
 /**
  * End-state evaluation.
@@ -477,6 +486,60 @@ function contributors(state: SimulationState, id: EndConditionId): RawFactor[] {
               : 'Guidance was kept, but performance alone had already cost the institution its standing.',
         },
       ]
+    case 'not_reappointed':
+      return [
+        ...shared,
+        {
+          label: 'Political pressure',
+          weight: (latent.politicalPressure / 100) * 3.2,
+          detail:
+            `Political pressure stood at ${latent.politicalPressure.toFixed(0)} at the ` +
+            'hearing. A Chair the administration has spent a term resenting is a ' +
+            'Chair it does not have to renew.',
+        },
+        {
+          label: 'Standing at the hearing',
+          weight: ((100 - latent.credibility) / 100) * 3,
+          detail:
+            `Credibility stood at ${latent.credibility.toFixed(0)}, against a bar of ` +
+            `${hearingBar(latent.politicalPressure).toFixed(0)} given that pressure.`,
+        },
+        {
+          label: 'Broken guidance',
+          weight: broken * 1.8,
+          detail:
+            broken > 0
+              ? `${broken} unjustified guidance reversal(s) were read out at the hearing.`
+              : 'Guidance was kept. The record was not what lost the hearing.',
+        },
+      ]
+    case 'reappointed':
+      return []
+    case 'council_lost':
+      return [
+        ...shared,
+        {
+          label: 'The Council came apart',
+          weight: 3.4,
+          detail:
+            'Members stopped converging. A president who cannot carry the ' +
+            'Governing Council is finished in substance whatever the Treaty says — ' +
+            'which is what Weber and Stark demonstrated in 2011.',
+        },
+        {
+          label: 'Fragmentation',
+          weight: Math.max(0, (latent.fragmentation - 150) / 100) * 2.5,
+          detail: `Sovereign spreads across the area reached ${latent.fragmentation.toFixed(0)} basis points.`,
+        },
+        {
+          label: 'Broken guidance',
+          weight: broken * 1.4,
+          detail:
+            broken > 0
+              ? `${broken} unjustified guidance reversal(s) cost the chair its authority in the room.`
+              : 'Guidance was kept. What was lost was the argument, not the word.',
+        },
+      ]
     case 'gave_in':
       return [
         ...shared,
@@ -633,14 +696,130 @@ export function evaluateEndConditions(
     }
   }
 
+  /*
+   * ── Survival ────────────────────────────────────────────────────────────
+   *
+   * A fictional mandate has no scheduled end. What it has is a *term*, and at
+   * the end of a term the two institutions do something completely different
+   * — which is the whole reason the structure changed. See `config/tenure.ts`.
+   *
+   * A scenario is exempt: 1929-33 is thirty meetings because it is a date
+   * range, and a calendar is not a setting. It falls through to completion
+   * below, as it always has.
+   */
+  const fictional = state.config.scenario === null
+  const institution = state.config.institution
+  const tenure = TENURE[institution]
+
+  /*
+   * ── The ECB: the Council stops following you ────────────────────────────
+   *
+   * Checked every meeting rather than at a term boundary, because that is how
+   * it happens: not a vote lost on the day but a room that has drifted too far
+   * for too long. There is no reappointment to withhold, so this is the only
+   * way an ECB presidency ends other than the catastrophes above.
+   */
+  if (fictional && institution === 'ecb' && state.members.length > 0) {
+    const spread = dispersion(state.members, 'inflationOffset')
+    const fracturing =
+      spread >= COUNCIL.fractureDispersion &&
+      latent.fragmentation >= COUNCIL.fractureFragmentation
+    const held = fracturing ? (breachCounters.council ?? 0) + 1 : 0
+    breachCounters.council = held
+
+    if (held >= COUNCIL.meetingsToFail) {
+      return {
+        status: 'failed',
+        triggered: 'council_lost',
+        label: 'The Council was lost',
+        summary:
+          `For ${COUNCIL.meetingsToFail} consecutive meetings the Governing Council ` +
+          `sat ${spread.toFixed(1)} points apart on inflation with spreads at ` +
+          `${latent.fragmentation.toFixed(0)} basis points. Nobody can remove you ` +
+          'and there is no second term to withhold — but a president who cannot ' +
+          'carry the room is finished all the same.',
+        causalChain: buildCausalChain(state, 'council_lost'),
+        warnings,
+        breachCounters,
+      }
+    }
+    if (spread >= COUNCIL.watchDispersion) {
+      warnings.push({
+        id: 'council_lost',
+        label: 'The Council is straining',
+        message:
+          `Members are ${spread.toFixed(1)} points apart on inflation. You cannot be ` +
+          'removed and you cannot be denied a second term. You can lose the room.',
+        severity: held > 0 ? 'severe' : 'watch',
+        meetingsHeld: held,
+        meetingsToTrigger: COUNCIL.meetingsToFail,
+      })
+    }
+  }
+
+  /*
+   * ── The Fed: the hearing ────────────────────────────────────────────────
+   *
+   * At the end of each term, the appointment is renewed or it is not. The bar
+   * is standing, raised by the political pressure the term accumulated — so
+   * pressure ignored for four years is a bill that arrives here. A Chair
+   * handed 1973 and holding the line passes; one handed calm water and
+   * whipsawing the rate does not.
+   */
+  if (fictional && tenure.renewable && atTermEnd(institution, state.meetingIndex)) {
+    const bar = hearingBar(latent.politicalPressure)
+    const passed = latent.credibility >= bar
+    const served = termOf(institution, state.meetingIndex - 1)
+
+    if (!passed) {
+      return {
+        status: 'failed',
+        triggered: 'not_reappointed',
+        label: 'Not reappointed',
+        summary:
+          `The term ended and the appointment was not renewed. Credibility stood at ` +
+          `${latent.credibility.toFixed(0)} against a bar of ${bar.toFixed(0)}, which ` +
+          `political pressure of ${latent.politicalPressure.toFixed(0)} had raised from ` +
+          `${HEARING.baseCredibility}. No Chair has ever been removed; two have been ` +
+          'declined a further term, and that is how this one ends.',
+        causalChain: buildCausalChain(state, 'not_reappointed'),
+        warnings,
+        breachCounters,
+      }
+    }
+
+    // Passed, and there is another term to serve: the run continues. The
+    // report never sees this; it is a chapter break inside one mandate.
+    if (served < tenure.maxTerms) {
+      return {
+        status: 'active',
+        triggered: 'reappointed',
+        label: `Reappointed for a ${served === 1 ? 'second' : 'further'} term`,
+        summary:
+          `Credibility of ${latent.credibility.toFixed(0)} cleared a bar of ` +
+          `${bar.toFixed(0)}. You serve another four years, and from here you are ` +
+          'judged against your own first term rather than against what you inherited.',
+        causalChain: [],
+        warnings,
+        breachCounters,
+      }
+    }
+  }
+
   // Completion is checked last: surviving to the end of a mandate that was
   // already lost on the final meeting should still count as the failure.
+  //
+  // For a fictional mandate this is now the *horizon* — every term served,
+  // every hearing passed — and it is meant to be reached by almost nobody.
   if (state.meetingIndex >= state.config.meetingCount) {
     return {
       status: 'completed',
       triggered: 'mandate_completed',
-      label: 'Mandate completed',
-      summary: 'The full mandate was served to its scheduled end.',
+      label: fictional && tenure.renewable ? 'Served to the last term' : 'Mandate completed',
+      summary: fictional
+        ? `Every term served and every hearing passed: ${state.meetingIndex} meetings, ` +
+          `${(state.meetingIndex / 8).toFixed(0)} years in the office of ${tenure.office}.`
+        : 'The full mandate was served to its scheduled end.',
       causalChain: [],
       warnings,
       breachCounters,

@@ -39,7 +39,7 @@ export function StakeChips({ stake }: { readonly stake: SurpriseStake }) {
     <section
       aria-label="What this move puts at stake"
       data-stake=""
-      className="mt-4 rounded-md border border-edge-accent bg-inset p-3"
+      className="mt-5 border-l-2 border-edge-accent bg-inset px-3 py-2"
     >
       <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-onwood-faint">
         On the table
@@ -70,7 +70,7 @@ export function StakeChips({ stake }: { readonly stake: SurpriseStake }) {
             {Array.from({ length: Math.min(chips, 8) }, (_, index) => (
               <span
                 key={index}
-                className="inline-block h-3 w-3 rounded-full border border-edge-accent bg-accent-surface"
+                className="inline-block h-3 w-3 border border-edge-accent bg-accent-surface"
               />
             ))}
             {chips > 8 && (

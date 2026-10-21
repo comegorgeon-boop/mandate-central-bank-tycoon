@@ -55,6 +55,10 @@ export function buildEventContext(state: SimulationState): EventContext {
     occurrences,
     lastOccurrence,
     unlockedFollowUps: [...unlocked],
+    openerId:
+      state.eventLog.length > 0 && state.eventLog[0].meetingIndex === 0
+        ? state.eventLog[0].eventId
+        : null,
   }
 }
 
@@ -76,6 +80,63 @@ function costPushBlocked(event: GameEvent, ctx: EventContext): boolean {
 }
 
 /** Events that could fire in this state, before any random draw. */
+/**
+ * The length of mandate `maxOccurrences` was authored against.
+ *
+ * Every cap in the catalogue — "a banking crisis at most twice", "this one
+ * only once" — was written while a mandate was 16 or 24 meetings, so each is
+ * really a statement about *density*: twice in three years, not twice ever.
+ */
+const CATALOGUE_REFERENCE_MEETINGS = 24
+
+/**
+ * How many times an event may fire in a mandate of this length.
+ *
+ * ## The regression this fixes
+ *
+ * The guarantee the cadence work bought — *never more than two consecutive
+ * meetings with nothing to decide* — was measured on fixed-length mandates
+ * and held at exactly 2. Re-measured under tenure, where a mandate can run to
+ * 64 meetings, it came back at **4** on fed/medium and **9** on fed/hard.
+ *
+ * The cause was not the draw and not the Minsky hazard, both of which keep
+ * working. It was this cap. `maxOccurrences` was being read as a limit *per
+ * run*, so by the fortieth meeting most of the catalogue had retired, the
+ * eligible set had emptied, and the forced fire that enforces the guarantee
+ * had nothing left to fire. A guarantee implemented as "fire something" fails
+ * silently and completely the moment there is nothing to fire.
+ *
+ * The principle, rather than raising the numbers by hand: a cap authored
+ * against a 24-meeting mandate is a statement about how often something may
+ * happen, so it scales with the horizon. Two banking crises in three years is
+ * plausible; insisting on no more than two in *eight* years is below the
+ * historical rate, and it is what produced a silent nine-meeting lull.
+ */
+export function occurrenceCap(
+  event: { readonly maxOccurrences: number },
+  meetingCount: number,
+): number {
+  /*
+   * Every cap scales, including the ones set to one.
+   *
+   * A first attempt froze `maxOccurrences: 1` as "structural", which looked
+   * principled and was wrong in a way the balance test caught immediately.
+   * The seven events capped at one are the *big* ones — banking_failure,
+   * market_panic, housing_market_crash, supply_rupture. Freezing those while
+   * the ordinary events stretched 2.7× did not preserve the catalogue, it
+   * diluted the majors out of any long mandate: eight years in which a
+   * banking failure may happen at most once is not a harder game, it is a
+   * quieter one, and the delivered inflation impulse drifted outside its band
+   * because the mix had changed underneath it.
+   *
+   * The thing that actually needs to happen once — the opening crisis — is
+   * excluded in `eligibleEvents` instead, where it belongs: it is the economy
+   * you were handed, not an event you drew.
+   */
+  const scale = Math.max(1, meetingCount / CATALOGUE_REFERENCE_MEETINGS)
+  return Math.ceil(event.maxOccurrences * scale)
+}
+
 export function eligibleEvents(
   ctx: EventContext,
   catalog: readonly GameEvent[] = EVENT_CATALOG,
@@ -91,8 +152,23 @@ export function eligibleEvents(
       return false
     }
 
+    /*
+     * The opening crisis never recurs.
+     *
+     * It is drawn from this same catalogue but it is not a drawn event: it is
+     * the state of the economy at meeting zero, written into the log before
+     * the player has done anything. Handing someone the same catastrophe
+     * again in year six as though it were news is a category error, and it is
+     * exactly what `openingCrisis.test.ts` guards.
+     *
+     * Identified by position rather than by a flag on the record, because
+     * position is what makes it the opener — meeting zero is before the first
+     * decision, and nothing else can land there.
+     */
+    if (ctx.openerId === event.id) return false
+
     const seen = ctx.occurrences[event.id] ?? 0
-    if (seen >= event.maxOccurrences) return false
+    if (seen >= occurrenceCap(event, ctx.meetingCount)) return false
 
     const last = ctx.lastOccurrence[event.id]
     if (last !== undefined && ctx.meetingIndex - last < event.cooldownMeetings) {

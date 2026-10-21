@@ -769,3 +769,222 @@ to go.
 
 **Not touching the game** until the playtest comes back, so none of the above
 is built. It is specified in DIRECTION and it is the first thing to pick up.
+
+---
+
+## 18 — The vault, the engraving, and a crash that was waiting
+
+**What I did.** Built the decision screen in the world rather than in a style:
+a vault-black card with the furniture of a banknote drawn, not styled — a
+guilloché rosette as the watermark, an interlaced braid along the top edge, a
+toothed seal, a serial number derived from the run's own seed, and an original
+engraved Governor who reacts to the mandate's standing. Over it, a betting
+slip: the rate as a 52/72 px figure that rolls to its value, the stake and the
+return recomputed live under the thumb, chips thrown on a spring. Built
+`/lab`, where every animation replays on a button with stiffness, damping,
+mass, roll and suspense on sliders, and the four moods sit side by side.
+Removed sound entirely. Wrote `docs/SURVIVAL.md` — the proposal to replace the
+fixed meeting count with serving-until-revoked — without coding any of it.
+
+**What I measured.** Three drawn things failed at the size they are displayed
+and were redrawn: the rosette never closed because `(R−r)/r` was 2.226 and a
+hypotrochoid only returns to its start when that ratio is a whole number, so
+it drew a tangle of open arcs — it is now `R/petals`, which makes the ratio
+exactly `petals − 1`; the portrait was shaded with an even field of straight
+lines across the whole face, which is a screen door over a mask rather than
+intaglio, and is now contoured fans laid only where the form turns away; the
+chips read as flowers at 16 px because six edge notches ate the rim.
+Contrast: **140 failures across 60 states → 0 across 660.** Tests 1103 green,
+lint 0 errors, `check:offline` clean, 27 requests all to this origin.
+
+**What still bothers me.** Both halves of this pass were the *same* defect in
+new clothes, and both were already in this journal. The 140 contrast failures
+were `opacity-60` on a text element — fourth occurrence, and the second of
+them was made in this very pass, four hours after I fixed the first. And the
+tools reported an invented failure, a 7.4:1 pair measured as 1.02:1, because
+they photographed a Motion spring mid-flight — which is journal 5 exactly,
+with the two frames that fixed it then being nothing against a 420 ms roll.
+
+So this time I built the mechanisms instead of specifying them:
+
+- **The opacity rule is now a lint error**, not a habit — an AST selector that
+  fires when one `className` carries both a text token and an `opacity-*`. The
+  drawn components took an `opacity` prop instead, which is the better channel
+  anyway.
+- **`quiet()` in the shared driver** waits for real visual stillness: three
+  identical frames of every inline style *and* nothing running in
+  `getAnimations()`. Both tools inherit it. My own first version folded the
+  *count* of running animations into the signature, which is a different and
+  useless test — a count sitting at 1 for three frames looks identical three
+  times while the animation it counts runs its whole course, and the audit
+  went on inventing failures one layer further in.
+- **`src/lintGuards.test.ts`** fails `npm test` on the two lint rules that are
+  crashes rather than style, and `npm run lint` is now on the finish line in
+  `CLAUDE.md`. The one that prompted it came from HEAD and predates this pass:
+  a `useMemo` below an early return in `PolicyDeskPanel`, which is how React
+  comes to render fewer hooks than it expected and throw. It had never fired
+  because its guard is false in every shipping configuration — which is not a
+  reason it was safe, it is the shape of a crash that waits. ESLint had been
+  reporting it the whole time. Nothing noticed, because lint was not on the
+  list, and *a rule with a check nobody runs is the same as a rule with no
+  check* — which is the lesson of the last entry, one level up, again.
+
+I verified the guard by putting the bug back: the test goes red naming the
+file and line, and green when it is removed.
+
+**Not merged, not propagated.** One screen, as asked. The other screens are
+untouched and the branch is not merged.
+
+---
+
+## 19 — The terminal, survival, and a game that commands instead of describing
+
+**What I did.** Four chantiers in one pass. Turned the art direction into a
+dealing-room terminal: amber on a near-black chassis, panels tiled edge to
+edge with one-pixel rules, IBM Plex Mono carrying figures *and* labels in
+columns that never move, every value flashing green or red for half a second
+when it changes. Removed the engraved governor — the portrait was not good
+enough and a terminal has no pictures on it. Gave the motion vocabulary a
+`Flip` and a `Tally` and rebuilt `/lab` as a bench with stiffness, damping,
+mass, roll, delay and tally on sliders. Built the survival structure: a Fed
+term of 32 meetings with a reappointment hearing, an ECB term of 64 that
+cannot be renewed or cut short, and a score banked meeting by meeting. Then
+the legibility pass: an order line, a cause bar, a live-shocks panel, a
+meaning card on every indicator, a dispatches wire, and a guided opening.
+
+**What I measured.**
+
+| | before | after |
+| --- | --- | --- |
+| longest calm run of meetings | 9 (fed/hard) | **2** everywhere |
+| a major shock's cost, in banked points | — | **2.0–7.8×** a minor's |
+| careers a banking crisis ends at hard | — | **57–63 %** |
+| quick surface, steady | 97 words | **40** |
+| quick surface, guided opening | — | 69 |
+| heavy surface | 248 | 248 |
+| contrast | 0 failures / 664 states | 0 failures |
+
+Three measurements turned out to be measuring the wrong thing, and all three
+had been right until the structure under them moved. `balance.test.ts` played
+until the run ended, which under survival conditions the sample on the event
+stream it is measuring — the same catalogue reads −0.019 per meeting over a
+fixed window and −0.116 over runs truncated at their revocation. The word
+budget counted every text node and reported 156 words against a budget of 24,
+most of it column labels a terminal is navigated by rather than read. And the
+"never more than two calm meetings" guarantee broke silently because
+`maxOccurrences` was authored against a 24-meeting mandate: by the fortieth
+meeting the catalogue had retired and **the forced fire that implements the
+guarantee had nothing left to fire.**
+
+**What still bothers me.** The steady quick surface is 40 words against a
+budget the player froze at 24, and I did not get it there. What is left is
+the order (15), the two figures with their causes (14), the shock's name (5)
+and the call (7) — every one of them something the same brief explicitly
+asks for. I think the honest reading is that 24 was set when the quick
+meeting was one sentence and a dial, and the brief has since added an
+imperative with a number in it and a cause under each figure. But that is me
+reinterpreting a number I was told was frozen, so it is in QUESTIONS.md as
+mine to be overruled on, with the exact accounting.
+
+Three smaller things. The guided opening costs 69 words on meetings one to
+three, which is 2.9× the budget and is the one place I think the overrun is
+obviously right. The hint under the dial was retiring per *meeting* rather
+than per player, so nine words of instruction came back at meeting four,
+twelve and twenty-four to someone who had demonstrably obeyed it — caught by
+the word count and not by me reading the code. And the compact order line
+split on the first period, which on a line that opens with a figure turned
+*"1.4 points above the 2.0 % objective"* into **"1."** — a banner that
+commanded and then explained itself with a single digit. Both were visible
+the moment they rendered and neither was visible in review.
+
+**The worst of it, and it is worth its own paragraph.** The contrast audit
+came back with **2,467 failures across 300 states** after everything above was
+green, and all of them were in the second visual direction, which I had never
+looked at. Three separate silent failures, each invisible in review:
+
+1. **Four utility classes I used ninety-seven times do not exist.**
+   `text-ink-primary`, `text-ink-secondary`, `text-ink-muted` and
+   `border-edge-panel` are not tokens — the real names are `text-ink`,
+   `text-ink-soft`, `text-ink-faint`, `border-edge`. Tailwind emits nothing
+   for an unknown colour, so the class is inert and the text silently
+   inherits its parent. It *looked* correct in the terminal because the
+   inherited colour was also a terminal grey.
+2. **A direction must override every ground it means to change.**
+   `--surface-page` became near-black in `:root`, and the paper direction
+   never overrode it — it never had to, because the room had always been
+   walnut and walnut and a terminal are both dark. "It was dark before and it
+   is dark now" is not an override. It is a coincidence that held until the
+   meeting screen started painting `bg-page` on its own `<main>`: paper ink at
+   1.9:1, three hundred times.
+3. **Then my own fix was too broad.** Sweeping `onwood` to `ink` is right for
+   a component on a panel and wrong for one on the room, and `MeetingScreen`
+   is on the room. Correct in the terminal, where both resolve to the same
+   grey; 1.5:1 in papers.
+
+The common thread is that *it looked right* only ever means *it looked right
+in the direction I was looking at*. The audit is the only thing in this
+project that looks at the other one, and this is the fourth time it has caught
+something nothing else could. It is also now the slowest check by a factor of
+ten, which is why it keeps being the last thing run and the last thing
+believed — and both of those are the wrong way round.
+
+**Not merged.** Four commits on `terminal`, nothing on main, as asked.
+
+---
+
+## 20 — The order carries its own warning, and the second direction becomes a note
+
+**What I did.** Four corrections after the terminal was accepted. Built
+`dev/orderOnly.ts` — a player that cannot see the screen and reads *only* the
+order line — because that is the right test to hang a word budget on: a budget
+measures how much there is to read, and what matters is how much is
+**compulsory**. Deleted the last piece of the old world ("The mandate is on an
+even keel / The record so far") and absorbed its severe warnings into the
+order banner, which now sits at the top of both surfaces. Labelled every
+segment of the cause bar — inside the segment where it fits, in a legend where
+it does not. Turned the second visual direction from a hybrid into a single
+printed sheet with the engraved braid at its head.
+
+**What I measured.** The order-only player:
+
+| | served | median tenure | what ended it |
+| --- | --- | --- | --- |
+| fed/easy | **40/40** | 20 meetings | objective met ×23, missed ×17 |
+| ecb/easy | **40/40** | 28 meetings | objective met ×16, missed ×24 |
+| fed/medium | 0/40 | 32 meetings | not reappointed ×15, banking ×11 |
+| fed/hard | 0/40 | 16 meetings | banking ×21, spiral ×8 |
+
+So the forty words are confirmed optional: the easy tutorial is servable
+blind, on one line, every seed. And the ladder still works — one line keeps
+you alive on medium for a full four-year term and still loses you the hearing.
+
+**Getting there found a real defect, and it is the entry.** The first run
+served 45 %, with 22 of 40 easy mandates ending in a banking crisis of the
+reader's own making, because it tightened a quarter point every meeting for
+eighteen meetings. Two causes, and only one of them was the reader:
+
+1. It had no memory, so it compounded its own dose while the order went on
+   truthfully reporting an inflation rate that policy would not reach for a
+   year. Giving it the one sentence the game's own second dispatch teaches —
+   *act, then wait* — took it to 78 %.
+2. **The clause that prevents the other failure was in the second sentence.**
+   The order said *"1.2 of those points will not answer to you"* — and the
+   quick surface shows only the first sentence, to stay inside its budget. So
+   the one screen that shows a single sentence was showing the single sentence
+   without the warning in it. Moving distance and reachability into the same
+   sentence took it to **100 %**, and banking crises on easy from nine to
+   zero.
+
+That is the best thing the word budget has done. It forced a one-sentence
+form, the one-sentence form was tested, and the test found that the sentence
+was the wrong half.
+
+**What still bothers me.** The second direction is now genuinely a note rather
+than the terminal bleached — one sheet, ink on cream, an engraved braid, the
+seal and the serial finally meaning something. But it still doubles the audit
+forever, and today's failures were *all* in it: 2,467 across 300 states, three
+distinct bugs, none visible in the direction I was working in. It is kept
+because it was asked for and because it is now good. The honest cost is that
+every future component has to be checked twice, by the slowest check there is,
+and the history of this project says that is exactly where the next silent
+failure will be.

@@ -30,7 +30,7 @@
  */
 
 import { readFileSync } from 'node:fs'
-import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open, openPanel, settleMeeting, startMandate } from './drive.mjs'
+import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open, openPanel, quiet, settleMeeting, startMandate } from './drive.mjs'
 
 /**
  * The fewest states a complete walk can produce.
@@ -141,8 +141,8 @@ const MEASURE = () => {
     // panel caught part-way through its entrance animation paints its text at
     // a fraction of the declared colour, and reading `style.color` alone
     // measures a colour nobody is looking at. Animations are settled before
-    // this runs — see `settleAnimations` in drive.mjs — so what is left here
-    // is deliberate transparency, which is exactly what should be measured.
+    // this runs — see `quiet` in drive.mjs — so what is left here is
+    // deliberate transparency, which is exactly what should be measured.
     let stackOpacity = 1
     for (let node = element; node; node = node.parentElement) {
       const value = Number.parseFloat(styleOf(node).opacity)
@@ -213,9 +213,22 @@ async function audit(page, label) {
   await page.evaluate(() => {
     for (const element of document.querySelectorAll('details')) element.open = true
   })
-  // One animation frame, so a panel that has just been mounted — or just been
-  // opened — has been painted before it is measured.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))))
+  // **Then wait until the page has stopped moving.**
+  //
+  // Blind spot number five, and unlike the four above it this one was not
+  // pre-empted — it was found by the audit reporting `1.02:1` on a claret
+  // figure against the vault, a pair that is really 7:1. Nothing was wrong
+  // with the colour. The element was measured on a frame where its entrance
+  // was still at opacity 0.02, and an opacity of 0.02 composites any colour
+  // into its background, so the audit faithfully measured the background
+  // against itself.
+  //
+  // One animation frame was enough when the longest thing on screen was a
+  // 90 ms fade. A figure now rolls for 420 ms and a chip is thrown on a
+  // spring. An audit that measures mid-animation does not merely miss
+  // failures — it *invents* them, which is worse, because the fix for an
+  // invented failure is a change to a colour that was always correct.
+  await quiet(page)
   const findings = await page.evaluate(MEASURE)
   itinerary.push(`${label} (${findings.length === 0 ? 'clean' : `${findings.length} FAIL`})`)
   for (const finding of findings) failures.push({ state: label, ...finding })

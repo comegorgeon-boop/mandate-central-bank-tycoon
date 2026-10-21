@@ -37,6 +37,9 @@ import { MeetingBriefPanel } from './panels/MeetingBriefPanel.tsx'
 import { PressPanel } from './panels/PressPanel.tsx'
 import { ObjectivePanel } from './panels/ObjectivePanel.tsx'
 import { StandingPanel } from './panels/StandingPanel.tsx'
+import { OrderBanner } from '../../components/terminal/Explain.tsx'
+import { GuillocheBand } from '../../components/engraving/Guilloche.tsx'
+import { readOrder } from './order.ts'
 import { TutorialGoalPanel } from './panels/TutorialGoalPanel.tsx'
 import { readStanding } from './standing.ts'
 import { PricesPanel } from './panels/PricesPanel.tsx'
@@ -45,6 +48,7 @@ import { registerFor } from './register.ts'
 import { SettingsPanel } from '../settings/SettingsPanel.tsx'
 import { shouldPlayInterval, useSettings } from '../settings/settings.ts'
 import { IntervalPlayer } from './IntervalPlayer.tsx'
+import { tenureLine } from './tenureLine.ts'
 
 /**
  * One policy meeting.
@@ -124,6 +128,7 @@ export function MeetingScreen({
   // because the component is remounted at each one.
   const [roomOpen, setRoomOpen] = useState(false)
   const quick = tempo === 'quick' && !roomOpen
+  const order = readOrder(session)
   const { settings } = useSettings()
   // This component is remounted at every meeting, so each of these is shown
   // exactly once, in order: first the interval that has just elapsed, then the
@@ -220,7 +225,6 @@ export function MeetingScreen({
     .map((id) => getSeries(id)?.label)
     .filter((label): label is string => label !== undefined)
 
-  const meetingNumber = session.state.meetingIndex + 1
   // In a historical mandate the meeting has a date, and the date is the
   // better name for it: "Meeting 6 of 32" tells you where you are in a
   // schedule, "March 18, 1980" tells you what is happening outside.
@@ -236,27 +240,79 @@ export function MeetingScreen({
     (warning) => warning.severity === 'severe',
   )
 
+  /*
+   * Full width, no gutter, no centred column.
+   *
+   * > "Fini la colonne étroite au milieu du vide : des panneaux accolés,
+   * > séparés par des filets d'un pixel, qui occupent toute la largeur."
+   *
+   * The `mx-auto max-w-3xl px-4` that was here is the single most reliable
+   * tell that a page was laid out as a document. A terminal has no margins:
+   * it fills the glass, and what organises it is rules rather than
+   * whitespace.
+   */
+  /*
+   * `onwood`, not `ink`, and the distinction is the oldest live rule in this
+   * project's design system.
+   *
+   * `ink` is text on a **panel**, whose material flips between the two
+   * directions — walnut in the terminal, cream paper in papers-on-the-table.
+   * `onwood` is text on the **room**, which is dark in both. This `<main>`,
+   * its status strip and the tab strip all sit on the room, so they take the
+   * room's pair.
+   *
+   * A sweep that moved every `onwood` to `ink` this pass caught these four by
+   * accident: correct in the terminal, where both resolve to the same grey,
+   * and 1.5:1 in papers-on-the-table, where `ink` is a dark brown on dark
+   * wood. Which is the same mistake this file's own header warns about,
+   * approached from the other side — and a reminder that "it looked right"
+   * only ever means "it looked right in the direction I was looking at".
+   */
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 text-onwood">
-      {/* The brass rule under the header is the room's one piece of hardware:
-          it marks where the institution ends and the meeting begins. */}
-      <header className="border-b-2 border-edge-accent pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
+    <main className="min-h-screen w-full bg-page text-onwood">
+      {/*
+        The note's own border, in the printed direction only.
+
+        This is the drawn furniture the project already owns — a hypotrochoid
+        braid, computed rather than drawn — and it is what makes the second
+        direction *a banknote* rather than the terminal with the lights on.
+        It is hidden in the terminal because a dealing screen has no engraved
+        border, and `aria-hidden` in both because it says nothing.
+      */}
+      <div aria-hidden="true" className="hidden text-accent-strong direction-paper:block">
+        <GuillocheBand height={14} lines={3} frequency={21} waist={0.42} opacity={0.5} />
+      </div>
+
+      {/* The status strip. On a terminal the identity of the machine is one
+          line of small type across the top, not a title block. */}
+      {/* `bg-room`, not `bg-raised`. The status strip is the machine's own
+          chrome rather than a document on it, so it belongs on the room —
+          which is dark in both directions and therefore pairs with `onwood`.
+          On `bg-raised` it was cream in papers-on-the-table and carrying
+          on-wood text at 3.1:1. */}
+      <header className="border-b border-edge-accent bg-room px-2 py-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <p className="font-mono text-2xs uppercase tracking-[0.16em] text-onwood-faint">
               {institution.name} ·{' '}
               {dated === null ? config.difficulty : 'historical'} · seed{' '}
               {config.seed}
             </p>
-            <h1 className="mt-1 font-display text-2xl font-semibold text-onwood">
-              {/* A tutorial has no scheduled length, so "of N" would be a
-                  promise it does not make: N is the point at which it gives
-                  up, not the point at which it ends. */}
-              {dated !== null
-                ? dated
-                : tutorial === null
-                  ? `Meeting ${meetingNumber} of ${config.meetingCount}`
-                  : `Meeting ${meetingNumber}`}
+            <h1 className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-accent-onwood">
+              {/*
+                "Meeting 3 of 16" is gone, and it had to go: under a survival
+                structure there is no N. You serve until you are revoked, and
+                a denominator is a promise the game does not make. What
+                replaces it is the thing a governor actually knows — which
+                term they are in, and how far the next hearing is.
+
+                The two institutions read differently here on purpose. A Fed
+                Chair counts down to a reappointment they can fail; an ECB
+                President, whose term is non-renewable and who cannot be
+                removed, has nothing to count down to and is told the year
+                instead. See `config/tenure.ts`.
+              */}
+              {dated !== null ? dated : tenureLine(session)}
             </h1>
           </div>
           <SettingsPanel className="w-full sm:w-72" />
@@ -333,15 +389,43 @@ export function MeetingScreen({
               crossing the breakpoint moves them rather than rebuilding them —
               a remount would close every disclosure the player had opened.
               See `components/useNarrowScreen.ts`. */}
-          {/* The standing line stays at the top in both layouts, outside the
-              swap below. It is one line and it carries the severe warnings —
-              an alarm you have to scroll past a newspaper to find is not an
-              alarm. Sixty-six pixels, against the 1,348 the swap gives back. */}
-          <StandingPanel
-            standing={standing}
-            previousTone={previousStanding?.tone ?? null}
-            severeWarnings={severeWarnings}
+          {/*
+            The order, at the top of both surfaces, carrying the alarms.
+
+            What used to be here was the standing line — *"The mandate is on
+            an even keel / The record so far"*, in a serif, on a lighter
+            ground, directly above the order and saying the same thing less
+            usefully. It was the last piece of the old world on the screen.
+
+            Deleting it outright would have thrown away the one thing it did
+            carry that nothing else does: the severe warnings, which are the
+            alarms that say a mandate is about to end. So it is absorbed
+            rather than removed — the banner takes them, which is where an
+            alarm belongs anyway. An alarm underneath the instruction is an
+            alarm you read second.
+
+            The record itself is not lost either: it is the standing panel in
+            the room, one click away, where a record belongs.
+          */}
+          <OrderBanner
+            command={order.command}
+            detail={order.detail}
+            severity={severeWarnings.length > 0 ? 'urgent' : order.severity}
+            compact={quick}
+            warnings={severeWarnings.map((warning) => warning.message)}
           />
+
+          {/* The record, in the room rather than above the order.
+              What has been held and what is slipping is a thing to consult,
+              not a thing to be told before every decision — so it keeps its
+              panel and loses its place at the top of the screen. */}
+          {!quick && (
+            <StandingPanel
+              standing={standing}
+              previousTone={previousStanding?.tone ?? null}
+              severeWarnings={severeWarnings}
+            />
+          )}
 
           {/* The meeting this mandate is remembered by: announced the meeting
               before, so it can be dreaded, and marked when it arrives. */}
@@ -361,6 +445,7 @@ export function MeetingScreen({
               session={session}
               onConfirm={onConfirm}
               onOpenRoom={() => setRoomOpen(true)}
+              shock={session.majorEvent?.title ?? session.minorEvents[0]?.title ?? null}
             />
           ) : narrow ? (
             <>

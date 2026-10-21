@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { prefersReducedMotion, useSettings } from '../settings/settings.ts'
-import { play } from '../settings/sound.ts'
 
 /**
  * A card turning over.
@@ -51,10 +50,7 @@ export function Reveal({
     // The beat before the turn is the anticipation, and it is the thing being
     // bought. Short enough not to feel like a wait.
     timers.current.push(
-      globalThis.setTimeout(() => {
-        setTurned(true)
-        play('reveal')
-      }, 420) as unknown as number,
+      globalThis.setTimeout(() => setTurned(true), 420) as unknown as number,
     )
     const held = timers.current
     return () => {

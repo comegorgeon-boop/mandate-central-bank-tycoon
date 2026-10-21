@@ -17,7 +17,20 @@
 
 ## Avant de dire qu'une tâche est finie
 - `npm run build` passe
-- `npm test` est vert
+- `npm test` est vert — y compris `src/lintGuards.test.ts`, qui fait échouer
+  les deux règles de lint qui sont des bugs et non du style : un hook après
+  un retour anticipé, et une opacité posée sur un élément qui porte du texte
+- `npm run lint` n'a pas d'erreur (les avertissements sont tolérés)
+- `npm run check:words` est vert — la surface rapide reste sous 40 mots de
+  prose. 40 est un plafond gelé : toute addition remplace, elle ne s'ajoute
+  pas. Ce qui rend le plafond sûr est `npx tsx src/simulation/dev/orderOnly.ts`,
+  qui joue un lecteur ne voyant que la ligne d'ordre et tient 40/40 mandats
+  faciles — le reste des mots est donc facultatif
+- `npm run check:classes` est vert — aucun nom de classe de `src/` n'est
+  absent de la feuille de style générée. Tailwind n'émet rien pour une
+  couleur inconnue : la classe ne fait alors rien du tout, le texte hérite,
+  et ça peut rester invisible dans une direction visuelle et illisible dans
+  l'autre
 - `npm run check:offline` est vert — aucune requête ne sort de l'origine, et
   une partie entière se joue réseau coupé. Après un déploiement, le relancer
   contre le site : `MANDATE_URL=<adresse> npm run check:offline`

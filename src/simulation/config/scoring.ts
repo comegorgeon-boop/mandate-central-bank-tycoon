@@ -220,6 +220,51 @@ export const POLICY_VOLATILITY_ALLOWANCE_PER_YEAR: Readonly<
 export const MISSED_OBJECTIVE_CREDIT = 0.35
 
 /**
+ * The banked score: what a meeting is worth.
+ *
+ * Replaces grading the average of a path, which under a survival structure
+ * rewards being dismissed early — see `scoring/banked.ts` for the argument.
+ *
+ * `meetingPoints` is set so the old ceiling still means something as a
+ * *pace*: 250 a meeting over a four-year Fed term is 8,000, so `MAX_SCORE`
+ * remains roughly "a full term played very well" rather than becoming an
+ * arbitrary number nobody can reach. It is no longer a ceiling, because
+ * serving longer should genuinely be worth more.
+ */
+export const BANKED = {
+  meetingPoints: 250,
+
+  /**
+   * What a meeting with everything at its worst banks: a real loss.
+   *
+   * The brief is explicit — *"une réunion à trois points de l'écart banque
+   * peu, ou négatif"* — and the negative half is load-bearing. With a floor
+   * of zero, presiding over a catastrophe costs nothing and sitting still
+   * through one is free, so the dominant strategy is to survive without
+   * acting. A floor below zero makes a bad meeting a bill.
+   */
+  floor: -0.4,
+
+  /** Inflation miss, in points, at which the price term is ~0.37. */
+  priceScale: 1.7,
+  /** Unemployment gap, in points, at which the jobs term is ~0.37. */
+  jobsScale: 1.9,
+  /** Stress index above the floor at which the stability term is ~0.37. */
+  stabilityScale: 26,
+
+  /**
+   * Weighted as each institution's mandate is weighted, and deliberately
+   * carrying the same asymmetry as `SCORE_WEIGHTS`: price stability and
+   * employment are near-equal for the Fed, and price stability dominates for
+   * the ECB.
+   */
+  weights: {
+    fed: { prices: 0.42, jobs: 0.42, stability: 0.16 },
+    ecb: { prices: 0.58, jobs: 0.26, stability: 0.16 },
+  },
+} as const
+
+/**
  * Banking stress above which the financial stability component starts to bite.
  *
  * Named here rather than left inline in `calculateScore` because the indicator

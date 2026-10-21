@@ -189,3 +189,167 @@ when it is false — the rejection path already exists and the confirmation
 screen already renders rejections, so the interface needs nothing new. The
 test `leaves the chair's decision standing, whatever the vote` in
 `committeeVote.test.ts` is the one that will fail, and it should.
+
+## 6. The fixed meeting count — survival instead? (OPEN)
+
+Asked by you, written up in full in `docs/SURVIVAL.md`. Nothing is coded.
+
+**The proposal:** replace `MEETING_COUNT = { easy: 12, medium: 16, hard: 24 }`
+with serving until revoked. A Fed term is 32 meetings with a reappointment
+hearing at the end; an ECB term is 64 and non-renewable, so political pressure
+has nothing to act on and what ends you instead is losing the Governing
+Council. Neither horizon is meant to be reached often — the median run should
+end well short of it, which makes sessions *shorter* than today's and the
+duration genuinely an outcome.
+
+**What it costs, in one line:** every path-averaged score component starts
+rewarding being fired early, because a short run has a better average. That
+has to be answered before anything else is built, and the answer changes what
+the score means — which is yours, not mine. I recommend banking points per
+meeting rather than grading an average at the end.
+
+**Scope:** fictional mandates only. The seven historical scenarios keep their
+calendars — 1929-33 is thirty meetings because it is a date range — and gain
+an early-exit verdict instead: *you were let go in March 1931; the real one
+served to 1933.*
+
+**Status: awaiting your decision.** Nothing has been applied, so there is
+nothing to revert.
+
+## 7. What happens to "papers on the table"? (APPLIED, easily reversed)
+
+The terminal replaces the `after-hours` direction — near-black chassis, amber,
+green up, red down, light grey text. The second direction, `papers-on-the-table`
+(cream paper, ink, walnut room), is **kept** and still offered in the settings.
+
+**Applied answer:** kept, because you asked for a terminal and not for the
+removal of a setting, and because the contrast audit walks both directions —
+640 of its 664 states exist to prove the pair. Deleting it is a bigger change
+than the one requested and it is not reversible in one commit.
+
+But it is now odd: a cream paper direction inside a game whose other face is a
+dealing screen. If you want it gone, say so — it is one block in
+`tokens.css`, one toggle in `SettingsPanel`, and about forty lines of the
+contrast walk.
+
+## 8. The radius and shadow tokens went to zero globally (APPLIED)
+
+"Zéro angle arrondi, zéro ombre, zéro dégradé" is applied by setting
+`--radius-sm/md/lg/xl` and the three `--shadow-*` tokens to `0` / `none` in
+`tokens.css`, rather than by removing ninety `rounded-lg` and `shadow-panel`
+class names.
+
+**Why:** Tailwind resolves those variables at use time, so every utility keeps
+compiling and keeps meaning something, and the whole interface goes square in
+one block. It also means `papers-on-the-table` went square too, which is
+arguably wrong for a paper document.
+
+**To revert:** restore `2 / 4 / 8 / 12` and the three shadow values. One block.
+
+## 9. The quick meeting's word budget: 40 against a frozen 24 (APPLIED — overrule me)
+
+You froze the quick surface at 24 words. Measured, it is **40** (fed/medium),
+44 (fed/hard), 46 (ecb/medium) — and 69 during the guided opening.
+
+The accounting, word for word, on a steady quick meeting:
+
+| | words | asked for by |
+| --- | --- | --- |
+| the order: *"Hold the line. Inflation 0.5 from target, unemployment 0.0 from sustainable."* | 11 | §4.3 — a verb and a number, every meeting |
+| the two figures with their causes: *"driven by energy and supply"*, *"at the sustainable rate"* | 14 | §4.4 — "chacun avec sa flèche et sa cause" |
+| the live shock's name | 5 | §4.6 — the shock lines |
+| the call: *"Where headline inflation prints in 2 meetings."* | 7 | the wager, which predates this pass |
+| the dial hint, until first use | 9 | retires permanently now |
+
+**What I applied:** I cut everything that was *not* on that list. The shock
+treatment paragraph (35 words) moved to the heavy surface; the dispatches wire
+retires from the quick surface once the guided opening ends; the call lost
+*"Published, and judged on the figure the agency gives"*, which was true at
+every meeting of every mandate and therefore furniture; the desk line is
+suppressed when a shock has already said it.
+
+**What I did not do:** cut any of the five rows above, because each is
+something this same brief asks for by name. My reading is that 24 was set when
+the quick meeting was one sentence and a dial, and §4.3 and §4.4 have since
+added an imperative-with-a-number and a cause under each figure.
+
+That is me reinterpreting a number you called frozen, which is not mine to do.
+**To overrule:** the cheapest 14 words are the two causes under the figures —
+drop them and the surface is 26. The next 7 are the call's sentence, which
+could become a label. Say which and it is one commit.
+
+## 10. "Papers on the table" is now a cream page in a terminal (APPLIED)
+
+The second visual direction still exists and is still in the settings. It was
+right to keep when the terminal landed — you asked for a terminal, not for the
+removal of a setting — but the two are now further apart than they have ever
+been, and the contrast audit spends 640 of its 664 states proving a pair that
+is arguably one thing plus a souvenir.
+
+**Applied:** kept, untouched. **To remove:** one block in `tokens.css`, one
+toggle in `SettingsPanel`, and about forty lines of the contrast walk.
+
+## 11. Four Tailwind classes that silently did nothing (FIXED — and a gap)
+
+`text-ink-primary`, `text-ink-secondary`, `text-ink-muted` and
+`border-edge-panel` were used 97 times across this pass and **none of them is
+a token**. The real names are `text-ink`, `text-ink-soft`, `text-ink-faint`
+and `border-edge`. Tailwind emits no rule for an unknown colour name, so each
+was an inert class and the element inherited its parent's colour — which
+happened to look right in the terminal and was 1.16:1 in the paper direction.
+
+Fixed by sweeping them to the real names. **The gap is that nothing catches
+this.** The build passes, the tests pass, the lint passes; only the contrast
+audit noticed, and only because the two directions disagree. A one-file check
+that reads the generated CSS and fails on any `className` token with no
+matching rule would catch the whole class in under a second, and it does not
+exist. It is the first thing in REPRISE.
+
+
+## 12. The 40-word cap, and what it is now enforced against (SETTLED)
+
+You accepted 40 and froze it there: **from now on, any addition replaces.**
+
+The guarantee moved to where it belongs. `npx tsx src/simulation/dev/orderOnly.ts`
+plays a reader that cannot see the screen and parses only the order line:
+
+| | served | median tenure |
+| --- | --- | --- |
+| fed/easy | **40/40** | 20 meetings |
+| ecb/easy | **40/40** | 28 meetings |
+| fed/medium | 0/40 | 32 meetings |
+| fed/hard | 0/40 | 16 meetings |
+
+So the other ~29 words are genuinely optional: the tutorial is servable blind
+on one line, every seed, and the ladder still bites — one line survives a full
+four-year term on medium and still loses the hearing.
+
+**It also found a real defect**, which is the entry worth keeping: the clause
+that prevents the commonest way of losing — *"1.2 of them will not answer to
+the rate"* — was in the order's **second** sentence, and the quick surface
+shows only the first. Nine of forty easy mandates ended in a banking crisis
+the reader inflicted on itself. Moving distance and reachability into one
+sentence took it to 40/40.
+
+## 13. The second direction is now a banknote, not an inversion (APPLIED)
+
+Your decision applied. `papers-on-the-table` was a **hybrid** — cream panels
+floating on a dark walnut room — which against a terminal reads as the
+terminal with the panels bleached. It is now one printed sheet to the edges:
+ink on cream, brass rules, a guilloché braid at the head (`direction-paper:`,
+one custom variant), and the seal and seeded serial finally meaning something.
+
+Renamed in the settings: **The terminal** and **The banknote**.
+
+**The honest cost, since you asked for it straight.** It doubles the contrast
+audit forever — 640 of its 664 states exist to prove the pair, at ten minutes
+a run — and every silent failure this week was in it and only in it: 2,467
+failures across 300 states, three distinct causes, none visible in the
+direction I was working in. Today a fourth: `brass-600` as the fill, which is
+the one value that cannot work because a mid-tone fails against ink *and*
+paper at once.
+
+That is not an argument to remove it — it is good now, and it is the identity
+you started from. It is an argument that the audit has to run **before** a
+pass is called finished rather than after, which is the discipline this has
+cost four times running.

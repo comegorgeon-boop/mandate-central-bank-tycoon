@@ -92,6 +92,7 @@ function play(
 ) {
   const scores: number[] = []
   const survived: boolean[] = []
+  const tenures: number[] = []
   let completed = 0
   let dismissed = 0
 
@@ -105,9 +106,12 @@ function play(
     const session = playRun(config, choose)
     scores.push(calculateScore(session.state, session.outcome).score)
     survived.push(session.outcome.status === 'completed')
+    tenures.push(session.state.meetingIndex)
     if (session.outcome.status === 'completed') completed += 1
     if (session.outcome.triggered === 'dismissed') dismissed += 1
   }
+
+  const medianTenure = [...tenures].sort((a, b) => a - b)[Math.floor(runs / 2)]
 
   scores.sort((a, b) => a - b)
   return {
@@ -116,6 +120,8 @@ function play(
     completed,
     dismissed,
     survived,
+    medianTenure,
+    tenures,
   }
 }
 
@@ -136,13 +142,26 @@ function pairedSurvival(
   skilled: (session: RunSession) => PolicyPackage,
   idle: (session: RunSession) => PolicyPackage,
 ): { readonly skillWins: number; readonly idleWins: number } {
-  const skilledRuns = play(institution, difficulty, skilled, HARD_RUNS).survived
-  const idleRuns = play(institution, difficulty, idle, HARD_RUNS).survived
+  /*
+   * Paired on **tenure**, not on completion.
+   *
+   * It used to pair on `survived`, meaning "reached the scheduled end". Under
+   * the survival structure essentially every mandate ends in a revocation of
+   * some kind — that is what the structure *is* — so both arrays came back all
+   * false and the comparison read `0 skill / 0 idle`: not a failure of skill
+   * to matter, but a question with no answer left in it.
+   *
+   * What the test is for survives exactly: skill must be worth something, and
+   * what it is worth is **time in office**. Seed by seed, the skilled policy
+   * must hold the job longer than the idle one more often than the reverse.
+   */
+  const skilledRuns = play(institution, difficulty, skilled, HARD_RUNS).tenures
+  const idleRuns = play(institution, difficulty, idle, HARD_RUNS).tenures
   let skillWins = 0
   let idleWins = 0
   for (let index = 0; index < HARD_RUNS; index += 1) {
-    if (skilledRuns[index] && !idleRuns[index]) skillWins += 1
-    if (idleRuns[index] && !skilledRuns[index]) idleWins += 1
+    if (skilledRuns[index] > idleRuns[index]) skillWins += 1
+    if (idleRuns[index] > skilledRuns[index]) idleWins += 1
   }
   return { skillWins, idleWins }
 }
@@ -203,11 +222,29 @@ describe('competent play can finish', () => {
       expect(result.completed).toBe(RUNS)
     })
 
-    it(`completes most medium mandates on ${institution}`, () => {
+    it(`keeps a competent chair in office for years on ${institution}`, () => {
+      /*
+       * Rewritten for the survival structure, and the old assertion could not
+       * simply be relaxed — it was measuring a thing that no longer exists.
+       *
+       * It read `completed >= RUNS - 2`: ten of twelve mandates reaching their
+       * scheduled end. Under tenure there is no scheduled end. "Completed" now
+       * means serving every term and passing every hearing — eight years, 64
+       * meetings — which is meant to be the rarest outcome in the game, so
+       * requiring it of ten runs in twelve would assert the opposite of the
+       * design.
+       *
+       * What the test was *for* survives intact: competent play must be able
+       * to hold the office, and must not be quietly impossible. So it is
+       * measured in tenure. Two years of meetings is the bar — half of a first
+       * term — which separates a chair doing the job from one revoked in the
+       * first crisis by an enormous margin, and makes no claim about reaching
+       * a horizon almost nobody reaches.
+       */
       const result = play(institution, 'medium', (session) =>
         toolkitPackage(session, institution, 'medium'),
       )
-      expect(result.completed).toBeGreaterThanOrEqual(RUNS - 2)
+      expect(result.medianTenure).toBeGreaterThanOrEqual(16)
     })
 
     it(`leaves hard winnable and losable on ${institution}`, () => {
@@ -230,8 +267,18 @@ describe('competent play can finish', () => {
         (session) => toolkitPackage(session, institution, 'hard'),
         HARD_RUNS,
       )
-      expect(result.completed).toBeGreaterThan(HARD_RUNS * 0.25)
-      expect(result.completed).toBeLessThan(HARD_RUNS * 0.9)
+      /*
+       * A band in tenure rather than in completions, for the reason given on
+       * the medium test above: completion is now an eight-year career and is
+       * not the thing hard has to be a band of.
+       *
+       * The band is still the same claim — hard must be neither impossible nor
+       * a formality. A median below one year of meetings would mean the mode
+       * revokes competent play before it can act; a median at the horizon
+       * would mean the structure never bites.
+       */
+      expect(result.medianTenure).toBeGreaterThan(8)
+      expect(result.medianTenure).toBeLessThan(64)
     })
 
     it(`makes skill worth something at hard on ${institution}`, () => {

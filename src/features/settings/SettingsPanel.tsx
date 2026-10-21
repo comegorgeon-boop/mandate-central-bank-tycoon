@@ -1,5 +1,4 @@
 import { prefersReducedMotion, useSettings, type VisualDirection } from './settings.ts'
-import { play, setSoundEnabled } from './sound.ts'
 
 /**
  * The settings, as a disclosure rather than a screen.
@@ -18,17 +17,17 @@ const DIRECTIONS: readonly {
 }[] = [
   {
     id: 'after-hours',
-    name: 'The room after hours',
+    name: 'The terminal',
     detail:
-      'Walnut throughout, warm off-white text, brass carrying the emphasis. ' +
-      'One material, so the eye adjusts once rather than on every panel.',
+      'Amber on a near-black chassis, panels tiled edge to edge, every ' +
+      'figure in one monospace. A dealing screen.',
   },
   {
     id: 'papers-on-the-table',
-    name: 'Papers on the table',
+    name: 'The banknote',
     detail:
-      'The briefing documents laid out in cream and ink on the dark room. ' +
-      'More striking, and a harder read over a whole mandate.',
+      'The same instrument printed rather than lit: ink on cream, engraved ' +
+      'rules, the seal and the serial. One sheet, not panels on a table.',
   },
 ]
 
@@ -98,32 +97,6 @@ export function SettingsPanel({ className = '' }: { readonly className?: string 
               </span>
             </span>
           </label>
-          <label className="mt-3 flex items-start gap-2 text-sm text-onwood">
-            <input
-              type="checkbox"
-              data-sound=""
-              checked={settings.sound}
-              onChange={(event) => {
-                update({ sound: event.target.checked })
-                setSoundEnabled(event.target.checked)
-                // The first cue is the confirmation that it worked, and it
-                // doubles as the gesture browsers require before an audio
-                // context may start.
-                if (event.target.checked) play('stake')
-              }}
-              className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
-            />
-            <span>
-              Sound
-              <span className="mt-0.5 block text-xs text-onwood-soft">
-                Three short cues and no more: the dial's detent, a stake pushed
-                onto the table, a wager turning over. Synthesised in the
-                browser — nothing is downloaded, and with this off no audio is
-                created at all.
-              </span>
-            </span>
-          </label>
-
           {reducedMotion && (
             <p className="mt-2 text-xs text-accent-onwood">
               Your system asks for reduced motion, so the interval will not play

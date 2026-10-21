@@ -1,4 +1,58 @@
 /*
+ * The three faces, self-hosted and subsetted.
+ *
+ * Fetched once by `tools/fonts.mjs` and committed: the project's first rule is
+ * that nothing is requested once the static files are loaded, and a
+ * stylesheet from a font CDN breaks it twice — somebody else's origin, and
+ * while the player is reading. 68.8 KB for six faces, 137 characters each.
+ *
+ * `swap`, deliberately. A player who waits for a font to render a number is
+ * worse off than one who reads it in the fallback for 80 ms.
+ */
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/spectral-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/spectral-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/public-sans-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/public-sans-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-600.woff2') format('woff2');
+}
+
+/*
  * The design tokens. Nothing in this interface may name a raw colour.
  *
  * Two layers, and the separation is the whole point of the file:
@@ -47,6 +101,17 @@
  * with the platform UI face, which is what the reader's eye is most trained on.
  */
 
+/*
+ * A variant for "only in the printed direction".
+ *
+ * The two directions differ in colour almost everywhere and in *substance* in
+ * exactly one place: the note has an engraved border and the terminal does
+ * not. One custom variant is cheaper and far more honest than a prop threaded
+ * through the meeting screen, and it keeps the rule where every other
+ * direction rule lives — in this file.
+ */
+@custom-variant direction-paper (&:where([data-direction='papers-on-the-table'] *));
+
 @theme {
   /* ---- Palette: the materials --------------------------------------- */
 
@@ -58,6 +123,64 @@
    * comfortable to read for forty minutes are different tests, and only the
    * first one is automatable. Everything here is now a real brown with light
    * in it. */
+  /* ---- The terminal -------------------------------------------------- */
+  /*
+   * A trading-floor terminal: amber on near-black, in the genre of the
+   * machines that sat on every dealing desk from the eighties on. The genre,
+   * not any one maker's product.
+   *
+   * This is the fourth attempt at the ground and the first one that is
+   * actually dark. Walnut, then vault-brown at #14100c, then #1c1711 — each
+   * described as "near-black" and each still a brown, which is why the same
+   * complaint came back three times: *gold does not glint on brown.* It
+   * glints on black. These values are neutral and cold on purpose, with a
+   * faint blue cast rather than a warm one, so amber laid on them reads as a
+   * lit phosphor rather than as a slightly different brown.
+   *
+   * Measured against `--term-900`, the panel ground:
+   *   amber-300  10.8:1      text-primary    14.0:1
+   *   amber-400   7.9:1      text-secondary   7.7:1
+   *   up-400      8.5:1      text-muted       5.0:1
+   *   down-400    6.4:1
+   */
+  --color-term-void: #07090b; /* the screen behind everything */
+  --color-term-900: #0b0e11; /* a panel */
+  --color-term-850: #11151a; /* a raised panel, a header strip */
+  --color-term-800: #161b21; /* an inset: a field, a well */
+  --color-term-rule: #232a33; /* the one-pixel rule between panels */
+  --color-term-rule-strong: #3a4552;
+
+  /* Amber. The terminal's own colour, and the only colour that is not a
+   * verdict: everything the eye is meant to land on is this. */
+  --color-amber-600: #8a5f08;
+  --color-amber-500: #b67d0a;
+  --color-amber-400: #e0960d;
+  --color-amber-300: #f5b73d;
+  --color-amber-200: #ffd27a;
+
+  /* Light grey, for everything that is read rather than watched. */
+  --color-term-text: #d6dce3;
+  --color-term-text-2: #9aa5b1;
+  /* Lifted from #78838f, which cleared 5.01:1 on the panel ground and 4.49:1
+   * on the sunk one — under AA by a hundredth, on every muted caption inside
+   * a well. Measuring a text token against the *panel* and shipping it is the
+   * same mistake as measuring a brass against walnut and using it on cream:
+   * a token has to clear its worst ground, not its usual one. This clears
+   * 4.74:1 on the sunk surface and 5.3:1 on the panel. */
+  --color-term-text-3: #7c8794;
+
+  /* Up and down. Bright, because on a terminal they are the alarm. */
+  --color-up-400: #35c46b;
+  --color-up-200: #9fe6bd;
+  --color-up-900: #072414;
+  --color-down-400: #ff5c5c;
+  --color-down-200: #ffb3b3;
+  --color-down-900: #2a0c0c;
+
+  /* Kept as aliases so nothing that still names the vault breaks while the
+   * terminal lands. Both are now the terminal's ground. */
+  --color-vault: var(--color-term-void);
+  --color-vault-raised: var(--color-term-900);
   --color-walnut-950: #241b15;
   --color-walnut-900: #2c211a;
   --color-walnut-850: #342820;
@@ -90,6 +213,11 @@
   --color-ink-900: #2a231b;
   --color-ink-700: #493e32;
   --color-ink-500: #6d5f4f;
+  /* Muted ink, dark enough for the *raised* tint and not only the sheet.
+   * `ink-500` runs 4.9:1 on paper-50 and 4.13:1 on paper-200, which is how a
+   * token measured against its usual ground ships failing on its worst one.
+   * This clears 4.6:1 on paper-200 and 6.4:1 on paper-50. */
+  --color-ink-450: #655848;
   --color-ink-400: #8a7c6a;
 
   /* Deep green. Good news, and only good news. */
@@ -117,14 +245,19 @@
 
   /* ---- Type ---------------------------------------------------------- */
 
+  /* The identity, restored. It had been diluted to system stacks, which is
+   * most of why the interface read as generic: a system sans at three sizes
+   * is what every template looks like. Each fallback is a face with the same
+   * proportions, so a swap does not reflow. */
   --font-display:
-    'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia,
+    'Spectral', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
     ui-serif, serif;
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Public Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     'Helvetica Neue', Arial, sans-serif;
   --font-mono:
-    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    'IBM Plex Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas,
+    monospace;
 
   /* A modular scale at 1.2, rounded to whole- or half-pixels. Numbers are
    * read at `base` and below; nothing smaller than `xs` carries information a
@@ -137,18 +270,37 @@
   --text-xl: 1.375rem; /* 22px — panel headings */
   --text-2xl: 1.75rem; /* 28px — screen headings */
   --text-3xl: 2.25rem; /* 36px — the score, the date */
+  /* The one enormous thing on a screen, and never more than one. A figure at
+   * this size beside a label at 11px is the single change that stops an
+   * interface reading as a template: a layout with three sizes within a
+   * factor of two has no hierarchy, it has a grid of equals. */
+  --text-4xl: 3.25rem; /* 52px — phone */
+  --text-5xl: 4.5rem; /* 72px — desktop */
 
   /* ---- Space, radius, shadow ----------------------------------------- */
 
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  /*
+   * Zero, all four, and that is the whole instruction: *zéro angle arrondi,
+   * zéro ombre, zéro dégradé.*
+   *
+   * Set here rather than by hunting `rounded-lg` through ninety components,
+   * because Tailwind's radius utilities resolve these variables at use time —
+   * so `rounded-lg` keeps compiling, keeps meaning something, and renders
+   * square. A terminal is made of rules and right angles; a rounded corner is
+   * a document's idea of friendliness and it is the single most reliable tell
+   * that a page was assembled rather than built.
+   *
+   * To put the room back, restore 2 / 4 / 8 / 12 here and nowhere else.
+   */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
 
-  /* Shadows are lamplight on a dark room: warm, low, never a grey blur. */
-  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.28);
-  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.35);
-  --shadow-inset-rule: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  /* Likewise none. Depth on a terminal is a rule, not a blur. */
+  --shadow-panel: none;
+  --shadow-raised: none;
+  --shadow-inset-rule: none;
 }
 
 /*
@@ -192,61 +344,69 @@
 
   color-scheme: dark;
 
-  /* Grounds. One material throughout: the panels are lit walnut rather than
-   * paper, so the room and the documents belong to each other. */
-  --surface-page: var(--color-walnut-950);
-  --surface-room: var(--color-walnut-900);
-  --surface-panel: var(--color-walnut-850);
-  --surface-sunk: var(--color-walnut-900);
-  --surface-raised: var(--color-walnut-800);
-  --surface-inset: var(--color-walnut-900);
+  /* Grounds. One material throughout, and it is a screen: the panels are
+   * lit glass on a near-black chassis, separated by one-pixel rules.
+   *
+   * `--surface-page` is darker than every panel on it, which is the whole
+   * trick of a terminal layout — the gaps between tiled panels read as the
+   * machine showing through, so a grid of panels needs no borders to be a
+   * grid. */
+  --surface-page: var(--color-term-void);
+  --surface-room: var(--color-term-900);
+  --surface-panel: var(--color-term-900);
+  --surface-sunk: var(--color-term-800);
+  --surface-raised: var(--color-term-850);
+  --surface-inset: var(--color-term-800);
 
   /* Text on a panel. Named `ink` throughout the interface because that is what
    * it is *for* — the text you read a document in — not because of its colour,
    * which is why the same component code works in both directions. */
-  --ink-primary: var(--color-paper-50);
-  --ink-secondary: var(--color-paper-200);
-  --ink-muted: var(--color-paper-400);
+  --ink-primary: var(--color-term-text);
+  --ink-secondary: var(--color-term-text-2);
+  --ink-muted: var(--color-term-text-3);
 
-  /* Text on walnut */
-  --onwood-primary: var(--color-paper-100);
-  --onwood-secondary: var(--color-paper-300);
-  --onwood-muted: var(--color-paper-400);
+  /* `onwood` is the same grey now. There is no second material to be on: the
+   * name survives because ninety components say it, and renaming a token
+   * across the interface to no visual effect is how a rebuild acquires a
+   * hundred files of diff that nobody can review. */
+  --onwood-primary: var(--color-term-text);
+  --onwood-secondary: var(--color-term-text-2);
+  --onwood-muted: var(--color-term-text-3);
 
-  /* Edges */
-  --edge-panel: var(--color-walnut-700);
-  --edge-strong: var(--color-walnut-600);
-  --edge-room: var(--color-walnut-800);
-  --edge-accent: var(--color-brass-500);
+  /* Edges. One-pixel rules, which on a terminal are the only furniture. */
+  --edge-panel: var(--color-term-rule);
+  --edge-strong: var(--color-term-rule-strong);
+  --edge-room: var(--color-term-rule);
+  --edge-accent: var(--color-amber-600);
 
   /* Meaning. Two pairs, one for each ground. */
-  --good: var(--color-viridian-400);
-  --good-strong: var(--color-viridian-200);
-  --good-surface: var(--color-viridian-900);
-  --good-on-dark: var(--color-viridian-400);
+  --good: var(--color-up-400);
+  --good-strong: var(--color-up-200);
+  --good-surface: var(--color-up-900);
+  --good-on-dark: var(--color-up-400);
 
-  --bad: var(--color-claret-350);
-  --bad-strong: var(--color-claret-200);
-  --bad-surface: var(--color-claret-900);
-  --bad-on-dark: var(--color-claret-350);
+  --bad: var(--color-down-400);
+  --bad-strong: var(--color-down-200);
+  --bad-surface: var(--color-down-900);
+  --bad-on-dark: var(--color-down-400);
 
   /*
    * Brass comes in three, and which one you want depends entirely on what is
    * behind it. Getting this wrong is how an interface ends up with 1.5:1 text,
    * so the tokens are named for their ground rather than for their lightness.
    */
-  /* Brass as a *fill* — a pressed button, a rule. */
-  --accent: var(--color-brass-500);
+  /* Amber as a *fill* — a pressed button, a rule. */
+  --accent: var(--color-amber-500);
   /* Text on that fill. Its own value rather than `ink-900`, because softening
    * the palette off black moved ink to 4.43:1 against brass — under AA by a
    * hair, on every primary button in the game. A token that has one job can be
    * held to it. */
-  --on-accent: #1e1812;
-  /* Brass as *text*, on a panel. */
-  --accent-strong: var(--color-brass-200);
-  /* Brass as text on the room itself. */
-  --accent-on-dark: var(--color-brass-300);
-  --accent-surface: var(--color-walnut-800);
+  --on-accent: #0a0704;
+  /* Amber as *text*, on a panel. */
+  --accent-strong: var(--color-amber-200);
+  /* Amber as text on the chassis itself. */
+  --accent-on-dark: var(--color-amber-300);
+  --accent-surface: var(--color-term-850);
   /*
    * And the text that goes on `--accent-surface`, as a declared pair.
    *
@@ -258,8 +418,8 @@
    * foreground, or every component that uses it gets to make the same mistake
    * independently.
    */
-  --on-accent-surface: var(--color-brass-300);
-  --on-accent-surface-soft: var(--color-paper-300);
+  --on-accent-surface: var(--color-amber-300);
+  --on-accent-surface-soft: var(--color-term-text-2);
 
   /*
    * The scrim: what covers the room while one control is being pointed at.
@@ -273,12 +433,12 @@
    * another application; this room is made of wood, and the lights going down
    * in it should look like the lights going down in it.
    */
-  --scrim: var(--color-walnut-900);
+  --scrim: var(--color-term-850);
 
   /* The focus ring. One ring everywhere, bright enough to find on both
    * grounds, because a keyboard player who loses the caret has lost the
    * screen. */
-  --focus: var(--color-brass-300);
+  --focus: var(--color-amber-300);
 }
 
 /*
@@ -295,19 +455,89 @@
  * Applied by `data-direction="papers-on-the-table"` on the document element,
  * or on any subtree, which is how the two can be shown side by side.
  */
+/*
+ * ---------------------------------------------------------------------------
+ * THE BANKNOTE — one sheet, printed rather than lit.
+ * ---------------------------------------------------------------------------
+ *
+ * The decision, and the reason it is not an inversion of the terminal:
+ *
+ * > "garde-le, mais il doit devenir une variante PAPIER dessinée exprès —
+ * > l'encre et le papier de mon identité d'origine, un billet de banque — et
+ * > pas une inversion mécanique du terminal."
+ *
+ * What was here before was a **hybrid**: cream panels floating on a dark
+ * walnut room. That made sense when the identity was a boardroom with papers
+ * laid on a table. Against a terminal it reads as the terminal with the
+ * panels bleached, which is exactly the mechanical inversion being rejected —
+ * and it is also what produced most of this pass's contrast failures, because
+ * two materials mean every component has to know which one it is standing on.
+ *
+ * So the sheet goes all the way to the edges. One material, one text pair,
+ * the same structural simplicity the terminal has — and the drawn furniture
+ * the project already owns (the guilloché band, the toothed seal, the seeded
+ * serial number) stops being decoration on a dark screen and becomes what it
+ * actually is: the engraving on a note.
+ *
+ * Measured against the sheet at `--color-paper-50`:
+ *   ink-900   15.9:1      brass-700 (accent)  6.6:1
+ *   ink-700    8.2:1      viridian-800        5.9:1
+ *   ink-500    4.9:1      claret-800          8.1:1
+ */
 [data-direction='papers-on-the-table'] {
+  /*
+   * The room, restored.
+   *
+   * `--surface-page` and `--surface-room` became the terminal's near-black
+   * chassis in `:root`, and this block never overrode them because it never
+   * had to: they were walnut, and walnut and the terminal are both dark, so
+   * paper panels sat on either without anyone noticing. That stopped being
+   * true the moment the meeting screen started painting `bg-page` on its own
+   * `<main>` and letting children inherit — paper ink at #493e32 on a #07090b
+   * chassis is 1.9:1, and the audit found it 300 times.
+   *
+   * The lesson is the two-layer file's own: a direction must override every
+   * ground it means to change, and "it was dark before and it is dark now"
+   * is not an override, it is a coincidence that held.
+   */
+  /* The sheet, to the edges. `--surface-page` was the dark room; a note has
+     no room behind it, it has a margin. */
+  --surface-page: var(--color-paper-100);
+  --surface-room: var(--color-paper-50);
   --surface-panel: var(--color-paper-50);
   --surface-sunk: var(--color-paper-100);
-  --surface-raised: var(--color-paper-50);
-  --surface-inset: var(--color-walnut-850);
+  --surface-raised: var(--color-paper-200);
+  --surface-inset: var(--color-paper-200);
 
   --ink-primary: var(--color-ink-900);
   --ink-secondary: var(--color-ink-700);
-  --ink-muted: var(--color-ink-500);
+  --ink-muted: var(--color-ink-450);
 
+  /*
+   * And the room's own text, for the same reason the grounds above are back.
+   *
+   * `--onwood-*` became the terminal's cold greys in `:root`. This block did
+   * not override them and did not need to while the room was walnut in both
+   * directions — but a cold #7c8794 on warm walnut-900 runs 4.29:1, under AA
+   * by a fifth. Warm on warm is what the room was always paired with.
+   */
+  /* There is no wood any more, and no dark ground to be on: `onwood` is ink
+     like everything else. The name survives because ninety components say
+     it, and the two pairs now differ only in the terminal. */
+  --onwood-primary: var(--color-ink-900);
+  --onwood-secondary: var(--color-ink-700);
+  --onwood-muted: var(--color-ink-450);
+
+  /* And the on-dark meaning tokens, which no longer have a dark to be on. */
+  --good-on-dark: #28654a;
+  --bad-on-dark: var(--color-claret-600);
+  --accent-on-dark: var(--color-brass-700);
+
+  /* Engraved rules: the printed lines on a note, not panel borders. */
   --edge-panel: var(--color-paper-300);
   --edge-strong: var(--color-paper-400);
-  --edge-room: var(--color-walnut-700);
+  --edge-room: var(--color-paper-300);
+  --edge-accent: var(--color-brass-600);
 
   --good: #28654a;
   --good-strong: var(--color-viridian-800);
@@ -323,8 +553,21 @@
   --on-accent-surface: var(--color-brass-700);
   --on-accent-surface-soft: var(--color-ink-700);
 
-  /* Papers-on-the-table is lit; its scrim is the table, not the dark. */
-  --scrim: var(--color-walnut-700);
+  /* A sheet is lit; its scrim is the paper itself going quiet, not a dark. */
+  --scrim: var(--color-paper-200);
+
+  /*
+   * Brass as a fill, with paper on it: the one place a note is solid.
+   *
+   * `brass-600` was the obvious choice and it is the one value that cannot
+   * work — a mid-tone fails *both* ways, 4.23:1 under paper and 3.09:1 under
+   * ink, so there is no text colour that rescues it. A fill has to commit to
+   * being dark or light before anything can be printed on it. `brass-700`
+   * with paper on it runs 7.07:1.
+   */
+  --accent: var(--color-brass-700);
+  --on-accent: var(--color-paper-50);
+  --focus: var(--color-brass-700);
 }
 
 /*
@@ -381,6 +624,13 @@
   --color-on-accent-surface: var(--on-accent-surface);
   --color-on-accent-surface-soft: var(--on-accent-surface-soft);
 
+  /* The vault colours are NOT re-declared here. They are materials, not
+     roles — a vault is the same near-black in both directions — so they are
+     already `--color-*` in the material `@theme` above, which is what
+     generates `bg-vault`. Writing `--color-vault: var(--color-vault)` in this
+     block, as a first draft did, is a self-reference that only happened to
+     work because `inline` substitutes the text and the material layer answers
+     it at the use site. It resolved; it was still a cycle on the page. */
   --color-scrim: var(--scrim);
   --color-focus: var(--focus);
 }

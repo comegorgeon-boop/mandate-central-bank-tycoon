@@ -199,6 +199,43 @@ export function PolicyDeskPanel({
     return Math.min(range.max, Math.max(range.min, onGrid))
   }, [range, currentRate, floor])
 
+  /* Above the guard below, and it has to be: `fans` is a hook, the guard is an
+     early return, and a hook after an early return is called on some renders
+     and not others — which is how React comes to render fewer hooks than it
+     expected and throw. It was reachable only if the policy-rate instrument
+     ever went missing, which is to say never in practice, so nothing had gone
+     wrong yet. That is the whole hazard: it is a crash that waits for the
+     first day the condition is true. None of its dependencies need the guard
+     to have passed, so moving it up costs nothing. */
+  // The published forecast, redrawn for the move currently selected. Built
+  // from what the player can see — the staff's own fan, the documented lag
+  // kernel, the IS curve's own sensitivity — so it is not privileged
+  // information and is not gated by the information ladder.
+  const fans = useMemo(() => {
+    const objective = inflationTargetFor(session.state.config)
+    return (['headline_inflation', 'unemployment'] as const)
+      .map((seriesId) => {
+        const published = session.observation.forecasts.find(
+          (entry) => entry.seriesId === seriesId,
+        )
+        // A missing release means no fan: the chart is built on what was
+        // published, and a mode that published nothing this meeting has
+        // nothing to redraw.
+        const now = session.observation.indicators[seriesId]?.value ?? null
+        if (published === undefined) return null
+        const reference = fanReference(seriesId, institution, objective)
+        return livingFan(published, {
+          basisPoints: move,
+          difficulty,
+          institution,
+          now,
+          reference: reference.value,
+          referenceLabel: reference.label,
+        })
+      })
+      .filter((fan): fan is NonNullable<typeof fan> => fan !== null)
+  }, [session.observation, session.state.config, move, difficulty, institution])
+
   if (instrument === undefined || range === null) {
     return <p className="text-ink-soft">The policy rate instrument is unavailable.</p>
   }
@@ -245,34 +282,6 @@ export function PolicyDeskPanel({
   // The gold standard's floor, where the year has one. Not a reference and not
   // a limit: the band marks the part of the track that costs reserves to stand
   // in, and the player may cut through it and pay. See `scenarios/goldStandard.ts`.
-  // The published forecast, redrawn for the move currently selected. Built
-  // from what the player can see — the staff's own fan, the documented lag
-  // kernel, the IS curve's own sensitivity — so it is not privileged
-  // information and is not gated by the information ladder.
-  const fans = useMemo(() => {
-    const objective = inflationTargetFor(session.state.config)
-    return (['headline_inflation', 'unemployment'] as const)
-      .map((seriesId) => {
-        const published = session.observation.forecasts.find(
-          (entry) => entry.seriesId === seriesId,
-        )
-        // A missing release means no fan: the chart is built on what was
-        // published, and a mode that published nothing this meeting has
-        // nothing to redraw.
-        const now = session.observation.indicators[seriesId]?.value ?? null
-        if (published === undefined) return null
-        const reference = fanReference(seriesId, institution, objective)
-        return livingFan(published, {
-          basisPoints: move,
-          difficulty,
-          institution,
-          now,
-          reference: reference.value,
-          referenceLabel: reference.label,
-        })
-      })
-      .filter((fan): fan is NonNullable<typeof fan> => fan !== null)
-  }, [session.observation, session.state.config, move, difficulty, institution])
 
   const goldFloor = goldFloorAt(session.state.config, session.state.meetingIndex)
   const goldLabelText = goldLabel(session.state.config)

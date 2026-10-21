@@ -14,9 +14,12 @@
     "deploy": "npm run build && wrangler deploy",
     "check:offline": "node tools/offline.mjs",
     "check:contrast": "node tools/contrast.mjs",
-    "board": "node tools/board.mjs"
+    "board": "node tools/board.mjs",
+    "check:classes": "node tools/classes.mjs",
+    "check:words": "node tools/words.mjs"
   },
   "dependencies": {
+    "motion": "^14.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.2.0"

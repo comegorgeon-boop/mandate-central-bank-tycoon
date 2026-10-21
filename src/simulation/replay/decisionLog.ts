@@ -10,7 +10,7 @@ import type {
   PolicyPackage,
 } from '../types/policy.ts'
 import type { OperatingProcedure, ScenarioId } from '../types/scenario.ts'
-import { MEETING_COUNT } from '../config/time.ts'
+import { tenureHorizon } from '../config/tenure.ts'
 import { getInstrument } from '../config/instruments.ts'
 import { SCENARIOS } from '../scenarios/scenarios.ts'
 import { createRunConfig } from '../engine/initialState.ts'
@@ -324,11 +324,22 @@ export function decodeDecisionLog(encoded: unknown): DecodeResult {
   }
 
   const slots = meetings.length === 0 ? [] : meetings.split(MEETING_SEPARATOR)
-  const limit = MEETING_COUNT[difficulty as Difficulty]
+  /*
+   * The cap is the institution's tenure horizon, not the difficulty's length.
+   *
+   * Length stopped being a property of the difficulty when the structure
+   * became survival — a Fed Chair term is four years whether the economy is
+   * kind or not — and this check was the last place still asking the
+   * difficulty how long a mandate is. The symptom was precise and extremely
+   * misleading: a perfectly good ECB log of 40 meetings was rejected because
+   * `MEETING_COUNT.medium` is 16, and the determinism round-trip test
+   * reported that the engine could not reproduce its own run.
+   */
+  const limit = tenureHorizon(institution as Institution)
   if (slots.length > limit) {
     return {
       ok: false,
-      error: `Decision log holds ${slots.length} meetings, more than the ${limit} of a ${difficulty} mandate.`,
+      error: `Decision log holds ${slots.length} meetings, more than the ${limit} a ${institution} tenure can run to.`,
     }
   }
 
@@ -374,7 +385,10 @@ export function configFromLog(log: DecisionLog): RunConfig {
     difficulty: log.difficulty,
     seed: log.seed,
     mode: log.mode,
-    meetingCount: MEETING_COUNT[log.difficulty],
+    // The horizon, matching `createRunConfig`. A log that rebuilt a different
+    // horizon from the one the run was played under would replay a different
+    // game — which is the one thing this module exists to make impossible.
+    meetingCount: tenureHorizon(log.institution),
     scenario: null,
   }
 }

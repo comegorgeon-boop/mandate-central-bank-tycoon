@@ -11,7 +11,7 @@ import { clamp } from '../config/bounds.ts'
 import { inflationTargetFor, scenarioOf } from '../scenarios/scenarios.ts'
 import { getDifficulty } from '../config/difficulty.ts'
 import { SPREADS, VOLATILITY } from '../config/model.ts'
-import { YEARS_PER_MEETING } from '../config/time.ts'
+import { MEETINGS_PER_YEAR, YEARS_PER_MEETING } from '../config/time.ts'
 import {
   COHESION_TOLERANCE,
   CONDUCT_GATE,
@@ -346,13 +346,30 @@ export function calculateScore(
   // return `status: 'completed'` — nothing collapsed, the run simply ended —
   // so reading the status alone gave a player who never repaired the economy
   // the same full marks as one who repaired it in twelve meetings.
+  /*
+   * `completion` became **tenure**, and the change is not a rename.
+   *
+   * The old component paid for *reaching a scheduled end*, which under a
+   * survival structure is a thing that no longer exists: you serve until you
+   * are revoked. Reading `status === 'completed'` now means "served every
+   * term and passed every hearing", the rarest outcome in the game, so paying
+   * it 1 and everything else `served * 0.6` would make the component a lottery
+   * on an eight-year career.
+   *
+   * What replaces it is how long you actually held the office, as a share of
+   * the horizon. `MISSED_OBJECTIVE_CREDIT` survives only where it still means
+   * something — a tutorial that ran its length without repairing the economy
+   * genuinely *finished*, and that is a statement about a mode with a real
+   * cap. Everywhere else it has no referent and is gone.
+   *
+   * The player's own instruction on the rest of it is answered in
+   * `scoring/banked.ts`: the score that counts is now banked meeting by
+   * meeting, so neither this component nor any other averaged one can pay a
+   * player for being dismissed early.
+   */
   const served = clamp(state.meetingIndex / state.config.meetingCount, 0, 1)
   const completionRaw =
-    outcome.triggered === 'objective_missed'
-      ? MISSED_OBJECTIVE_CREDIT
-      : outcome.status === 'completed'
-        ? 1
-        : served * 0.6
+    outcome.triggered === 'objective_missed' ? MISSED_OBJECTIVE_CREDIT : served
 
   const definitions: readonly {
     id: ScoreComponentId
@@ -447,16 +464,15 @@ export function calculateScore(
     },
     {
       id: 'completion',
-      label: 'Mandate completion',
+      label: 'Tenure',
       raw: completionRaw,
       explanation:
         outcome.triggered === 'objective_met'
           ? `The objective was reached and held, after ${state.meetingIndex} meetings.`
           : outcome.triggered === 'objective_missed'
             ? `${state.meetingIndex} meetings were served without the objective being reached.`
-            : outcome.status === 'completed'
-              ? 'The full mandate was served.'
-              : `The mandate ended after ${state.meetingIndex} of ${state.config.meetingCount} meetings.`,
+            : `You held the office for ${state.meetingIndex} meetings — ` +
+              `${(state.meetingIndex / MEETINGS_PER_YEAR).toFixed(1)} years.`,
     },
   ]
 
