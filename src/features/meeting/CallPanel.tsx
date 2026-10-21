@@ -61,7 +61,7 @@ export function CallPanel({
         data-call="standing"
         className="py-1"
       >
-        <p className="font-mono text-xs text-ink-primary">
+        <p className="font-mono text-xs text-ink">
           {standing.centre.toFixed(2)} % give or take{' '}
           {terms.halfWidth.toFixed(2)} —{' '}
           {due <= 0
@@ -70,7 +70,7 @@ export function CallPanel({
               ? 'settles next meeting.'
               : `settles in ${due} meetings.`}
         </p>
-        <p className="mt-1 font-mono text-2xs text-ink-muted">
+        <p className="mt-1 font-mono text-2xs text-ink-faint">
           +{terms.reward.toFixed(1)} inside, −{terms.cost.toFixed(1)} outside.
           It cannot be withdrawn.
         </p>
@@ -87,9 +87,15 @@ export function CallPanel({
       data-call=""
       className="py-1"
     >
-      <p className="font-mono text-xs text-ink-secondary">
-        Where headline inflation prints in {CALL_HORIZON} meetings. Published,
-        and judged on the figure the agency gives.
+      {/* Seven words, not seventeen.
+          "Published, and judged on the figure the agency gives" is true, and
+          it is the same true thing at every meeting of every mandate — which
+          makes it furniture rather than information. The quick surface's
+          prose budget is frozen, so a clause that never changes is the first
+          thing that has to go: it is on the card behind the row, where it is
+          read once. */}
+      <p className="font-mono text-xs text-ink-soft">
+        Where headline inflation prints in {CALL_HORIZON} meetings.
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -101,7 +107,7 @@ export function CallPanel({
           className={`border px-3 py-1.5 font-mono text-sm ${
             centre === null
               ? 'border-edge-accent bg-accent-surface font-semibold text-on-accent-surface'
-              : 'border-edge-room text-onwood-soft hover:text-onwood'
+              : 'border-edge-room text-ink-soft hover:text-ink'
           }`}
         >
           Say nothing
@@ -117,7 +123,7 @@ export function CallPanel({
             className={`border px-3 py-1.5 font-mono text-sm ${
               centre !== null && band === entry.band
                 ? 'border-edge-accent bg-accent-surface font-semibold text-on-accent-surface'
-                : 'border-edge-room text-onwood-soft hover:text-onwood'
+                : 'border-edge-room text-ink-soft hover:text-ink'
             }`}
           >
             ±{entry.halfWidth.toFixed(2)}
@@ -128,7 +134,7 @@ export function CallPanel({
       {centre !== null && (
         <>
           <div className="mt-3 flex flex-wrap items-baseline gap-x-3">
-            <label htmlFor="call-centre" className="text-sm text-onwood-soft">
+            <label htmlFor="call-centre" className="text-sm text-ink-soft">
               Called at
             </label>
             <input
@@ -137,9 +143,9 @@ export function CallPanel({
               step={0.1}
               value={centre}
               onChange={(event) => onChange(Number(event.target.value), band)}
-              className="w-24 border border-edge-room bg-page px-2 py-1 font-mono text-sm tabular-nums text-onwood"
+              className="w-24 border border-edge-room bg-page px-2 py-1 font-mono text-sm tabular-nums text-ink"
             />
-            <span className="text-sm tabular-nums text-onwood-soft">
+            <span className="text-sm tabular-nums text-ink-soft">
               {(centre - active.halfWidth).toFixed(2)} to{' '}
               {(centre + active.halfWidth).toFixed(2)} %
             </span>
@@ -147,22 +153,22 @@ export function CallPanel({
 
           <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <div className="flex items-center gap-2">
-              <dt className="text-xs uppercase tracking-wide text-onwood-faint">
+              <dt className="text-xs uppercase tracking-wide text-ink-faint">
                 Inside
               </dt>
-              <dd className="font-semibold tabular-nums text-good-onwood">
+              <dd className="font-semibold tabular-nums text-good">
                 +{active.reward.toFixed(1)}
               </dd>
             </div>
             <div className="flex items-center gap-2">
-              <dt className="text-xs uppercase tracking-wide text-onwood-faint">
+              <dt className="text-xs uppercase tracking-wide text-ink-faint">
                 Outside
               </dt>
-              <dd className="font-semibold tabular-nums text-bad-onwood">
+              <dd className="font-semibold tabular-nums text-bad">
                 −{active.cost.toFixed(1)}
               </dd>
             </div>
-            <dd className="text-xs text-onwood-faint">credibility, either way</dd>
+            <dd className="text-xs text-ink-faint">credibility, either way</dd>
           </dl>
         </>
       )}

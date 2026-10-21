@@ -247,14 +247,36 @@ export function MeetingScreen({
    * it fills the glass, and what organises it is rules rather than
    * whitespace.
    */
+  /*
+   * `onwood`, not `ink`, and the distinction is the oldest live rule in this
+   * project's design system.
+   *
+   * `ink` is text on a **panel**, whose material flips between the two
+   * directions — walnut in the terminal, cream paper in papers-on-the-table.
+   * `onwood` is text on the **room**, which is dark in both. This `<main>`,
+   * its status strip and the tab strip all sit on the room, so they take the
+   * room's pair.
+   *
+   * A sweep that moved every `onwood` to `ink` this pass caught these four by
+   * accident: correct in the terminal, where both resolve to the same grey,
+   * and 1.5:1 in papers-on-the-table, where `ink` is a dark brown on dark
+   * wood. Which is the same mistake this file's own header warns about,
+   * approached from the other side — and a reminder that "it looked right"
+   * only ever means "it looked right in the direction I was looking at".
+   */
   return (
-    <main className="min-h-screen w-full bg-page text-ink-primary">
+    <main className="min-h-screen w-full bg-page text-onwood">
       {/* The status strip. On a terminal the identity of the machine is one
           line of small type across the top, not a title block. */}
-      <header className="border-b border-edge-accent bg-raised px-2 py-1">
+      {/* `bg-room`, not `bg-raised`. The status strip is the machine's own
+          chrome rather than a document on it, so it belongs on the room —
+          which is dark in both directions and therefore pairs with `onwood`.
+          On `bg-raised` it was cream in papers-on-the-table and carrying
+          on-wood text at 3.1:1. */}
+      <header className="border-b border-edge-accent bg-room px-2 py-1">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <div className="flex flex-wrap items-baseline gap-x-3">
-            <p className="font-mono text-2xs uppercase tracking-[0.16em] text-ink-muted">
+            <p className="font-mono text-2xs uppercase tracking-[0.16em] text-onwood-faint">
               {institution.name} ·{' '}
               {dated === null ? config.difficulty : 'historical'} · seed{' '}
               {config.seed}

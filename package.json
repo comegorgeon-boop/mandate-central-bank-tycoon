@@ -14,7 +14,8 @@
     "deploy": "npm run build && wrangler deploy",
     "check:offline": "node tools/offline.mjs",
     "check:contrast": "node tools/contrast.mjs",
-    "board": "node tools/board.mjs"
+    "board": "node tools/board.mjs",
+    "check:classes": "node tools/classes.mjs"
   },
   "dependencies": {
     "motion": "^14.4.0",

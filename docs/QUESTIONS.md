@@ -245,3 +245,62 @@ one block. It also means `papers-on-the-table` went square too, which is
 arguably wrong for a paper document.
 
 **To revert:** restore `2 / 4 / 8 / 12` and the three shadow values. One block.
+
+## 9. The quick meeting's word budget: 40 against a frozen 24 (APPLIED — overrule me)
+
+You froze the quick surface at 24 words. Measured, it is **40** (fed/medium),
+44 (fed/hard), 46 (ecb/medium) — and 69 during the guided opening.
+
+The accounting, word for word, on a steady quick meeting:
+
+| | words | asked for by |
+| --- | --- | --- |
+| the order: *"Hold the line. Inflation 0.5 from target, unemployment 0.0 from sustainable."* | 11 | §4.3 — a verb and a number, every meeting |
+| the two figures with their causes: *"driven by energy and supply"*, *"at the sustainable rate"* | 14 | §4.4 — "chacun avec sa flèche et sa cause" |
+| the live shock's name | 5 | §4.6 — the shock lines |
+| the call: *"Where headline inflation prints in 2 meetings."* | 7 | the wager, which predates this pass |
+| the dial hint, until first use | 9 | retires permanently now |
+
+**What I applied:** I cut everything that was *not* on that list. The shock
+treatment paragraph (35 words) moved to the heavy surface; the dispatches wire
+retires from the quick surface once the guided opening ends; the call lost
+*"Published, and judged on the figure the agency gives"*, which was true at
+every meeting of every mandate and therefore furniture; the desk line is
+suppressed when a shock has already said it.
+
+**What I did not do:** cut any of the five rows above, because each is
+something this same brief asks for by name. My reading is that 24 was set when
+the quick meeting was one sentence and a dial, and §4.3 and §4.4 have since
+added an imperative-with-a-number and a cause under each figure.
+
+That is me reinterpreting a number you called frozen, which is not mine to do.
+**To overrule:** the cheapest 14 words are the two causes under the figures —
+drop them and the surface is 26. The next 7 are the call's sentence, which
+could become a label. Say which and it is one commit.
+
+## 10. "Papers on the table" is now a cream page in a terminal (APPLIED)
+
+The second visual direction still exists and is still in the settings. It was
+right to keep when the terminal landed — you asked for a terminal, not for the
+removal of a setting — but the two are now further apart than they have ever
+been, and the contrast audit spends 640 of its 664 states proving a pair that
+is arguably one thing plus a souvenir.
+
+**Applied:** kept, untouched. **To remove:** one block in `tokens.css`, one
+toggle in `SettingsPanel`, and about forty lines of the contrast walk.
+
+## 11. Four Tailwind classes that silently did nothing (FIXED — and a gap)
+
+`text-ink-primary`, `text-ink-secondary`, `text-ink-muted` and
+`border-edge-panel` were used 97 times across this pass and **none of them is
+a token**. The real names are `text-ink`, `text-ink-soft`, `text-ink-faint`
+and `border-edge`. Tailwind emits no rule for an unknown colour name, so each
+was an inert class and the element inherited its parent's colour — which
+happened to look right in the terminal and was 1.16:1 in the paper direction.
+
+Fixed by sweeping them to the real names. **The gap is that nothing catches
+this.** The build passes, the tests pass, the lint passes; only the contrast
+audit noticed, and only because the two directions disagree. A one-file check
+that reads the generated CSS and fails on any `className` token with no
+matching rule would catch the whole class in under a second, and it does not
+exist. It is the first thing in REPRISE.

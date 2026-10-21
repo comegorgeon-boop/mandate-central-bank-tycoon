@@ -147,12 +147,22 @@ export function StandingPanel({
           <summary
             className={`cursor-pointer list-none text-xs underline decoration-dotted underline-offset-2 marker:content-none ${TONE_BODY[standing.tone]}`}
           >
+            {/* "1 going right" is gone, and it was the single clearest
+                example of the defect the whole legibility pass is about: a
+                tally of descriptions, where the player needed a diagnosis and
+                an instruction. The instruction now lives one element below,
+                in the order banner; what is left here is the *record* — what
+                has been held and what is slipping — and a record is allowed
+                to be a list, as long as it is not pretending to be advice.
+
+                Named rather than counted, because "2 to watch" tells you
+                there is something to find and not what it is, which is the
+                worst of both: the cost of an alarm with the content of a
+                footnote. */}
             <span className="group-open:hidden">
-              {standing.achievements.length > 0 &&
-                `${standing.achievements.length} going right`}
-              {standing.achievements.length > 0 && standing.concerns.length > 0 && ', '}
-              {standing.concerns.length > 0 &&
-                `${standing.concerns.length} to watch`}
+              {standing.concerns.length > 0
+                ? `Watching: ${standing.concerns.length === 1 ? 'one thing' : `${standing.concerns.length} things`}`
+                : 'The record so far'}
             </span>
             <span className="hidden group-open:inline">Close</span>
           </summary>

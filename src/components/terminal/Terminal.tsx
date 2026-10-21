@@ -70,12 +70,12 @@ export function Panel({
       className={`flex min-w-0 flex-col bg-panel ${spanClass} ${className}`}
       aria-label={title}
     >
-      <header className="flex items-baseline justify-between gap-2 border-b border-edge-panel bg-raised px-2 py-1">
-        <h2 className="truncate font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-accent-onwood">
+      <header className="flex items-baseline justify-between gap-2 border-b border-edge bg-raised px-2 py-1">
+        <h2 className="truncate font-mono text-2xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
           {title}
         </h2>
         {right !== undefined && (
-          <span className="shrink-0 font-mono text-2xs tabular-nums text-ink-muted">
+          <span className="shrink-0 font-mono text-2xs tabular-nums text-ink-faint">
             {right}
           </span>
         )}
@@ -125,12 +125,12 @@ export function Row({
       <span
         style={{ width: `${LABEL_CH}ch` }}
         className={`shrink-0 truncate font-mono text-2xs uppercase tracking-[0.1em] ${
-          tone === 'quiet' ? 'text-ink-muted' : 'text-ink-secondary'
+          tone === 'quiet' ? 'text-ink-faint' : 'text-ink-soft'
         }`}
       >
         {label}
       </span>
-      <span className="min-w-0 flex-1 truncate text-right font-mono text-xs tabular-nums text-ink-primary">
+      <span className="min-w-0 flex-1 truncate text-right font-mono text-xs tabular-nums text-ink">
         {children}
       </span>
     </>
@@ -142,7 +142,7 @@ export function Row({
         type="button"
         onClick={onClick}
         title={title}
-        className="flex w-full items-baseline gap-2 border-b border-edge-panel px-2 py-[3px] text-left last:border-b-0 hover:bg-raised"
+        className="flex w-full items-baseline gap-2 border-b border-edge px-2 py-[3px] text-left last:border-b-0 hover:bg-raised"
       >
         {body}
       </button>
@@ -152,7 +152,7 @@ export function Row({
   return (
     <div
       title={title}
-      className="flex items-baseline gap-2 border-b border-edge-panel px-2 py-[3px] last:border-b-0"
+      className="flex items-baseline gap-2 border-b border-edge px-2 py-[3px] last:border-b-0"
     >
       {body}
     </div>
@@ -196,7 +196,7 @@ export function Figure({
   const bad = invert ? rising : falling
 
   const colour =
-    good ? 'text-good-onwood' : bad ? 'text-bad-onwood' : 'text-ink-primary'
+    good ? 'text-good' : bad ? 'text-bad' : 'text-ink'
 
   return (
     <span
@@ -219,7 +219,7 @@ export function Arrow({
 }) {
   if (direction === 'flat') {
     return (
-      <span aria-label="unchanged" className="text-ink-muted">
+      <span aria-label="unchanged" className="text-ink-faint">
         →
       </span>
     )
@@ -228,7 +228,7 @@ export function Arrow({
   return (
     <span
       aria-label={direction === 'up' ? 'rising' : 'falling'}
-      className={good ? 'text-good-onwood' : 'text-bad-onwood'}
+      className={good ? 'text-good' : 'text-bad'}
     >
       {direction === 'up' ? '▲' : '▼'}
     </span>

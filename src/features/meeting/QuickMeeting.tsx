@@ -5,6 +5,9 @@ import {
   instrumentRangesFor,
   rateInstrumentLabel,
   getInstitution,
+  explainInflation,
+  liveShocks,
+  unemploymentGap,
   type CallBand,
   type MeetingResult,
   type PolicyPackage,
@@ -15,6 +18,14 @@ import { meetingLine } from './meetingLine.ts'
 import { pricedMoveBp, surpriseStake } from './surprise.ts'
 import { CallPanel } from './CallPanel.tsx'
 import { Chip, Seal, SerialNumber } from '../../components/engraving/Chip.tsx'
+import {
+  CauseBar,
+  HeadlineFigure,
+  OrderBanner,
+  ShockPanel,
+} from '../../components/terminal/Explain.tsx'
+import { readOrder } from './order.ts'
+import { readDispatches } from './dispatches.ts'
 import {
   Arrow,
   Figure,
@@ -75,6 +86,45 @@ import {
  * constant, so no figure in this game ever moves between one meeting and the
  * next. A row with nothing to say prints an em dash; it does not collapse.
  */
+/**
+ * Whether this player has ever moved the dial.
+ *
+ * > "supprime « Moves in 25 bp steps — arrow keys work » après que le joueur
+ * > a bougé le curseur une fois."
+ *
+ * **Once**, not once per meeting — and the first version got that wrong in a
+ * way only the word count caught: the flag was component state, so it reset
+ * on every mount and the hint came back at meeting four, and twelve, and
+ * twenty-four. Nine words of instruction, re-served to a player who has
+ * demonstrably obeyed it, forever.
+ *
+ * Kept in `localStorage` because it is a fact about the person rather than
+ * about the run: having learned that a slider has arrow keys is not something
+ * to unlearn when a mandate ends. Wrapped, because a private window or a
+ * browser set to block site data throws on access rather than returning null,
+ * and a thrown read here would take the meeting screen down with it.
+ */
+const DIAL_KEY = 'mandate.dial.used'
+
+let hasUsedTheDial = (() => {
+  try {
+    return globalThis.localStorage?.getItem(DIAL_KEY) === '1'
+  } catch {
+    return false
+  }
+})()
+
+function rememberTheDial(): void {
+  if (hasUsedTheDial) return
+  hasUsedTheDial = true
+  try {
+    globalThis.localStorage?.setItem(DIAL_KEY, '1')
+  } catch {
+    // A player who cannot be remembered simply sees the hint again. That is
+    // the correct failure: the alternative is a crash on a meeting screen.
+  }
+}
+
 export function QuickMeeting({
   session,
   onConfirm,
@@ -89,7 +139,7 @@ export function QuickMeeting({
   readonly shock?: string | null
 }) {
   const [move, setMove] = useState(0)
-  const [touched, setTouched] = useState(false)
+  const [touched, setTouched] = useState(hasUsedTheDial)
   const [rejected, setRejected] = useState<string | null>(null)
   const [callCentre, setCallCentre] = useState<number | null>(null)
   const [callBand, setCallBand] = useState<CallBand>('even')
@@ -125,6 +175,31 @@ export function QuickMeeting({
 
   const stake = surpriseStake(session, move)
   const line = meetingLine(session)
+
+  /* ── The explanation, which is now the top of the screen. ──────────── */
+  const order = readOrder(session)
+  const inflation = explainInflation(session.state.latent, config)
+  const shocks = liveShocks(session.state)
+  const dispatches = readDispatches(session, { compact: true })
+  const jobsGap = unemploymentGap(session.state.latent)
+
+  // Direction is read against the previous meeting's snapshot rather than
+  // against a stored flag, so it is true after a replay and cannot drift.
+  const previous = session.state.history.at(-2)?.latent ?? null
+  const movedBy = (now: number, before: number | null): 'up' | 'down' | 'flat' =>
+    before === null || Math.abs(now - before) < 0.05
+      ? 'flat'
+      : now > before
+        ? 'up'
+        : 'down'
+  const headlineDirection = movedBy(
+    session.state.latent.inflationHeadline,
+    previous?.inflationHeadline ?? null,
+  )
+  const jobsDirection = movedBy(
+    session.state.latent.unemployment,
+    previous?.unemployment ?? null,
+  )
   const label =
     rateInstrumentLabel(config) ?? instrument?.label[config.institution] ?? 'Policy rate'
   const chips = stake.beyondPriced ? Math.max(1, Math.round(stake.trust)) : 0
@@ -151,13 +226,104 @@ export function QuickMeeting({
       style={shake === false ? undefined : shake}
       className="mt-3 border-y border-edge-strong bg-page"
     >
-      {/* The one written line on the screen, and the only thing in a serif.
-          Everything else is machine output and is set as machine output. */}
-      <p className="border-b border-edge-panel bg-raised px-2 py-1.5 font-display text-sm leading-snug text-ink-primary">
-        {line}
-      </p>
+      {/* ── Rank one: the order, then the two figures with their causes.
+            Always here, at the top, whatever the meeting weighs. ─────── */}
+      <OrderBanner
+        command={order.command}
+        detail={order.detail}
+        severity={order.severity}
+        compact
+      />
 
       <PanelGrid>
+        <Panel title="Where it stands" span={3}>
+          <div className="grid grid-cols-1 sm:grid-cols-2">
+            <HeadlineFigure
+              label="Headline inflation"
+              value={inflation.headline}
+              because={
+                inflation.leading === null || inflation.leading.share < 0.25
+                  ? null
+                  : `driven by ${inflation.leading.label}`
+              }
+              direction={headlineDirection}
+            />
+            <HeadlineFigure
+              label="Unemployment"
+              value={session.state.latent.unemployment}
+              because={
+                jobsGap > 0.4
+                  ? `${jobsGap.toFixed(1)} above the sustainable rate`
+                  : jobsGap < -0.4
+                    ? `${Math.abs(jobsGap).toFixed(1)} below the sustainable rate`
+                    : 'at the sustainable rate'
+              }
+              direction={jobsDirection}
+            />
+          </div>
+          {/* The cause as a picture. On a quick meeting the bar is here
+              without its legend: the shape is the information, and naming
+              every segment is what the heavy meeting is for. */}
+          <div className="flex items-center gap-2 border-t border-edge px-2 py-1.5">
+            <span className="w-[17ch] shrink-0 font-mono text-2xs uppercase tracking-[0.1em] text-ink-soft">
+              What is causing it
+            </span>
+            <span className="min-w-0 flex-1">
+              <CauseBar explanation={inflation} compact />
+            </span>
+          </div>
+        </Panel>
+
+        {/* ── Rank one and a half: what is still arriving. The most visible
+              thing after the order, because "qu'est-ce qu'il y a, et comment
+              on le traite" is most of the game. ───────────────────────── */}
+        <ShockPanel shocks={shocks} compact />
+
+        {/* The wire. Guidance for the first three meetings of every mandate
+            at every difficulty, then whatever actually landed — through the
+            same slot and in the same voice, so the game stops guiding without
+            a seam. No help box: "tout vit dans le terminal". */}
+        {dispatches.length > 0 && (
+        <Panel title="Dispatches">
+          {(
+            <ul>
+              {dispatches.map((dispatch) => (
+                <li
+                  key={dispatch.id}
+                  className="border-b border-edge px-2 py-1.5 last:border-b-0"
+                >
+                  <span
+                    className={`font-mono text-2xs uppercase tracking-[0.16em] ${
+                      dispatch.kind === 'guide' ? 'text-accent-strong' : 'text-ink-faint'
+                    }`}
+                  >
+                    {dispatch.tag}
+                  </span>
+                  <p className="mt-0.5 font-mono text-2xs leading-relaxed text-ink-soft">
+                    {dispatch.text}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+        )}
+
+        {/* The desk's own sentence, and the only serif on the screen —
+            shown only when it is saying something the shock lines are not.
+
+            A quick meeting's prose budget is twenty-four words and frozen.
+            The desk repeating the title of the shock immediately beside it
+            spent a third of that budget saying the same thing twice, and the
+            order at the top has already said what the meeting is for. */}
+        {line !== null &&
+          !shocks.some((shock) => line.startsWith(shock.title.slice(0, 12))) && (
+            <Panel title="The desk">
+              <p className="px-2 py-2 font-display text-xs leading-relaxed text-ink-soft">
+                {line}
+              </p>
+            </Panel>
+          )}
         {/* ── The instrument. Two columns of three, because the dial is the
               thing being operated and everything else reports on it. ──── */}
         <Panel
@@ -170,16 +336,16 @@ export function QuickMeeting({
             <Notched pulse={notch}>
               <Figure value={resulting} size="hero" invert />
             </Notched>
-            <span className="font-mono text-sm text-ink-muted">%</span>
+            <span className="font-mono text-sm text-ink-faint">%</span>
             <span className="ml-auto flex items-baseline gap-1 font-mono text-sm tabular-nums">
               <Arrow direction={direction} invert />
               <span
                 className={
                   move > 0
-                    ? 'text-bad-onwood'
+                    ? 'text-bad'
                     : move < 0
-                      ? 'text-good-onwood'
-                      : 'text-ink-muted'
+                      ? 'text-good'
+                      : 'text-ink-faint'
                 }
               >
                 {move === 0 ? 'hold' : `${move > 0 ? '+' : '−'}${Math.abs(move)} bp`}
@@ -198,7 +364,10 @@ export function QuickMeeting({
               markers={markers}
               explains={false}
               showHeader={false}
-              onDark
+              /* No `onDark`. That prop exists for a slider sitting straight
+                 on the room, and this one is inside a `Panel` — whose ground
+                 is the terminal's dark glass in one direction and cream paper
+                 in the other. On-dark tick labels on cream ran 2.35:1. */
               /* The hint retires the moment the player has used the dial
                  once. A line of instruction that is still there after it has
                  been obeyed is not help, it is furniture — and on a screen
@@ -207,6 +376,7 @@ export function QuickMeeting({
               hint={touched ? null : 'Moves in 25 bp steps — arrow keys work.'}
               onChange={(basisPoints) => {
                 setMove(basisPoints)
+                rememberTheDial()
                 setTouched(true)
                 setRejected(null)
               }}
@@ -218,7 +388,7 @@ export function QuickMeeting({
         <Panel title="The book" right={stake.beyondPriced ? 'live' : 'priced in'}>
           <Row label="Priced">
             {priced === null ? (
-              <span className="text-ink-muted">—</span>
+              <span className="text-ink-faint">—</span>
             ) : (
               <RollingNumber value={priced} decimals={0} suffix=" bp" />
             )}
@@ -228,7 +398,7 @@ export function QuickMeeting({
           </Row>
           <Row label="Surprise">
             {priced === null ? (
-              <span className="text-ink-muted">—</span>
+              <span className="text-ink-faint">—</span>
             ) : (
               <Figure
                 value={Math.abs(stake.surprise) * 100}
@@ -239,11 +409,11 @@ export function QuickMeeting({
           </Row>
           <Row label="Returns">
             {stake.beyondPriced ? (
-              <span className="font-semibold text-good-onwood">
+              <span className="font-semibold text-good">
                 <RollingNumber value={stake.reach} prefix="+" suffix=" reach" />
               </span>
             ) : (
-              <span className="text-ink-muted">nothing bought</span>
+              <span className="text-ink-faint">nothing bought</span>
             )}
           </Row>
           {/* The chips are capped at four and the row never wraps.
@@ -263,12 +433,12 @@ export function QuickMeeting({
                     </ThrownChip>
                   ))}
                 </span>
-                <span className="font-semibold text-bad-onwood">
+                <span className="font-semibold text-bad">
                   <RollingNumber value={stake.trust} decimals={1} suffix=" trust" />
                 </span>
               </span>
             ) : (
-              <span className="text-ink-muted">nothing at risk</span>
+              <span className="text-ink-faint">nothing at risk</span>
             )}
           </Row>
         </Panel>
@@ -292,14 +462,17 @@ export function QuickMeeting({
       {rejected !== null && (
         <p
           role="alert"
-          className="border-y border-bad bg-bad-surface px-2 py-1 font-mono text-xs text-bad-onwood"
+          className="border-y border-bad bg-bad-surface px-2 py-1 font-mono text-xs text-bad"
         >
           {rejected}
         </p>
       )}
 
       {/* ── The committing row. ─────────────────────────────────────── */}
-      <div className="flex items-stretch border-t border-edge-strong">
+      {/* The action bar sits on the chassis rather than in a panel — it
+          paints no ground of its own and inherits `bg-page`, which is dark in
+          both directions. So it takes the room's text pair. */}
+      <div className="flex items-stretch border-t border-edge-strong bg-room">
         <motion.button
           type="button"
           onClick={confirm}
@@ -314,7 +487,7 @@ export function QuickMeeting({
           type="button"
           onClick={onOpenRoom}
           data-open-room=""
-          className="border-l border-edge-strong px-3 py-2.5 font-mono text-2xs uppercase tracking-[0.18em] text-ink-secondary hover:bg-raised hover:text-ink-primary"
+          className="border-l border-edge-strong px-3 py-2.5 font-mono text-2xs uppercase tracking-[0.18em] text-onwood-soft hover:bg-inset hover:text-onwood"
         >
           Open the room
         </button>
@@ -322,21 +495,25 @@ export function QuickMeeting({
 
       {/* ── The foot. The seal and the serial, kept: they are what a
             document has, and this is still an instrument of policy. ──── */}
-      <div className="flex items-center justify-between gap-2 border-t border-edge-panel bg-raised px-2 py-1">
+      <div className="flex items-center justify-between gap-2 border-t border-edge bg-raised px-2 py-1">
         <SerialNumber
           seed={config.seed}
           meeting={session.state.meetingIndex}
-          className="text-ink-muted"
+          className="text-ink-faint"
         />
         <span className="flex items-center gap-2">
-          <span className="font-mono text-2xs uppercase tracking-[0.18em] text-ink-muted">
+          <span className="font-mono text-2xs uppercase tracking-[0.18em] text-ink-faint">
             {getInstitution(config.institution).shortName}
           </span>
           <Seal
             size={20}
             letters={config.institution === 'ecb' ? 'ECB' : 'FRS'}
-            opacity={0.8}
-            className="text-accent-onwood"
+            /* No opacity. The die carries three letters, and eight tenths
+               of brass-700 on cream is 4.39:1 — the same defect the lint rule
+               forbids in a className, arriving through a prop where the rule
+               cannot see it. A drawn thing with text in it is a text element.
+               The `opacity` prop stays for the seals that carry none. */
+            className="text-accent-strong"
           />
         </span>
       </div>

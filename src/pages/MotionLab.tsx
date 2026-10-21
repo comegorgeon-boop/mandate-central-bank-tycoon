@@ -48,7 +48,7 @@ function Slider({
   readonly onChange: (value: number) => void
 }) {
   return (
-    <label className="flex items-center gap-2 border-b border-edge-panel px-2 py-1 font-mono text-2xs text-ink-secondary last:border-b-0">
+    <label className="flex items-center gap-2 border-b border-edge px-2 py-1 font-mono text-2xs text-ink-soft last:border-b-0">
       <span className="w-[11ch] shrink-0 uppercase tracking-[0.12em]">{label}</span>
       <input
         type="range"
@@ -59,7 +59,7 @@ function Slider({
         onChange={(event) => onChange(Number(event.target.value))}
         className="min-w-0 flex-1 accent-[var(--accent)]"
       />
-      <span className="w-[6ch] shrink-0 text-right tabular-nums text-ink-primary">
+      <span className="w-[6ch] shrink-0 text-right tabular-nums text-ink">
         {value}
       </span>
     </label>
@@ -84,15 +84,15 @@ export default function MotionLab() {
   const spring = { type: 'spring' as const, stiffness, damping, mass }
 
   return (
-    <main className="min-h-screen w-full bg-page pb-10 text-ink-primary">
+    <main className="min-h-screen w-full bg-page pb-10 text-ink">
       <div className="border-b border-edge-strong bg-raised px-2 py-1.5">
-        <h1 className="font-mono text-2xs font-semibold uppercase tracking-[0.22em] text-accent-onwood">
+        <h1 className="font-mono text-2xs font-semibold uppercase tracking-[0.22em] text-accent-strong">
           Motion bench · development
         </h1>
       </div>
 
       {reduced && (
-        <p className="border-b border-bad bg-bad-surface px-2 py-1.5 font-mono text-xs text-bad-onwood">
+        <p className="border-b border-bad bg-bad-surface px-2 py-1.5 font-mono text-xs text-bad">
           Reduced motion is on in this browser or operating system. Everything
           below will arrive without moving, which is correct — and means the
           bench cannot show you anything until you turn it off.
@@ -107,7 +107,7 @@ export default function MotionLab() {
           <Slider label="roll ms" value={rollMs} min={80} max={1600} step={20} onChange={setRollMs} />
           <Slider label="delay ms" value={delayMs} min={0} max={1200} step={20} onChange={setDelayMs} />
           <Slider label="tally ms" value={tallyMs} min={100} max={3000} step={50} onChange={setTallyMs} />
-          <p className="px-2 py-1 font-mono text-2xs leading-relaxed text-ink-muted">
+          <p className="px-2 py-1 font-mono text-2xs leading-relaxed text-ink-faint">
             {`SPRING = { stiffness: ${stiffness}, damping: ${damping}, mass: ${mass} }`}
             <br />
             {`ROLL_MS = ${rollMs}   SUSPENSE_MS = ${delayMs}`}
@@ -121,19 +121,19 @@ export default function MotionLab() {
               <button
                 type="button"
                 onClick={() => setFigure((c) => Math.round((c + 0.75) * 100) / 100)}
-                className="border border-edge-accent px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-accent-onwood"
+                className="border border-edge-accent px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-accent-strong"
               >
                 Raise
               </button>
               <button
                 type="button"
                 onClick={() => setFigure((c) => Math.round((c - 0.5) * 100) / 100)}
-                className="border border-edge-panel px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-ink-secondary"
+                className="border border-edge px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-ink-soft"
               >
                 Cut
               </button>
             </div>
-            <p className="min-w-0 flex-1 font-mono text-2xs leading-relaxed text-ink-muted">
+            <p className="min-w-0 flex-1 font-mono text-2xs leading-relaxed text-ink-faint">
               A number that cuts was computed; a number that runs up to its
               value was counted. Green when it falls, red when it rises —
               inverted, because this one is inflation.
@@ -159,7 +159,7 @@ export default function MotionLab() {
             <button
               type="button"
               onClick={() => setChipNonce((n) => n + 1)}
-              className="border border-edge-accent px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-accent-onwood"
+              className="border border-edge-accent px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-accent-strong"
             >
               Throw
             </button>
@@ -169,11 +169,11 @@ export default function MotionLab() {
         <Panel title="The notch">
           <div className="flex items-center gap-3 px-2 py-3">
             <Notched pulse={Math.round(figure * 4)}>
-              <span className="font-mono text-2xl tabular-nums text-ink-primary">
+              <span className="font-mono text-2xl tabular-nums text-ink">
                 <RollingNumber value={figure} />
               </span>
             </Notched>
-            <p className="min-w-0 flex-1 font-mono text-2xs leading-relaxed text-ink-muted">
+            <p className="min-w-0 flex-1 font-mono text-2xs leading-relaxed text-ink-faint">
               One pulse per detent. No sound, ever — the click is the scale
               impulse.
             </p>
@@ -213,7 +213,7 @@ export default function MotionLab() {
                   setWon(true)
                   setFlipNonce((n) => n + 1)
                 }}
-                className="border border-edge-panel px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-good-onwood"
+                className="border border-edge px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-good"
               >
                 Won
               </button>
@@ -223,12 +223,12 @@ export default function MotionLab() {
                   setWon(false)
                   setFlipNonce((n) => n + 1)
                 }}
-                className="border border-edge-panel px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-bad-onwood"
+                className="border border-edge px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-bad"
               >
                 Lost
               </button>
             </div>
-            <p className="min-w-0 flex-1 font-mono text-2xs leading-relaxed text-ink-muted">
+            <p className="min-w-0 flex-1 font-mono text-2xs leading-relaxed text-ink-faint">
               The card turns, then the total counts up one at a time. The
               tally is deliberately not the rolling figure: a live reading
               eases to its value, a settlement ticks like a meter, and the
@@ -244,14 +244,14 @@ export default function MotionLab() {
               initial={reduced ? false : { x: 0 }}
               animate={reduced ? undefined : { x: [0, 8, -6, 4, -2, 0] }}
               transition={{ duration: 0.21, times: [0, 0.2, 0.4, 0.6, 0.8, 1] }}
-              className="border border-bad bg-raised px-2 py-1.5 font-mono text-xs text-ink-primary"
+              className="border border-bad bg-raised px-2 py-1.5 font-mono text-xs text-ink"
             >
               A large bank closes its doors
             </motion.div>
             <button
               type="button"
               onClick={() => setShakeNonce((n) => n + 1)}
-              className="border border-edge-accent px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-accent-onwood"
+              className="border border-edge-accent px-2 py-1 font-mono text-2xs uppercase tracking-[0.14em] text-accent-strong"
             >
               Strike
             </button>
@@ -266,10 +266,10 @@ export default function MotionLab() {
             <Figure value={60} decimals={0} suffix=" bp" />
           </Row>
           <Row label="Returns">
-            <span className="text-good-onwood">+0.13 reach</span>
+            <span className="text-good">+0.13 reach</span>
           </Row>
           <Row label="Stake">
-            <span className="text-bad-onwood">3.0 trust</span>
+            <span className="text-bad">3.0 trust</span>
           </Row>
           <Row label="Unemployment">
             <span className="flex items-center justify-end gap-1">
@@ -281,14 +281,14 @@ export default function MotionLab() {
 
         <Panel title="Drawn furniture" span={3}>
           <div className="flex flex-wrap items-center gap-8 px-2 py-4">
-            <div className="text-accent-onwood">
+            <div className="text-accent-strong">
               <Guilloche size={120} petals={11} copies={9} bands={3} strokeWidth={0.4} />
             </div>
-            <div className="flex flex-col items-center gap-2 text-accent-onwood">
+            <div className="flex flex-col items-center gap-2 text-accent-strong">
               <Seal size={56} letters="FRS" />
-              <SerialNumber seed="LAB" meeting={7} className="text-ink-muted" />
+              <SerialNumber seed="LAB" meeting={7} className="text-ink-faint" />
             </div>
-            <div className="min-w-[14rem] flex-1 text-accent-onwood">
+            <div className="min-w-[14rem] flex-1 text-accent-strong">
               <GuillocheBand height={20} lines={3} frequency={17} waist={0.42} />
             </div>
           </div>
@@ -296,7 +296,7 @@ export default function MotionLab() {
       </PanelGrid>
 
       <p className="px-2 py-3 font-mono text-2xs">
-        <Link to="/" className="text-ink-secondary underline hover:text-ink-primary">
+        <Link to="/" className="text-ink-soft underline hover:text-ink">
           Back
         </Link>
       </p>

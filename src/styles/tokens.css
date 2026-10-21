@@ -150,7 +150,13 @@
   /* Light grey, for everything that is read rather than watched. */
   --color-term-text: #d6dce3;
   --color-term-text-2: #9aa5b1;
-  --color-term-text-3: #78838f;
+  /* Lifted from #78838f, which cleared 5.01:1 on the panel ground and 4.49:1
+   * on the sunk one — under AA by a hundredth, on every muted caption inside
+   * a well. Measuring a text token against the *panel* and shipping it is the
+   * same mistake as measuring a brass against walnut and using it on cream:
+   * a token has to clear its worst ground, not its usual one. This clears
+   * 4.74:1 on the sunk surface and 5.3:1 on the panel. */
+  --color-term-text-3: #7c8794;
 
   /* Up and down. Bright, because on a terminal they are the alarm. */
   --color-up-400: #35c46b;
@@ -434,6 +440,24 @@
  * or on any subtree, which is how the two can be shown side by side.
  */
 [data-direction='papers-on-the-table'] {
+  /*
+   * The room, restored.
+   *
+   * `--surface-page` and `--surface-room` became the terminal's near-black
+   * chassis in `:root`, and this block never overrode them because it never
+   * had to: they were walnut, and walnut and the terminal are both dark, so
+   * paper panels sat on either without anyone noticing. That stopped being
+   * true the moment the meeting screen started painting `bg-page` on its own
+   * `<main>` and letting children inherit — paper ink at #493e32 on a #07090b
+   * chassis is 1.9:1, and the audit found it 300 times.
+   *
+   * The lesson is the two-layer file's own: a direction must override every
+   * ground it means to change, and "it was dark before and it is dark now"
+   * is not an override, it is a coincidence that held.
+   */
+  --surface-page: var(--color-walnut-950);
+  --surface-room: var(--color-walnut-900);
+
   --surface-panel: var(--color-paper-50);
   --surface-sunk: var(--color-paper-100);
   --surface-raised: var(--color-paper-50);
@@ -442,6 +466,18 @@
   --ink-primary: var(--color-ink-900);
   --ink-secondary: var(--color-ink-700);
   --ink-muted: var(--color-ink-500);
+
+  /*
+   * And the room's own text, for the same reason the grounds above are back.
+   *
+   * `--onwood-*` became the terminal's cold greys in `:root`. This block did
+   * not override them and did not need to while the room was walnut in both
+   * directions — but a cold #7c8794 on warm walnut-900 runs 4.29:1, under AA
+   * by a fifth. Warm on warm is what the room was always paired with.
+   */
+  --onwood-primary: var(--color-paper-100);
+  --onwood-secondary: var(--color-paper-300);
+  --onwood-muted: var(--color-paper-400);
 
   --edge-panel: var(--color-paper-300);
   --edge-strong: var(--color-paper-400);

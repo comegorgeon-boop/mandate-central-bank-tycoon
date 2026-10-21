@@ -87,6 +87,16 @@ export default function ResultPage() {
     navigate('/play/briefing')
   }
 
+  /*
+   * `onwood`, like the meeting screen's chrome and for the same reason: this
+   * header sits straight on the room, which is dark in both directions. The
+   * postmortem *document* below it is on paper and keeps `ink`.
+   *
+   * It was swept to `ink` with everything else this pass and came back at
+   * 1.09:1 in papers-on-the-table — a 36 px heading in near-black on dark
+   * walnut. Correct in the terminal, invisible in the other direction, and
+   * the second time the same sweep made the same mistake in the same pass.
+   */
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8 text-onwood">
       <p className="text-2xs uppercase tracking-[0.14em] text-onwood-faint">
@@ -101,7 +111,7 @@ export default function ResultPage() {
           ? 'Objective met — well done'
           : (outcome.label ?? 'Mandate ended')}
       </h1>
-      <p className="mt-1 font-mono text-sm text-ink-secondary">
+      <p className="mt-1 font-mono text-sm text-onwood-soft">
         {/* "N of M scheduled meetings" is gone for the same reason "Meeting 3
             of 16" is: under a survival structure there is no M. What there is
             is how long you held it, which is now half the result rather than
@@ -122,18 +132,18 @@ export default function ResultPage() {
       {/* The banked total: both halves, always. The total alone is a
           leaderboard of length and the rate alone is the average this whole
           structure exists to get rid of. */}
-      <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-y border-edge-panel py-1.5 font-mono text-sm">
+      <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-y border-edge py-1.5 font-mono text-sm">
         <div className="flex items-baseline gap-2">
-          <dt className="text-2xs uppercase tracking-[0.16em] text-ink-muted">Banked</dt>
-          <dd className="tabular-nums text-ink-primary">
+          <dt className="text-2xs uppercase tracking-[0.16em] text-onwood-faint">Banked</dt>
+          <dd className="tabular-nums text-onwood">
             <Tally value={banked.total} delayMs={240} durationMs={1100} />
           </dd>
         </div>
         <div className="flex items-baseline gap-2">
-          <dt className="text-2xs uppercase tracking-[0.16em] text-ink-muted">
+          <dt className="text-2xs uppercase tracking-[0.16em] text-onwood-faint">
             A meeting
           </dt>
-          <dd className="tabular-nums text-ink-secondary">{banked.perMeeting}</dd>
+          <dd className="tabular-nums text-onwood-soft">{banked.perMeeting}</dd>
         </div>
       </dl>
 

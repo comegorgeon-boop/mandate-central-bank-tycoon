@@ -834,3 +834,98 @@ file and line, and green when it is removed.
 
 **Not merged, not propagated.** One screen, as asked. The other screens are
 untouched and the branch is not merged.
+
+---
+
+## 19 — The terminal, survival, and a game that commands instead of describing
+
+**What I did.** Four chantiers in one pass. Turned the art direction into a
+dealing-room terminal: amber on a near-black chassis, panels tiled edge to
+edge with one-pixel rules, IBM Plex Mono carrying figures *and* labels in
+columns that never move, every value flashing green or red for half a second
+when it changes. Removed the engraved governor — the portrait was not good
+enough and a terminal has no pictures on it. Gave the motion vocabulary a
+`Flip` and a `Tally` and rebuilt `/lab` as a bench with stiffness, damping,
+mass, roll, delay and tally on sliders. Built the survival structure: a Fed
+term of 32 meetings with a reappointment hearing, an ECB term of 64 that
+cannot be renewed or cut short, and a score banked meeting by meeting. Then
+the legibility pass: an order line, a cause bar, a live-shocks panel, a
+meaning card on every indicator, a dispatches wire, and a guided opening.
+
+**What I measured.**
+
+| | before | after |
+| --- | --- | --- |
+| longest calm run of meetings | 9 (fed/hard) | **2** everywhere |
+| a major shock's cost, in banked points | — | **2.0–7.8×** a minor's |
+| careers a banking crisis ends at hard | — | **57–63 %** |
+| quick surface, steady | 97 words | **40** |
+| quick surface, guided opening | — | 69 |
+| heavy surface | 248 | 248 |
+| contrast | 0 failures / 664 states | 0 failures |
+
+Three measurements turned out to be measuring the wrong thing, and all three
+had been right until the structure under them moved. `balance.test.ts` played
+until the run ended, which under survival conditions the sample on the event
+stream it is measuring — the same catalogue reads −0.019 per meeting over a
+fixed window and −0.116 over runs truncated at their revocation. The word
+budget counted every text node and reported 156 words against a budget of 24,
+most of it column labels a terminal is navigated by rather than read. And the
+"never more than two calm meetings" guarantee broke silently because
+`maxOccurrences` was authored against a 24-meeting mandate: by the fortieth
+meeting the catalogue had retired and **the forced fire that implements the
+guarantee had nothing left to fire.**
+
+**What still bothers me.** The steady quick surface is 40 words against a
+budget the player froze at 24, and I did not get it there. What is left is
+the order (15), the two figures with their causes (14), the shock's name (5)
+and the call (7) — every one of them something the same brief explicitly
+asks for. I think the honest reading is that 24 was set when the quick
+meeting was one sentence and a dial, and the brief has since added an
+imperative with a number in it and a cause under each figure. But that is me
+reinterpreting a number I was told was frozen, so it is in QUESTIONS.md as
+mine to be overruled on, with the exact accounting.
+
+Three smaller things. The guided opening costs 69 words on meetings one to
+three, which is 2.9× the budget and is the one place I think the overrun is
+obviously right. The hint under the dial was retiring per *meeting* rather
+than per player, so nine words of instruction came back at meeting four,
+twelve and twenty-four to someone who had demonstrably obeyed it — caught by
+the word count and not by me reading the code. And the compact order line
+split on the first period, which on a line that opens with a figure turned
+*"1.4 points above the 2.0 % objective"* into **"1."** — a banner that
+commanded and then explained itself with a single digit. Both were visible
+the moment they rendered and neither was visible in review.
+
+**The worst of it, and it is worth its own paragraph.** The contrast audit
+came back with **2,467 failures across 300 states** after everything above was
+green, and all of them were in the second visual direction, which I had never
+looked at. Three separate silent failures, each invisible in review:
+
+1. **Four utility classes I used ninety-seven times do not exist.**
+   `text-ink-primary`, `text-ink-secondary`, `text-ink-muted` and
+   `border-edge-panel` are not tokens — the real names are `text-ink`,
+   `text-ink-soft`, `text-ink-faint`, `border-edge`. Tailwind emits nothing
+   for an unknown colour, so the class is inert and the text silently
+   inherits its parent. It *looked* correct in the terminal because the
+   inherited colour was also a terminal grey.
+2. **A direction must override every ground it means to change.**
+   `--surface-page` became near-black in `:root`, and the paper direction
+   never overrode it — it never had to, because the room had always been
+   walnut and walnut and a terminal are both dark. "It was dark before and it
+   is dark now" is not an override. It is a coincidence that held until the
+   meeting screen started painting `bg-page` on its own `<main>`: paper ink at
+   1.9:1, three hundred times.
+3. **Then my own fix was too broad.** Sweeping `onwood` to `ink` is right for
+   a component on a panel and wrong for one on the room, and `MeetingScreen`
+   is on the room. Correct in the terminal, where both resolve to the same
+   grey; 1.5:1 in papers.
+
+The common thread is that *it looked right* only ever means *it looked right
+in the direction I was looking at*. The audit is the only thing in this
+project that looks at the other one, and this is the fourth time it has caught
+something nothing else could. It is also now the slowest check by a factor of
+ten, which is why it keeps being the last thing run and the last thing
+believed — and both of those are the wrong way round.
+
+**Not merged.** Four commits on `terminal`, nothing on main, as asked.
