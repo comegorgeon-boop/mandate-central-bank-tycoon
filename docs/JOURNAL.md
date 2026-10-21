@@ -1128,3 +1128,17 @@ left it, because asserting the opposite would be asserting away the whole of
 win. And hard's growth reading recovers after one meeting for the reason in
 (1); the ladder is honest at the opening, which is what was asked for, and
 thinner than I would like three meetings in.
+
+**Merged and deployed.** `96093f8` into main, live, and
+`MANDATE_URL=… npm run check:offline` against the deployed site is clean — 21
+meetings played with the wire cut. Gates before the merge: 1146 tests, lint 0
+errors, 287 class names all real, **0 contrast failures across 664 states in
+both directions**, and a full twelve-meeting mandate played on a phone with an
+automated check for scroll position, overflow, sideways scroll and console
+errors — which reported *nothing wrong found*, after reporting a scrolled
+opening at every single meeting the first time it ran.
+
+One more tool broken by my own change, caught by the audit rather than by me:
+splitting the mode choice in two put the scenario buttons behind a door, and
+`drive.mjs` waited thirty seconds for a button it had not opened and reported
+a timeout that looked like the game hanging.
