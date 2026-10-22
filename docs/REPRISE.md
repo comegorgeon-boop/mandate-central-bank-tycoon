@@ -4,14 +4,14 @@ Where this is, in one page, for whoever picks it up next — including me.
 
 ## The branch
 
-`instrument-and-ladder`, merged to main. Main is live and the player validates
+`direction-and-alerts`, merged to main. Main is live and the player validates
 the screen before anything lands there.
 
 | commit | what |
 | --- | --- |
-| `2797931` | a ladder of broken readings, and a ceiling that costs instead of refusing |
 | `96093f8` | merge: coherent openings, a dial that costs, figures from the first meeting |
-| *this one* | an instrument for the component it is charged for, and three rulers that were wrong |
+| `7823353` | an instrument for the component it is charged for, and three rulers that were wrong |
+| *this one* | a game that says what it is for, one score, and an alarm that interrupts |
 
 ## What the game is now
 
@@ -29,15 +29,15 @@ or cut short, so political pressure has nothing to act on. The score is banked
 meeting by meeting with a floor below zero, so a bad meeting is a bill and
 being dismissed early can no longer protect a good average.
 
-**This page said for several passes that what ends an ECB presidency is losing
-the Governing Council. It does not, because it cannot** — `council_lost`
-requires member inflation dispersion at 2.4 *and* fragmentation at 290 bp held
-for five meetings, and the highest dispersion reached across 360 mandates is
-1.85, under the play where fragmentation is lowest. Measured in
-`dev/councilProbe.ts`, 0 of 60 in every cell. A fictional ECB presidency
-currently ends only on the catastrophes, while the game tells the player they
-can lose the room. QUESTIONS **#23**, with three options and the measurement
-behind each.
+**What ends an ECB presidency is losing the Governing Council, and as of this
+pass that is true rather than merely written here.** It could not fire: the old
+condition wanted member dispersion at 2.4 *and* fragmentation at 290 bp at
+once, and the two peak under opposite conditions — 0 of 60 in every cell, while
+this page asserted it and the game told the player "you can lose the room". It
+now fires on **sustained dissent by a bloc**: a third of the committee against,
+for six consecutive meetings, the count resetting when the room comes back.
+Measured, a competent chair never loses it and at hard is warned in 43 % of
+mandates; neglect loses it in 65 to 92 %. QUESTIONS **#23**.
 
 Every meeting opens with an **order** — an imperative verb, a number to close
 and the cost of inaction — and `order.test.ts` walks every meeting of every
@@ -53,47 +53,40 @@ survival restructure and that nobody had re-run.
 | | command | last reading |
 | --- | --- | --- |
 | build | `npm run build` | clean |
-| tests | `npm test` | **1164 passing** |
+| tests | `npm test` | **1173 passing** |
 | lint | `npm run lint` | 0 errors, 13 warnings |
-| contrast | `npm run check:contrast` | 0 failures / **788 states**, both directions |
-| classes | `npm run check:classes` | **292** names, all real |
-| words | `npm run check:words` | quick 51-55 steady (cap 60), heavy 325-342 |
+| contrast | `npm run check:contrast` | 0 failures / **810 states**, both directions |
+| classes | `npm run check:classes` | **297** names, all real |
+| words | `npm run check:words` | quick **63-74** steady (cap **75** — re-based, see below), heavy 325-342 |
 | offline | `npm run check:offline` | clean, all this origin |
-| sweep | `npm run sim:sweep` | **6 balance warnings — see QUESTIONS #22** |
+| sweep | `npm run sim:sweep` | **2 balance warnings**, both diagnosed — QUESTIONS #24 |
 | instrument reach | `node tools/instrument.mjs` | every open instrument is on the desk |
 | order only | `npm test` (`orderOnly.test.ts`) | **40/40** easy mandates served blind |
 | cohesion floor | `npx tsx src/simulation/dev/cohesion.ts` | competent floor 1.88 / 1.79 / 1.92 |
 | fragmentation | `npx tsx src/simulation/dev/fragmentation.ts` | the penalty by channel, and what the tool costs |
 | guidance value | `npx tsx src/simulation/dev/guidanceValue.ts` | what speaking is worth, in points |
 | the ladder | `npx tsx src/simulation/dev/ladder.ts` | how many meetings the ladder lasts |
-| council ending | `npx tsx src/simulation/dev/councilProbe.ts` | **0 of 60 — it cannot fire. QUESTIONS #23** |
+| council ending | `npx tsx src/simulation/dev/councilProbe.ts` | competent **0 %**, passive 65-92 %, warned 43 % at hard |
+| bulletin rate | `npx tsx src/simulation/dev/bulletinRate.ts` | capped at **4 a mandate**, median 1-4 |
 | skill gradient | `npx tsx src/simulation/dev/skillGradient.ts` | does skill outlast idleness on hard |
 | severity | `npx tsx src/simulation/dev/severity.ts` | a major costs 2.0–7.8× a minor |
 | cadence | `npx tsx src/simulation/dev/cadence.ts` | longest calm run **2** everywhere |
 
 ## The first thing to pick up
 
-**The game has two scores and they disagree about whether competence beats
-passivity.** QUESTIONS **#22**, and it is the only open item that changes what
-the game means.
+**The tutorial is still winnable by not pulling the lever it teaches.** At
+fed/easy, doing nothing banks 2,876 against competent play's 2,860 — inside
+seed noise — while completing 76 % of mandates against 100 %. So passivity
+loses a quarter of its mandates and ties on the rest. Journal 21 recorded this
+gradient as thin; it is still thin, and it is now one of only two balance
+warnings the sweep reports.
 
-`bankedTotal` is the headline on the result screen, earned meeting by meeting,
-built so that being dismissed early stops paying. `calculateScore` is the
-scorecard beside it and still grades **path averages**, which under a survival
-structure rewards brevity — the exact defect banked scoring was written to
-remove. The conversion stopped at the headline.
-
-| ECB, competent vs passive | banked | graded |
-| --- | --- | --- |
-| medium | 2,611 vs 331 | 2,159 vs **2,318** |
-| hard | 329 vs 40 | 1,278 vs **2,519** |
-
-Both numbers are on the result screen, and the *graded* one is what the records
-page compares and what every personal best is set on. It is also why
-`npm run sim:sweep` reports six warnings; `main` reported the same six before
-this pass, so they are not a regression. Three options are written up in #22,
-in order of preference. It is a decision about what the score means, which is
-the player's.
+The repair is an easy opening that does not heal itself, which is the mode's
+character and therefore the player's call. QUESTIONS **#24** has it with the
+other warning, which is the sweep measuring the wrong thing: "fed/hard: never
+survived under any rule" asks whether the *full 64-meeting horizon* was
+reached, and `config/tenure.ts` says in as many words that no mandate is meant
+to reach it.
 
 ## The guardrails that now exist
 
@@ -102,6 +95,27 @@ were built after the same defect had already been recorded in the journal**,
 which is the pattern: the habit gets written down, then the mechanism gets
 built the next time the habit fails.
 
+- **One score, by lint.** `calculateScore(...).score` — the old graded total —
+  may not be read anywhere in `src/pages`, `src/features` or `src/components`.
+  The defect was never a calculation; it was a dozen reasonable call sites,
+  which together meant a fourteen-year mandate showed 5,437 banked beside 1,741
+  graded and the records page ranked on the second. `scoring/theScore.ts` is the
+  one definition.
+- `scoring/reachable.test.ts` — **every ending the game announces must be an
+  ending it can reach.** Plays 108 fictional mandates under three rules and
+  fails if a listed condition never occurs, with every exclusion carrying its
+  reason. It exists because `council_lost` was dead for as long as it existed
+  while two documents asserted otherwise, and because `dev/gateProbe.ts` probes
+  the *event* gates and nothing probed the end conditions.
+- `features/meeting/lengthCopy.test.ts` — no screen may promise a mandate
+  length the engine does not hold. Fails on any retired `MEETING_COUNT` value,
+  on an institution whose real term is absent, on copy that states a length
+  without saying that reaching it is not the expected case, and on a difficulty
+  label containing a digit at all.
+- `explain/bulletin.test.ts` — the interruption stays inside its per-mandate
+  allowance on every seed, **and** can actually fire on more than one kind of
+  thing. Both halves, because this feature has two opposite ways to be
+  worthless.
 - `scoring/instrumentReach.test.ts` — **a component the score charges must be a
   component the player can reach.** Fails the build when a weighted component
   has none of its instruments available at a difficulty, and separately when
@@ -184,6 +198,54 @@ journal 22 says: the rebound out of a −5.5 gap is +4.6 points of growth agains
 a cut of 1.8, and the cut is floored at `POTENTIAL_GROWTH_FLOOR`, so below −1.2
 it does nothing at all on the ECB.
 
+## What the player is trying to do, in five lines
+
+New this pass, because a first-time tester asked *"what is the goal, what am I
+supposed to do"* **in a loop** — and the guided opening does not answer it,
+because it guides the *decision* and not the *direction*.
+
+`explain/orientation.ts` says it once, derived from the configuration so no
+figure is written twice: you hold a mandate and not the economy; what it
+requires of you; what your instrument does **and when**; how it ends; and that
+you will never see the economy as it is, only as it was measured. The mandate
+asymmetry is point two and is quoted rather than smoothed — the Fed's two
+objectives "equal in law", the ECB's *without prejudice to* in the Treaty's own
+words.
+
+Two placements: the briefing, where it **replaces** the old mandate prose, and
+a one-line `<details>` above both meeting surfaces, because a briefing read
+once does not answer a question asked repeatedly.
+
+## The alarm that interrupts, and what it cost to make it rare
+
+`explain/bulletin.ts`. A major event, or something critical that has just
+*become* critical: the post approaching revocation, the growth guard breaking,
+a target coming badly adrift. Red or amber band, the headline, the three board
+readings as a before-and-after, one line of what it means. Closes on the
+button, Escape, or the scrim.
+
+**Everything fires on a transition, never on a state**, and there are **four in
+a career** — majors included. The first version exempted majors and
+interrupted 18 to 27 % of meetings; journal 19 is why, having tripled the event
+rate so the longest calm run is two meetings. Then the cap leaked, because it
+was recomputed from history and `post_at_risk` fires off the end conditions,
+which a history snapshot does not carry. The count now lives on the session and
+the decision is taken in `submitMeeting`, so a replay produces the same
+interruptions as the original run.
+
+## The advisers' room was already built
+
+Worth knowing before anybody rebuilds it. Selection by **maximum disagreement**
+(`doctrines/debate.ts` — the two furthest apart, then a third furthest from
+*both*), each school's reading of the live state with its recommendation in
+basis points, rebuttals addressed to the other speaker **by name**, sources an
+economist would accept, and a scoreboard settled by **counterfactual replay**
+rather than opinion. All of it there.
+
+What was missing was one gesture: `Open the room` left the player on the
+newspaper, so the committee was three clicks away. It now opens onto the
+committee arguing. QUESTIONS **#25** has the point-by-point.
+
 ## The ECB has an instrument for its own problem now
 
 `transmission_protection` is open from **easy**, because `cohesion` carries 0.08
@@ -207,10 +269,18 @@ restoring transmission transmits the cost rather than the cure.
 
 ## Open, in QUESTIONS.md
 
-- **#22** the two scores, and the only item that changes what the game means.
+- **#24** two balance warnings, both diagnosed and neither costing the player
+  anything today: fed/easy's thin tutorial gradient, and the sweep asking
+  whether a survival mandate reached a horizon nothing is meant to reach.
 - **#21** at ecb/easy a chair following the tutorial's lesson breaks the growth
   guard on 44 % of meetings against 29 % at hard — the tutorial punishes doing
-  what it teaches. Fixing it is retuning a mode's character.
+  what it teaches. Fixing it is retuning a mode's character, and it is the same
+  mode as #24's first warning.
+- **#14** the quick-surface cap is re-based to 75 because the ruler was wrong,
+  not because prose was added: the count never covered the order banner. The
+  two cheapest cuts named there are unchanged and now worth more — the three
+  gauge captions (11 words, the distance is already drawn as a bar) and the
+  standing call (7, could be a label).
 - **#19** the cohesion tolerance is corrected and now sits at the measured
   competent floor; lifting `POTENTIAL_GROWTH_FLOOR` is a balance change to
   ecb/hard that needs `dev/skillGradient.ts` re-run against it.
