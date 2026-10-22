@@ -19,6 +19,7 @@ import {
   VIEWPORTS,
   isResult,
   open,
+  quiet,
   startMandate,
 } from './drive.mjs'
 
@@ -55,6 +56,24 @@ async function main() {
   })
   const shots = []
   const shoot = async (name) => {
+    /*
+     * **Settle first.** This helper called `page.screenshot` directly, so it
+     * was the one tool in the repository that did *not* inherit `quiet()` from
+     * the shared driver — and it is the tool whose docstring says "the point is
+     * to look at them".
+     *
+     * Caught by looking: an ECB mandate's report photographed its headline as
+     * **"banked 0, a meeting 35"**, two numbers that cannot both be true over
+     * fifteen meetings. The total is a `Tally`, which rolls from zero over
+     * 1,100 ms after a 240 ms delay, and the capture landed inside the roll.
+     * Nothing was wrong with the screen; the photograph was taken before it
+     * had arrived.
+     *
+     * That is journal 5 and journal 18's defect, in a tool written after both
+     * of them, and REPRISE has been claiming "every tool inherits it" — which
+     * was true of the two that existed when it was written.
+     */
+    await quiet(page)
     const file = `${OUT}/${name}.png`
     await page.screenshot({ path: file, fullPage: true })
     shots.push(file)

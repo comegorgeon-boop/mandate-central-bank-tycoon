@@ -128,8 +128,16 @@ built the next time the habit fails.
 - `npm run check:classes` extracts every `className` token from `src/` and
   fails on any with no matching rule in the generated stylesheet.
 - `quiet()` in `tools/drive.mjs` waits for real visual stillness — three
-  identical frames of every inline style *and* nothing running in
-  `getAnimations()`. Every tool inherits it.
+  identical frames of every inline style **and the page's text**, nothing
+  running in `getAnimations()`, **and 400 ms of continuous stillness**. All
+  three conditions were added after a failure, and the last two this pass.
+  `tools/play.mjs` called `page.screenshot` directly and inherited none of it,
+  which is how an ECB report came to be photographed as "banked 0, a meeting
+  35" — two numbers that cannot both be true over fifteen meetings. The total
+  was 532. The 400 ms floor is the one that matters: the figure is a `Tally`
+  with a 240 ms *delay*, so the page is genuinely still when `quiet()` samples
+  it and the animation has not started yet. Stillness has to outlast the
+  longest delay in the motion vocabulary, not merely exist.
 - `order.test.ts`, `pressOptional.test.ts` and `tenure.test.ts` hold the three
   design rules that are stated as rules: every meeting commands, the press is
   never compulsory, and a longer good tenure outscores a short one.
