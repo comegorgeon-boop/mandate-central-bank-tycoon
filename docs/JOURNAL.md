@@ -1168,8 +1168,8 @@ defect plus the lint rule that was supposed to have caught the fourth.
 | speaking, median tenure at ecb/medium | — | **64 vs 51** |
 | ladder holds through, fed / ecb | meeting 0 (asserted) | **meeting 6 / 5** |
 | growth guard broken, easy / medium / hard (fed) | — | **2 % / 3 % / 12 %** |
-| contrast | 0 failures / 664 states | 0 failures / **848 states** |
-| tests | 1146 | **1165** |
+| contrast | 0 failures / 664 states | 0 failures / **788 states** |
+| tests | 1146 | **1164** |
 
 **Three rulers were wrong, and that is the entry.**
 
@@ -1225,7 +1225,7 @@ direction. Blind spot number four, the same one every time, and found because
 a *different* tool I wrote this pass to check that the instrument reaches the
 screen reported it ABSENT at all three difficulties including the one where it
 has always been available. That tool had made the same mistake first. The audit
-now walks every face of every panel: 664 states to **848**.
+now walks every face of every panel: 664 states to **788**.
 
 Photographing the easy desk then found one more: "purchases add to that at an
 annual pace and runoff subtracts from it", on a screen carrying neither

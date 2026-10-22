@@ -161,6 +161,25 @@ async function walk({ mandate, direction, size, standingPages = false }) {
     for (const panel of PANELS) {
       if (await openPanel(page, panel)) {
         await shoot(page, { ...base, screen: `${prefix}-${panel}` })
+
+        /*
+         * The desk's other two faces. `openPanel` lands on "The case", so
+         * "The words" and "The toolkit" — every instrument stepper in the
+         * game — had never been photographed here either, which is the same
+         * blind spot the contrast audit had and for the same reason. A board
+         * that exists to be looked at cannot show a screen it never opened.
+         */
+        const subTabs = page.locator(`#panel-${panel} [role="tab"]`)
+        const subCount = await subTabs.count()
+        for (let index = 0; index < subCount; index += 1) {
+          const tab = subTabs.nth(index)
+          const name = (await tab.textContent().catch(() => null))?.trim() ?? `${index}`
+          await tab.click().catch(() => {})
+          await shoot(page, {
+            ...base,
+            screen: `${prefix}-${panel}-${name.toLowerCase().replace(/\s+/g, '-')}`,
+          })
+        }
       }
     }
     await openPanel(page, 'desk')

@@ -696,4 +696,4 @@ grew sub-tabs, leaving every instrument stepper in the game unaudited in both
 directions.
 
 The itinerary is the evidence. Both tools print theirs, and the audit's state
-count went from 664 to 848 the moment it started clicking what was there.
+count went from 664 to 788 the moment it started clicking what was there.

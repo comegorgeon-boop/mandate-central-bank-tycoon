@@ -53,9 +53,9 @@ survival restructure and that nobody had re-run.
 | | command | last reading |
 | --- | --- | --- |
 | build | `npm run build` | clean |
-| tests | `npm test` | **1165 passing** |
+| tests | `npm test` | **1164 passing** |
 | lint | `npm run lint` | 0 errors, 13 warnings |
-| contrast | `npm run check:contrast` | 0 failures / **848 states**, both directions |
+| contrast | `npm run check:contrast` | 0 failures / **788 states**, both directions |
 | classes | `npm run check:classes` | **288** names, all real |
 | words | `npm run check:words` | quick 51-55 steady (cap 60), heavy 325-342 |
 | offline | `npm run check:offline` | clean, all this origin |
@@ -143,7 +143,7 @@ existed. It found 2.3:1 on the stepper buttons the moment it looked.
 
 It now walks every face of every panel and re-opens disclosures inside each
 one, because a `<details>` inside a face that was closed during the page-wide
-sweep is still shut. 664 states to **848**.
+sweep is still shut. 664 states to **788**.
 
 ## The opening ladder
 
