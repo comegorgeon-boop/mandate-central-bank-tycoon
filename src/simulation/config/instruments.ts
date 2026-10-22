@@ -428,7 +428,38 @@ export const INSTRUMENTS: readonly InstrumentDefinition[] = [
     max: 3,
     increment: 1,
     availableTo: ['ecb'],
-    availableFrom: 'hard',
+    /*
+     * **From easy, because cohesion is scored from easy.**
+     *
+     * > "On me facture quelque chose sur quoi je n'ai aucun instrument. La BCE
+     * > en a un dans la vraie vie, et il est fait exactement pour ça : les
+     * > achats ciblés contre la fragmentation, l'OMT en 2012, le TPI en 2022."
+     *
+     * This was `hard`, and `cohesion` carries 0.08 of the ECB's scorecard at
+     * every difficulty. Measured per channel in `dev/fragmentation.ts`, the
+     * penalty is dominated by the sovereign-spread range — 1.6 to 2.0 of a 2.6
+     * to 2.8 total — and that range is the one quantity this instrument moves.
+     * So the component was charging a competent chair for the single thing the
+     * mode withheld the tool for: at medium, competent play scored 0.826 on
+     * cohesion against passivity's 1.000, and at hard, where the tool is open,
+     * the same play scored 0.990 and reached 1.000 when the tool was used in
+     * full. The instrument was never the problem. Its availability was.
+     *
+     * It is also the lesson generalised, and `instrumentReach.test.ts` now
+     * holds it as a rule: **an instrument that is the only lever on a scored
+     * component must be reachable wherever that component is scored.** The
+     * same argument `forward_guidance` makes three entries above, arrived at
+     * from the scorecard instead of from the desk.
+     *
+     * Not free, which is what keeps it a decision rather than a switch to be
+     * left on: `INSTRUMENT_EFFECTS.transmissionProtection.politicalCost` adds
+     * 3.5 of political pressure per ordinal step every meeting it is held, and
+     * political pressure is what brings the demands of `politics/demands.ts`
+     * forward — including the one that puts the mandate itself on the order
+     * paper. Measured, holding it at full for a whole mandate costs more than
+     * it returns; using it when the area is actually coming apart does not.
+     */
+    availableFrom: 'easy',
     channels: ['sovereign_spreads', 'credit'],
     lagMeetings: [0, 2],
     label: { fed: 'Not applicable', ecb: 'Transmission protection' },

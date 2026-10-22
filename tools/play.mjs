@@ -19,12 +19,31 @@ import {
   VIEWPORTS,
   isResult,
   open,
+  quiet,
   startMandate,
 } from './drive.mjs'
 
-const OUT = 'captures/play'
 const scenario = process.argv[2] ?? null
 const seed = process.env.MANDATE_SEED ?? 'PLAY-ACHIEVEMENTS'
+/*
+ * The institution and difficulty are env-settable now, and the reason is a
+ * defect this tool could not have caught as it stood: it only ever played
+ * fed/easy, so a change to the *ECB's* toolkit — the one institution with a
+ * component of its own to steer — was unplayable by the one tool whose job is
+ * to play a mandate end to end and photograph it.
+ *
+ *     MANDATE_INSTITUTION=ecb MANDATE_DIFFICULTY=medium node tools/play.mjs
+ */
+const institution = process.env.MANDATE_INSTITUTION ?? 'fed'
+const difficulty = process.env.MANDATE_DIFFICULTY ?? 'easy'
+
+// A scenario keeps the original directory; a fictional mandate away from the
+// fed/easy default gets its own, so two runs do not overwrite each other's
+// captures and leave a board that is half one mandate and half another.
+const OUT =
+  scenario !== null || (institution === 'fed' && difficulty === 'easy')
+    ? 'captures/play'
+    : `captures/play-${institution}-${difficulty}`
 
 /** A move pattern with some life in it, so the run is not a flat hold. */
 const MOVES = [0, 25, 25, 0, -25, 0, 50, 0, 0, -25, 25, 0]
@@ -37,6 +56,24 @@ async function main() {
   })
   const shots = []
   const shoot = async (name) => {
+    /*
+     * **Settle first.** This helper called `page.screenshot` directly, so it
+     * was the one tool in the repository that did *not* inherit `quiet()` from
+     * the shared driver — and it is the tool whose docstring says "the point is
+     * to look at them".
+     *
+     * Caught by looking: an ECB mandate's report photographed its headline as
+     * **"banked 0, a meeting 35"**, two numbers that cannot both be true over
+     * fifteen meetings. The total is a `Tally`, which rolls from zero over
+     * 1,100 ms after a 240 ms delay, and the capture landed inside the roll.
+     * Nothing was wrong with the screen; the photograph was taken before it
+     * had arrived.
+     *
+     * That is journal 5 and journal 18's defect, in a tool written after both
+     * of them, and REPRISE has been claiming "every tool inherits it" — which
+     * was true of the two that existed when it was written.
+     */
+    await quiet(page)
     const file = `${OUT}/${name}.png`
     await page.screenshot({ path: file, fullPage: true })
     shots.push(file)
@@ -44,9 +81,11 @@ async function main() {
   }
 
   try {
-    await startMandate(page, { seed, scenario, difficulty: 'easy' })
+    await startMandate(page, { seed, scenario, institution, difficulty })
     await enterFirstMeeting(page)
-    console.log(`playing ${scenario ?? 'fed/easy'} on seed ${seed}`)
+    console.log(
+      `playing ${scenario ?? `${institution}/${difficulty}`} on seed ${seed}`,
+    )
 
     let meeting = 1
     for (; meeting <= 60; meeting += 1) {

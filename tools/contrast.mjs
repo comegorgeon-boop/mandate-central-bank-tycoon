@@ -35,12 +35,22 @@ import { DIRECTIONS, PANELS, decideAndAdvance, enterFirstMeeting, isResult, open
 /**
  * The fewest states a complete walk can produce.
  *
- * Set from a measured complete run (246) less a margin for a mandate that
- * happens to end early on one of its seeds. Its only job is to make the
- * difference between "nothing failed" and "nothing was looked at" into an
- * error rather than a number nobody reads.
+ * Set from a measured complete run less a margin for a mandate that happens to
+ * end early on one of its seeds. Its only job is to make the difference
+ * between "nothing failed" and "nothing was looked at" into an error rather
+ * than a number nobody reads.
+ *
+ * **Raised from 640 when the walk learned to click sub-tabs.** A complete run
+ * is now 788 states, up from 664, because `openPanel` lands the desk on "The
+ * case" and the other two faces — including "The toolkit", which is every
+ * instrument stepper in the game — had never been visited. A floor left at the
+ * old itinerary's height is a floor that cannot notice the new screens going
+ * missing again, which is this guard's entire purpose: it exists because three
+ * separate navigation changes silently cut the walk short and the output was
+ * an ALL CLEAR over screens that were never rendered. Leaving it at 640 would
+ * have made it the fourth.
  */
-const MINIMUM_STATES = 640
+const MINIMUM_STATES = 760
 
 /**
  * Measure every text node in the page.
@@ -370,6 +380,49 @@ async function walk({
     for (const panel of PANELS) {
       if (await openPanel(page, panel)) {
         await audit(page, `${direction}:${tag}:m${meeting}:tab:${panel}`)
+
+        /*
+         * **The desk has sub-tabs, and two of its three faces had never been
+         * measured.** Blind spot number four, and the same one every time: a
+         * screen this tool never visited cannot have failed. `openPanel` lands
+         * the desk on "The case", so "The words" and "The toolkit" — which is
+         * every instrument stepper in the game, the corridor, the facilities,
+         * the whole balance sheet — were unaudited in both directions for as
+         * long as they have existed.
+         *
+         * Found while checking that an instrument opened at a new difficulty
+         * reached the screen at all: a separate tool reported it ABSENT at
+         * every difficulty, including the one where it had always been
+         * available, because that tool made this exact mistake first.
+         */
+        const subTabs = page.locator(`#panel-${panel} [role="tab"]`)
+        const subCount = await subTabs.count()
+        for (let index = 0; index < subCount; index += 1) {
+          const tab = subTabs.nth(index)
+          /*
+           * The face the panel opened on is re-measured here, so `tab:desk`
+           * and `tab:desk:the-case` are the same screen audited twice. That is
+           * redundant and it is deliberate for now: skipping the selected tab
+           * changes the state count, and **760 and the 788 in REPRISE were
+           * measured with the duplicate in place.** Removing it without
+           * re-running the forty-minute walk would put an unmeasured number
+           * in the floor, which is the defect this pass already corrected once
+           * (848 written where 788 was measured). Skip it when the audit is
+           * next run end to end, and move `MINIMUM_STATES` with it.
+           */
+          const name = (await tab.textContent().catch(() => null))?.trim() ?? `${index}`
+          await tab.click().catch(() => {})
+          await quiet(page)
+          // Disclosures inside a face that was closed when the page-wide sweep
+          // ran are still shut, so each face needs its own.
+          await page.evaluate(() => {
+            for (const element of document.querySelectorAll('details')) element.open = true
+          })
+          await audit(
+            page,
+            `${direction}:${tag}:m${meeting}:tab:${panel}:${name.toLowerCase().replace(/\s+/g, '-')}`,
+          )
+        }
       }
     }
 

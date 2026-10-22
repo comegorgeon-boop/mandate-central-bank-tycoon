@@ -78,4 +78,59 @@ describe('lint guards', () => {
     // ESLint type-checks the project to run these rules, which is not fast.
     60_000,
   )
+
+  /**
+   * **The rule itself has to be checked, not just obeyed.**
+   *
+   * The test above passed for as long as the opacity rule has existed while
+   * `InstrumentStepper` carried `text-ink … disabled:opacity-30` on both of
+   * its buttons — the exact defect the rule names, in one `className`. The
+   * pattern required the utility to be preceded by whitespace or the start of
+   * the string, and a Tailwind variant prefix is neither, so every
+   * `disabled:`, `hover:`, `focus:`, `dark:` and `md:` form was invisible to
+   * it. The contrast audit found it at 2.3:1, on a screen the audit had never
+   * visited before this pass, which means the mechanism written to make the
+   * slow check unnecessary had been leaning on the slow check the whole time.
+   *
+   * So the guard needs a guard: a rule that catches nothing is
+   * indistinguishable from a codebase with nothing to catch, and the only way
+   * to tell them apart is to hand it something it must reject. Both forms are
+   * asserted, because the variant can sit on either half.
+   */
+  it(
+    'catches text-opacity behind a variant prefix, not only bare',
+    async () => {
+      const eslint = new ESLint()
+      const cases = [
+        // The fifth occurrence, as it was actually written.
+        '<button className="text-ink disabled:opacity-30">x</button>',
+        // And from the other side: a variant on the colour, bare opacity.
+        '<button className="disabled:text-ink opacity-30">x</button>',
+        // Chained variants, which Tailwind allows and which a pattern written
+        // for one prefix would miss.
+        '<button className="text-onwood group-hover:focus:opacity-50">x</button>',
+      ]
+
+      for (const source of cases) {
+        const [result] = await eslint.lintText(`export const A = () => ${source}\n`, {
+          filePath: 'src/__lint_probe__.tsx',
+        })
+        const caught = result.messages.filter(
+          (message) => message.ruleId === 'no-restricted-syntax',
+        )
+        expect(caught, `the rule did not reject: ${source}`).not.toHaveLength(0)
+      }
+
+      // And it must not fire on the legitimate escape the rule documents:
+      // opacity on an element that carries no text colour at all.
+      const [clean] = await eslint.lintText(
+        'export const B = () => <svg className="opacity-30" />\n',
+        { filePath: 'src/__lint_probe__.tsx' },
+      )
+      expect(
+        clean.messages.filter((message) => message.ruleId === 'no-restricted-syntax'),
+      ).toHaveLength(0)
+    },
+    60_000,
+  )
 })

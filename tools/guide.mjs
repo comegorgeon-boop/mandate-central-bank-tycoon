@@ -8,13 +8,7 @@
  *     node tools/guide.mjs            # both directions, desktop and phone
  */
 import { mkdir, writeFile } from 'node:fs/promises'
-import {
-  DIRECTIONS,
-  VIEWPORTS,
-  enterFirstMeeting,
-  open,
-  startMandate,
-} from './drive.mjs'
+import { DIRECTIONS, VIEWPORTS, enterFirstMeeting, open, quiet, startMandate } from './drive.mjs'
 
 const OUT = 'captures/guide'
 
@@ -37,10 +31,19 @@ async function walk(direction, size) {
     for (let step = 1; step <= 6; step += 1) {
       const next = page.locator('[data-guide-next]')
       if (!(await next.isVisible().catch(() => false))) break
-      // The component waits for the spotlighted panel to finish rising before
-      // it draws; this waits for the same thing from the outside, so a shot is
-      // never taken of a step that has not settled onto its anchor.
-      await page.waitForTimeout(250)
+      /*
+       * The component waits for the spotlighted panel to finish rising before
+       * it draws; this waits for the same thing from the outside, so a shot is
+       * never taken of a step that has not settled onto its anchor.
+       *
+       * This was `waitForTimeout(250)`, hand-rolled before `quiet()` existed
+       * and never revisited — and 250 ms is *below* the 400 ms of continuous
+       * stillness that `quiet()` now requires, because the motion vocabulary
+       * contains a 240 ms delay. A fixed wait tuned by eye against animations
+       * that have since changed is the shape of a check that passes for the
+       * wrong reason.
+       */
+      await quiet(page)
       const file = `${OUT}/${direction}-${size}-step-${step}.png`
       await page.screenshot({ path: file })
       shots.push(file)
@@ -50,7 +53,7 @@ async function walk(direction, size) {
         .innerText()
       console.log(`  ${direction} ${size} step ${step}: ${caption}`)
       await next.click()
-      await page.waitForTimeout(300)
+      await quiet(page)
       if (!(await overlay.isVisible().catch(() => false))) break
     }
 

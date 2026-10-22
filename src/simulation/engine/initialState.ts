@@ -111,6 +111,16 @@ const OPENING_PERTURBATION_SCALE: Readonly<Record<Difficulty, number>> = {
 /** Points from objective beyond which a reading counts as broken. */
 export const BROKEN = { inflation: 1.0, unemployment: 1.0, growth: 0.5 } as const
 
+/**
+ * The lowest trend growth an opening may be damaged to.
+ *
+ * See `createDamagedOpening`, where it is applied and argued. It is here
+ * beside `BROKEN` because both are thresholds the opening is built against,
+ * and because `OPENING_DAMAGE.hard.potentialGrowth` is only legible next to
+ * the floor that catches it.
+ */
+export const POTENTIAL_GROWTH_FLOOR = 0.1
+
 export interface OpeningDamage {
   /** Points of inflation above the objective. */
   readonly inflationOverTarget: number
@@ -154,6 +164,31 @@ export interface OpeningDamage {
    * out of the hole, then stagnation at a lower trend — is what a supply
    * shock does to an economy, and it is a better lesson than a number that
    * sits still.
+   *
+   * **It does not hold the third reading, and the claim above that it does
+   * was not measured.** `dev/ladder.ts` walks the mandate and counts: hard
+   * still has three broken readings at meeting zero and two at meeting one,
+   * exactly as before this field existed. The arithmetic says why, and it is
+   * not close — the rebound out of a −5.5 gap is about **+4.6 points of
+   * growth** against a trend cut of 1.8. No value of this field offsets that
+   * without making trend growth permanently catastrophic, because the cut
+   * applies for the whole mandate and the rebound only while the gap closes.
+   *
+   * Two further things this field is not, both found by measuring it:
+   *
+   *  - **It is floored**, at `POTENTIAL_GROWTH_FLOOR` where it is applied, so
+   *    the effective cut is to 0.2 on the Fed (baseline 2.0) and to 0.1 on
+   *    the ECB (baseline 1.3, which would otherwise be −0.5). Values below
+   *    −1.2 therefore do nothing at all on the ECB.
+   *  - **It is not "about a quarter of normal"**, which the line beside the
+   *    hard entry used to say. It is a tenth of normal on the Fed and less on
+   *    the ECB, and the difference is the floor rather than the number.
+   *
+   * What *does* carry hard past its opening is measured and is in
+   * `dev/ladder.ts`: the two targets, which stay ordered by difficulty
+   * through meeting 6 on the Fed and 5 on the ECB, and the growth guard,
+   * which breaks on 12-16 % of hard meetings against 2-4 % of easy ones.
+   * `ladder.test.ts` holds both.
    */
   readonly potentialGrowth: number
   /** How loose the anchor already is. Subtracted. */
@@ -238,8 +273,18 @@ export const OPENING_DAMAGE: Readonly<Record<Difficulty, OpeningDamage>> = {
     outputGap: -5.5,
     gapMomentum: -2.2,
     supplyShock: 1.6,
-    // Trend growth cut to about a quarter of normal, so the economy bounces
-    // out of the hole and then stops. See the field's own note.
+    /*
+     * Capacity destroyed, which takes trend growth to `POTENTIAL_GROWTH_FLOOR`
+     * at both institutions: the raw cut would be 0.2 on the Fed and −0.5 on
+     * the ECB, and the floor catches the second. So the economy bounces out of
+     * the hole and then stops, which is what a supply shock does.
+     *
+     * It is **not** what keeps hard's third reading broken, which the field's
+     * own note used to claim and `dev/ladder.ts` disproves: the rebound out of
+     * a −5.5 gap is +4.6 points of growth against this 1.8. What carries hard
+     * past meeting one is the two targets and the frequency with which the
+     * guard breaks, both measured there and both held by `ladder.test.ts`.
+     */
     potentialGrowth: -1.8,
     anchoring: 0.24,
   },
@@ -384,6 +429,32 @@ function damaged(
    */
   const unemployment = natural - okunAt(LABOR.okun, damage.outputGap) * damage.outputGap
 
+  /*
+   * **The floor was swallowing the cut, silently, on one institution.**
+   *
+   * This was written inline as `Math.max(0.1, …)`, twice, and the two uses had
+   * to agree or growth and potential growth would have disagreed about the
+   * same economy. Named here because it is load-bearing and because it is
+   * doing something the configuration could not see it do: the ECB's baseline
+   * trend growth is 1.3 and hard's cut is 1.8, so the raw value is −0.5 and
+   * the floor catches it. The effective cut on the ECB is therefore to 0.1
+   * whatever `OPENING_DAMAGE.hard.potentialGrowth` says, and any value below
+   * −1.2 there changes nothing at all.
+   *
+   * The floor itself is kept, and it is not arbitrary: a *negative* trend
+   * growth rate is an economy whose capacity is shrinking every year for the
+   * length of a mandate, which no mode in this game is meant to be, and
+   * `dynamics.ts` mean-reverts potential growth toward its institutional
+   * baseline rather than toward this — so a negative opening would be a
+   * transient the model immediately begins to undo. Lifting it is a balance
+   * change to ecb/hard that needs `dev/skillGradient.ts` re-run against it;
+   * see docs/QUESTIONS.md.
+   */
+  const damagedPotential = Math.max(
+    POTENTIAL_GROWTH_FLOOR,
+    latent.potentialGrowth + damage.potentialGrowth,
+  )
+
   return {
     ...latent,
     inflationHeadline: hurtInflation,
@@ -398,9 +469,8 @@ function damaged(
     // Growth *is* potential plus what the gap is still doing. A momentum of
     // zero is an economy that has stopped falling — bad, but not worsening,
     // which is how medium keeps its third reading healthy.
-    potentialGrowth: Math.max(0.1, latent.potentialGrowth + damage.potentialGrowth),
-    realGrowth:
-      Math.max(0.1, latent.potentialGrowth + damage.potentialGrowth) + damage.gapMomentum,
+    potentialGrowth: damagedPotential,
+    realGrowth: damagedPotential + damage.gapMomentum,
     // The cause. Without it the readings above are a state the model heals on
     // its own, and a wreck that repairs itself teaches the opposite lesson.
     supplyShock: clamp(latent.supplyShock + damage.supplyShock, -4, 5),

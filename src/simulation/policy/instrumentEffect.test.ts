@@ -61,6 +61,27 @@ describe('the toolkit each difficulty opens', () => {
    * guidance, which is the second axis rather than a facility. Everything
    * else moved to hard. A mode whose toolkit a player cannot read is not a
    * harder mode, it is a wider one.
+   *
+   * ## The one addition, and why it is not a widening
+   *
+   * `transmission_protection` joined the ECB's list, and the rule above is the
+   * reason it took an argument rather than an edit. It is there because of a
+   * second rule, from the same player, which `scoring/instrumentReach.test.ts`
+   * now holds:
+   *
+   * > "On me facture quelque chose sur quoi je n'ai aucun instrument."
+   *
+   * `cohesion` carries 0.08 of the ECB's scorecard at *every* difficulty, most
+   * of that penalty is the sovereign-spread range, and this is the instrument
+   * that compresses it. Withholding it below hard meant two of the three modes
+   * billed for a quantity they had removed the tool for — measured, ecb/medium
+   * scored 0.55 on cohesion never touching it against 1.00 using it.
+   *
+   * So the two rules do not actually conflict. "Readable" is about a toolkit
+   * wide enough to be confusing without being more interesting; this is the
+   * one tool pointed at the one thing the ECB's scorecard charges and the
+   * Fed's does not. The Fed's list is unchanged, which is the test that the
+   * addition is specific rather than a general loosening.
    */
   const MEDIUM: Readonly<Record<Institution, readonly InstrumentId[]>> = {
     fed: [
@@ -76,27 +97,54 @@ describe('the toolkit each difficulty opens', () => {
       'balance_sheet_runoff',
       'forward_guidance',
       'deposit_facility_spread',
+      'transmission_protection',
     ],
   }
 
   for (const institution of INSTITUTIONS) {
-    it(`gives ${institution} exactly the readable four, plus guidance, at medium`, () => {
+    it(`gives ${institution} a readable toolkit at medium`, () => {
       const ids = availableInstruments(institution, 'medium').map((i) => i.id)
       expect([...ids].sort()).toEqual([...MEDIUM[institution]].sort())
     })
 
     it(`keeps the exotic facilities out of ${institution}'s medium mandate`, () => {
       const ids = availableInstruments(institution, 'medium').map((i) => i.id)
+      /*
+       * `transmission_protection` is deliberately absent from this list now.
+       * It is not an exotic facility for the ECB — it is the instrument for
+       * the component the ECB's scorecard charges and nobody else's does. See
+       * the note on `MEDIUM`.
+       */
       for (const exotic of [
         'targeted_refinancing',
         'discount_window',
         'reverse_repo',
         'swap_lines',
         'minimum_reserves',
-        'transmission_protection',
       ] as const) {
         expect(ids, exotic).not.toContain(exotic)
       }
+    })
+
+    it(`keeps ${institution}'s easy toolkit down to the levers, not the facilities`, () => {
+      /*
+       * Easy is the tutorial and its lesson is that the lever works, so it
+       * carries levers only: the rate, what you say about it, and — on the
+       * ECB — the one tool for the one component the tutorial is still
+       * charged for. Three controls, against medium's six.
+       *
+       * Added when `instrumentReach` found that easy billed cohesion with no
+       * instrument too. It is a sixth of the reading load of the balance
+       * sheet, which easy does not have, and the alternative was to change
+       * what the tutorial's score means — which is not mine. See
+       * docs/QUESTIONS.md.
+       */
+      const ids = availableInstruments(institution, 'easy').map((i) => i.id)
+      expect([...ids].sort()).toEqual(
+        institution === 'ecb'
+          ? ['forward_guidance', 'policy_rate', 'transmission_protection']
+          : ['forward_guidance', 'policy_rate'],
+      )
     })
 
     it(`still reaches everything ${institution} has at hard`, () => {

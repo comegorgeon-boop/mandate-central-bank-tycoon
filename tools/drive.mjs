@@ -283,7 +283,33 @@ async function quiet(page, timeout = 3000) {
             for (const element of document.querySelectorAll('[style]')) {
               out += element.style.cssText + '|'
             }
-            return out
+            /*
+             * **And the text, because not every animation moves a style.**
+             *
+             * `Tally` rolls a figure from zero to its value by writing
+             * `textContent`. It sets no inline style and creates no WAAPI
+             * animation, so it was invisible to both halves of this function:
+             * the signature was identical three frames running and
+             * `getAnimations()` was empty, and `quiet()` reported "still"
+             * while the number was still climbing.
+             *
+             * Caught by looking at a capture, not by a test: an ECB report
+             * photographed its headline as **"banked 0, a meeting 35"** — two
+             * numbers that cannot both be true over fifteen meetings. Read
+             * from the DOM two and a half seconds later, the total was 532.
+             * The screen was right and the photograph was taken before it
+             * had arrived, which is the family of defect this whole function
+             * exists for, arriving through the one channel it did not watch.
+             *
+             * The mechanism did not fail. It was written for springs that
+             * move styles, and was never extended when the motion vocabulary
+             * gained something that moves text instead.
+             *
+             * `textContent` rather than `innerText` deliberately: `innerText`
+             * forces layout on every frame, which on a ten-thousand-pixel
+             * glossary page costs more than the whole audit saves.
+             */
+            return out + '||' + document.body.textContent
           }
 
           // WAAPI animations (CSS transitions and keyframes, and the route
@@ -292,10 +318,38 @@ async function quiet(page, timeout = 3000) {
           const running = () =>
             document.getAnimations().filter((a) => a.playState === 'running').length
 
+          /*
+           * **The floor, and why three frames is not enough on its own.**
+           *
+           * Three identical frames is about 50 ms. The result screen's total
+           * is a `Tally` with a 240 ms *delay* before it starts rolling — so
+           * for the first quarter of a second the page is genuinely still:
+           * nothing is in `getAnimations()`, no inline style moves, the text
+           * does not change. `quiet()` sampled that stillness, found three
+           * identical frames, and resolved — **before the animation had
+           * begun.** Adding the text to the signature did not help, because
+           * during a delay there is nothing to see.
+           *
+           * So stillness has to be *continuous for longer than the longest
+           * delay in the motion vocabulary*, which is that 240 ms. At 400 ms
+           * a delay followed by motion resets the counter and the wait runs
+           * through the whole animation; a page that is actually at rest
+           * costs 400 ms instead of 50.
+           *
+           * That is about five minutes added to the full contrast walk, and
+           * it buys the difference between a photograph of a screen and a
+           * photograph of a screen that has arrived — which this project has
+           * now got wrong seven times.
+           */
+          const MIN_STILL_MS = 400
+          let stillSince = null
+
           const tick = () => {
             if (performance.now() > deadline) return resolve('timeout')
             const now = signature()
             stable = now === previous ? stable + 1 : 0
+            if (now !== previous) stillSince = null
+            else if (stillSince === null) stillSince = performance.now()
             previous = now
             // Three consecutive identical frames. Two is not enough: a spring
             // at its turning point holds the same value for one frame while
@@ -309,7 +363,14 @@ async function quiet(page, timeout = 3000) {
             // measuring a figure at half opacity and reporting a 7.4:1 pair
             // as 3.2:1 — the invented failure this function exists to stop,
             // one layer further in.
-            if (stable >= 3 && running() === 0) return resolve('still')
+            if (
+              stable >= 3 &&
+              running() === 0 &&
+              stillSince !== null &&
+              performance.now() - stillSince >= MIN_STILL_MS
+            ) {
+              return resolve('still')
+            }
             requestAnimationFrame(tick)
           }
           requestAnimationFrame(tick)

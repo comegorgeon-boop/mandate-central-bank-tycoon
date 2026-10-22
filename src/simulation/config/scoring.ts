@@ -138,15 +138,21 @@ export const SCORE_SCALES = {
  * the floor rose with them. Over 100 competent ECB hard mandates the blended
  * penalty now never falls below 2.29 and its tenth percentile is 2.49.
  *
- * One consequence, recorded because it was not the intention: at medium the
- * area's dispersion barely responds to policy at all — the penalty runs 2.73
- * under competent play against 2.78 under passivity — so at this tolerance
- * medium's cohesion component sits at 1.00 either way. That is better than the
- * 0.94 against 0.92 it scored before, which charged six per cent of a
- * component for the union's structure and called it conduct. But it does mean
- * cohesion is a hard-mode component: see docs/QUESTIONS.md, question 2.
+ * **It was 2.3, and 2.3 was measured against the wrong statistic.**
+ * `dev/cohesion.ts` declared its own `dispersion` — an unweighted population
+ * standard deviation — while the score charges `engine/members.ts`'s
+ * GDP-weighted mean absolute deviation. The two differ by about 0.4 of penalty
+ * at every difficulty, always in the same direction, so the tolerance sat
+ * above what competent play actually produces and the component scored a
+ * constant 1.00 at easy and medium however the area was steered. A scorecard
+ * row that is always full tells the player nothing, which is the complaint
+ * docs/QUESTIONS.md #2 made about it and attributed to the union's structure.
+ * It was not the structure. It was the ruler. Both now call
+ * `scoring/cohesionPenalty.ts`, and 1.9 is the competent floor on the
+ * statistic the score charges — measured min 1.88 / 1.79 / 1.92 across easy,
+ * medium and hard over 100 mandates a cell.
  */
-export const COHESION_TOLERANCE = 2.3
+export const COHESION_TOLERANCE = 1.9
 
 /**
  * How the three dispersions blend into one cohesion penalty.

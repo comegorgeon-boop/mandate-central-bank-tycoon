@@ -23,7 +23,7 @@
  */
 
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
-import { DIRECTIONS, PANELS, VIEWPORTS, decideAndAdvance, enterFirstMeeting, isResult, open, openPanel, settleMeeting, startMandate } from './drive.mjs'
+import { DIRECTIONS, PANELS, VIEWPORTS, decideAndAdvance, enterFirstMeeting, isResult, open, openPanel, quiet, settleMeeting, startMandate } from './drive.mjs'
 
 const OUT = 'docs/board'
 const SHOTS = `${OUT}/shots`
@@ -81,7 +81,21 @@ const SHOT_QUALITY = 62
 async function shoot(page, { mandate, direction, size, screen, overlay = false }) {
   const name = `${mandate}--${screen}--${direction}--${size}`.replace(/[^a-z0-9.-]+/gi, '_')
   const file = `${SHOTS}/${name}.jpg`
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))))
+  /*
+   * **Settle, properly.** This waited one animation frame, which is the
+   * hand-rolled ancestor of `quiet()` and is nowhere near enough: a single
+   * frame cannot tell *at rest* from *mid-spring*, let alone from *about to
+   * start*. It mostly got away with it because `openPanel` and `settleMeeting`
+   * call `quiet()` on the way in, so the panel shots were settled by
+   * somebody else's discipline — and the shots that are not behind either, the
+   * result screen and the sub-tab faces, were not.
+   *
+   * The sibling tool had the same gap and it produced a visible wrong
+   * photograph: an ECB report captured as "banked 0, a meeting 35" where the
+   * total was 532. A board exists to be looked at, so a board of screens that
+   * have not arrived is worse than no board.
+   */
+  await quiet(page)
 
   // What a photograph cannot show, measured instead.
   const metrics = await page.evaluate(() => ({
@@ -161,6 +175,29 @@ async function walk({ mandate, direction, size, standingPages = false }) {
     for (const panel of PANELS) {
       if (await openPanel(page, panel)) {
         await shoot(page, { ...base, screen: `${prefix}-${panel}` })
+
+        /*
+         * The desk's other two faces. `openPanel` lands on "The case", so
+         * "The words" and "The toolkit" — every instrument stepper in the
+         * game — had never been photographed here either, which is the same
+         * blind spot the contrast audit had and for the same reason. A board
+         * that exists to be looked at cannot show a screen it never opened.
+         */
+        const subTabs = page.locator(`#panel-${panel} [role="tab"]`)
+        const subCount = await subTabs.count()
+        for (let index = 0; index < subCount; index += 1) {
+          const tab = subTabs.nth(index)
+          // The face the panel opened on is photographed twice, once as
+          // `desk` and once as `desk-the-case`. Left as it is to match
+          // `tools/contrast.mjs`, which has the same redundancy for a reason
+          // written out there: its state count is a measured floor.
+          const name = (await tab.textContent().catch(() => null))?.trim() ?? `${index}`
+          await tab.click().catch(() => {})
+          await shoot(page, {
+            ...base,
+            screen: `${prefix}-${panel}-${name.toLowerCase().replace(/\s+/g, '-')}`,
+          })
+        }
       }
     }
     await openPanel(page, 'desk')

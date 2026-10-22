@@ -95,7 +95,12 @@ export function InstrumentStepper({
             aria-label={`Lower ${label}`}
             disabled={value <= range.min + 1e-9}
             onClick={() => onChange(clamp(value - range.increment))}
-            className="h-8 w-8 rounded border border-edge text-ink hover:bg-sunk disabled:opacity-30"
+            /* A quieter token rather than `disabled:opacity-30`, which
+               composited this glyph to 2.3:1 against the chassis. Both halves
+               of that looked right and the product did not — the fifth time in
+               this project, and the first to get past the lint rule written
+               for it, because a variant prefix is not whitespace. */
+            className="h-8 w-8 rounded border border-edge text-ink hover:bg-sunk disabled:cursor-not-allowed disabled:text-ink-faint"
           >
             −
           </button>
@@ -110,7 +115,12 @@ export function InstrumentStepper({
             aria-label={`Raise ${label}`}
             disabled={value >= range.max - 1e-9}
             onClick={() => onChange(clamp(value + range.increment))}
-            className="h-8 w-8 rounded border border-edge text-ink hover:bg-sunk disabled:opacity-30"
+            /* A quieter token rather than `disabled:opacity-30`, which
+               composited this glyph to 2.3:1 against the chassis. Both halves
+               of that looked right and the product did not — the fifth time in
+               this project, and the first to get past the lint rule written
+               for it, because a variant prefix is not whitespace. */
+            className="h-8 w-8 rounded border border-edge text-ink hover:bg-sunk disabled:cursor-not-allowed disabled:text-ink-faint"
           >
             +
           </button>
