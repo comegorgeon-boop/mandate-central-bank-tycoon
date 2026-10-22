@@ -389,6 +389,32 @@ export async function settleMeeting(page, onTransient = null) {
   for (let guard = 0; guard < 8; guard += 1) {
     if (await isResult(page)) return 'result'
 
+    /*
+     * **The bulletin, which is modal and therefore blocks every tool.**
+     *
+     * It is a real takeover — `position: fixed` over the whole viewport — so
+     * Playwright's next click lands on the scrim instead of the control, and
+     * the walk dies with "`<div data-bulletin=…>` intercepts pointer events"
+     * after sixty retries. That is what it did: the contrast audit stopped at
+     * 182 states with a `TimeoutError`, which is the *good* failure, because
+     * the bad one is a tool that silently reports clean over the screens it
+     * never reached.
+     *
+     * Handled here rather than in each caller, for the reason at the top of
+     * this file: navigation lives in one place. And it is offered to
+     * `onTransient` **before** being dismissed, because the bulletin is a
+     * screen — the contrast audit has to measure it, the board has to
+     * photograph it — and this project's three historical blind spots were
+     * all a transient panel clicked past before anybody looked at it.
+     */
+    const bulletin = page.locator('[data-bulletin-dismiss]')
+    if (await bulletin.isVisible().catch(() => false)) {
+      if (onTransient) await onTransient('bulletin')
+      await bulletin.click()
+      await quiet(page)
+      continue
+    }
+
     const interval = page.locator(
       'button:has-text("Skip to the meeting"), button:has-text("Open the meeting")',
     )
@@ -503,7 +529,27 @@ export async function isResult(page) {
  * gesture behind the fast surface, and a tool that gave up on not finding
  * them would be reporting the absence of a screen that is simply closed.
  */
+
+/**
+ * Dismiss a bulletin if one is up, so the next click reaches its target.
+ *
+ * `settleMeeting` already offers it to `onTransient` and dismisses it on the
+ * way through a meeting boundary, which is the path that matters and the only
+ * place it gets *measured*. This is the belt: `openPanel` and
+ * `decideAndAdvance` are called directly in loops by the audit and the board,
+ * and a modal that appeared outside a boundary would stop them the same way.
+ * Returns true if it cleared one, so a caller can tell.
+ */
+export async function clearBulletin(page) {
+  const dismiss = page.locator('[data-bulletin-dismiss]')
+  if (!(await dismiss.isVisible().catch(() => false))) return false
+  await dismiss.click().catch(() => {})
+  await quiet(page)
+  return true
+}
+
 export async function openPanel(page, panel) {
+  await clearBulletin(page)
   const room = page.locator('[data-open-room]')
   if (await room.isVisible().catch(() => false)) {
     await room.click()
@@ -532,6 +578,7 @@ export { quiet }
  * which also means the test exercises the accessible path.
  */
 export async function decideAndAdvance(page, { move = 0, openTheRoom = false } = {}) {
+  await clearBulletin(page)
   // The quick surface decides in one action: the dial and a confirm, with no
   // review screen between them. `openTheRoom` forces the full apparatus, for
   // the tools that exist to photograph it.

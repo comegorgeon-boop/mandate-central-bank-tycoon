@@ -16,7 +16,8 @@
     "check:contrast": "node tools/contrast.mjs",
     "board": "node tools/board.mjs",
     "check:classes": "node tools/classes.mjs",
-    "check:words": "node tools/words.mjs"
+    "check:words": "node tools/words.mjs",
+    "check:figures": "node tools/figures.mjs"
   },
   "dependencies": {
     "motion": "^14.4.0",

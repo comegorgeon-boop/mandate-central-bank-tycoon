@@ -14,6 +14,16 @@ import type { Bulletin } from '../../simulation/index.ts'
  * does not draw pictures, and the one thing this must not look like is a
  * notification.
  *
+ * The band is a **surface tint with the danger colour as text**, which is this
+ * project's existing vocabulary for exactly this — `border-bad bg-bad-surface
+ * text-bad` is already on the severe standing line and in `Reveal`, and those
+ * pairs are already in the contrast walk. The first version used `bg-bad` with
+ * `text-on-bad`, and **`--on-bad` does not exist**: a Tailwind colour with no
+ * token emits no rule, so the class was inert and the text silently inherited.
+ * That is QUESTIONS #11 verbatim, and the contrast audit caught it at the
+ * first state it reached — which it could only reach once the driver learned
+ * to dismiss this very component.
+ *
  * ## Modal, and the three things that costs
  *
  * It genuinely takes the screen, because *"je veux qu'elle me coupe la
@@ -81,8 +91,10 @@ export function BulletinFlash({
         {/* The band. The one piece of colour, and the only thing that has to
             be read before the words. */}
         <div
-          className={`flex items-baseline justify-between gap-3 px-3 py-1.5 font-mono text-2xs uppercase tracking-[0.18em] ${
-            urgent ? 'bg-bad text-on-bad' : 'bg-accent text-on-accent'
+          className={`flex items-baseline justify-between gap-3 border-b px-3 py-1.5 font-mono text-2xs uppercase tracking-[0.18em] ${
+            urgent
+              ? 'border-bad bg-bad-surface text-bad-strong'
+              : 'border-edge-accent bg-accent-surface text-on-accent-surface'
           }`}
         >
           <span className="font-semibold">{bulletin.label}</span>
