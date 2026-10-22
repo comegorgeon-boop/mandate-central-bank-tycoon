@@ -1273,6 +1273,33 @@ were wrong, two of them unable to fire — probes the **event** gates and nothin
 probes the **end conditions**, which are the gates that decide whether a
 mandate ends at all.
 
+**And the last one came from doing what the brief asked: looking at the
+captures.** An ECB mandate played to its end photographed its headline as
+**"banked 0, a meeting 35"** — two numbers that cannot both be true over
+fifteen meetings. Read from the DOM two and a half seconds later, the total was
+**532**. The screen was right; the photograph was taken before it had arrived,
+which is the family `quiet()` exists for, arriving through two channels it did
+not watch and a third that defeated the first fix.
+
+1. **`tools/play.mjs` inherited none of it.** It called `page.screenshot`
+   directly, so the one tool whose docstring says "the point is to look at
+   them" was the only tool not settling first. REPRISE has been claiming "every
+   tool inherits it" — true of the two that existed when it was written.
+2. **The signature watched styles and WAAPI, and `Tally` moves text.** It rolls
+   a figure from zero by writing `textContent`: no inline style, no animation
+   object, so three identical frames and an empty `getAnimations()`.
+3. **Adding the text changed nothing**, because the `Tally` carries a 240 ms
+   *delay*. For the first quarter second the page is genuinely at rest and
+   `quiet()` was sampling the stillness *before the animation began*. Stillness
+   has to be **continuous for longer than the longest delay in the motion
+   vocabulary**, which is now 400 ms of it — a delay followed by motion resets
+   the counter and the wait runs through the whole roll.
+
+Three attempts at one function, and the shape of the lesson is the same as the
+lint rule's above: the mechanism did not fail, it was written for the motion
+that existed then and was never extended when the vocabulary grew. Journal 19
+added `Tally` to the vocabulary. Nothing added it to `quiet()`.
+
 Smaller: at ecb/easy a chair who follows the tutorial's own lesson breaks the
 growth guard on 44 % of meetings, against 29 % at hard — the ECB's trend growth
 is 1.3 and there is only 0.8 of room above the floor, so the tutorial punishes

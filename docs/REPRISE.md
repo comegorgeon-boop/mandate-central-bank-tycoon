@@ -56,7 +56,7 @@ survival restructure and that nobody had re-run.
 | tests | `npm test` | **1164 passing** |
 | lint | `npm run lint` | 0 errors, 13 warnings |
 | contrast | `npm run check:contrast` | 0 failures / **788 states**, both directions |
-| classes | `npm run check:classes` | **288** names, all real |
+| classes | `npm run check:classes` | **292** names, all real |
 | words | `npm run check:words` | quick 51-55 steady (cap 60), heavy 325-342 |
 | offline | `npm run check:offline` | clean, all this origin |
 | sweep | `npm run sim:sweep` | **6 balance warnings — see QUESTIONS #22** |

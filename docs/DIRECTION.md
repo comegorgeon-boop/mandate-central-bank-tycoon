@@ -697,3 +697,27 @@ directions.
 
 The itinerary is the evidence. Both tools print theirs, and the audit's state
 count went from 664 to 788 the moment it started clicking what was there.
+
+### And defect 5 itself, for the seventh time
+
+"Measuring a screen before it arrived" has its own mechanism — `quiet()` in the
+shared driver — and this pass got past it three times in a row with one
+screen. The headline of a finished ECB mandate photographed as **"banked 0, a
+meeting 35"**, two numbers that cannot both be true over fifteen meetings; the
+real total was 532.
+
+| | why `quiet()` did not catch it | the fix |
+| --- | --- | --- |
+| 1 | `tools/play.mjs` called `page.screenshot` directly and inherited nothing | it calls `quiet()` |
+| 2 | the signature read inline styles and WAAPI; `Tally` writes `textContent` | the text is in the signature |
+| 3 | `Tally` has a 240 ms **delay**, so the page really was still when sampled | 400 ms of *continuous* stillness |
+
+The third is the one worth keeping. A check for stillness that samples for
+50 ms cannot distinguish *at rest* from *about to move*, and no amount of
+watching the right properties fixes that — the window has to outlast the
+longest delay in the motion vocabulary. Which gives the general rule, and it is
+the same rule as the lint probe above from the other side: **when the
+vocabulary grows, the check that watches it has to grow too.** Journal 19 added
+`Tally` to the motion vocabulary. Nothing added it to `quiet()`, and nothing
+would have, because a check that silently watches the wrong thing reports
+exactly what a correct check reports.
