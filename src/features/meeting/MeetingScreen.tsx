@@ -513,7 +513,21 @@ export function MeetingScreen({
             <QuickMeeting
               session={session}
               onConfirm={onConfirm}
-              onOpenRoom={() => setRoomOpen(true)}
+              onOpenRoom={() => {
+                setRoomOpen(true)
+                /*
+                 * **Land on the desk, where the advisers are arguing.**
+                 *
+                 * The room opened on the Press tab, so "the room" — the thing
+                 * the player asked for as *"à n'importe quelle réunion, je
+                 * peux ouvrir la salle"* — was three gestures from the
+                 * committee: open, then Policy Desk, then "The case". The desk
+                 * already defaults to that face; it simply was not where the
+                 * door led. The newspaper is still one click away and is still
+                 * where an unopened meeting lands.
+                 */
+                setPanel('desk')
+              }}
               shock={session.majorEvent?.title ?? session.minorEvents[0]?.title ?? null}
             />
           ) : narrow ? (

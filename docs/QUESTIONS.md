@@ -648,7 +648,37 @@ is 1.3 and there is only 0.8 of room above the floor. The tutorial punishes
 the player for doing what it teaches. Fixing it means retuning easy, which is
 a mode's character; say the word.
 
-## 22. Two scores disagree, and one of them rewards being fired (OPEN — yours)
+## 22. Two scores disagree — **ANSWERED: the banked score is the score**
+
+**Settled on 22 October 2026, by you, in these words:** *"LE SCORE ENGRANGÉ EST
+LE SCORE. C'est ce qu'on a tranché en passant en survie. L'autre est un reste
+de l'ancienne structure : soit tu le supprimes, soit tu le gardes comme
+diagnostic interne, mais le joueur n'en voit plus qu'un. Deux scores qui se
+contredisent, c'est pire que n'importe lequel des deux."*
+
+**Applied.** `scoring/theScore.ts` is the only definition and every
+player-facing comparison goes through it — the headline, the personal best, the
+ten schools' own mandates, the historical standard, the achievement at 8,000
+(whose number survived unchanged, because it was always derived from
+`BANKED.meetingPoints` × a Fed term). The graded breakdown stays as the
+**explanation**: its components say which objective was lost and by how much,
+which is what a report is for, and its total is gone. The section is headed
+"Where the points went" and says in one line that the score is the banked
+figure above it.
+
+`SCORING_VERSION` is 2.0.0 and is now part of the records bucket key — the key
+carried the engine version only, which is not enough when the same mandate
+stores 5,437 where it used to store 1,741. An ESLint rule scoped to the
+player's own tree keeps the second score out; its first selector matched
+`entry.score.score` and missed the commonest form, the bare `score.score`,
+which is a rule that catches the rarer half of a defect and reads exactly like
+one that works.
+
+**It also answered four of the six balance warnings — see #24.**
+
+The question as it was asked is kept below, because it carries the numbers.
+
+### The question as it was asked
 
 Found three times over in this pass, from three directions, and it is one
 thing.
@@ -693,7 +723,63 @@ b) **Show only the banked total** and demote `calculateScore` to the
 c) Leave it, and change the sweep's warning to compare banked rather than
    graded, so the tool stops reporting a defect the headline does not have.
 
-## 23. The ECB's own ending cannot happen (MEASURED, NOT FIXED — yours)
+## 23. The ECB's own ending cannot happen — **FIXED, by the 2011 mechanism**
+
+**Settled on 22 October 2026, by you:** *"Corrige-le, et choisis l'option qui
+garde le sens historique : on perd le Conseil parce qu'on tient une politique
+qu'un bloc de membres ne peut plus accepter — Weber et Stark en 2011 — pas
+parce qu'un dé est tombé. Donne-moi le taux de déclenchement après correction."*
+
+**Applied, and it is not option (a) from the list below — it is better.**
+Dispersion was the wrong quantity altogether: it is a fact about the member
+*economies*, inherited and only partly steered, and nobody resigned from the
+Executive Board in 2011 because Spanish and German inflation had diverged. What
+happened is that a policy was adopted and held while a part of the Council could
+not accept it. That is **sustained dissent by a bloc**, and every piece of it
+already existed — `committeeVote.ts` casts the ballots, publishes the dissents
+under the wing that cast them, and charges credibility for a committee that
+cannot hold a majority. What was missing was a consequence beyond the charge.
+
+A third of the committee against, for **six consecutive meetings**, the count
+resetting the moment the room comes back.
+
+**The trigger rate, which you asked for** (`dev/councilProbe.ts`, 60 mandates a
+cell):
+
+| | ends on it | shown the warning | longest streak |
+| --- | --- | --- | --- |
+| ecb/medium, competent | **0 %** | 7 % | 2 |
+| ecb/medium, passive | 92 % | 100 % | 6 |
+| ecb/medium, stubborn | 87 % | 100 % | 6 |
+| ecb/hard, competent | **0 %** | **43 %** | **4** |
+| ecb/hard, passive | 65 % | 100 % | 6 |
+| ecb/hard, stubborn | 53 % | 100 % | 6 |
+
+A competent chair never loses the Council, and at hard is *told* it is
+straining in 43 % of mandates and gets within two meetings of losing it. Real
+enough to matter, rare enough to be an event, and answerable at every one of
+those meetings because the dissents say what they wanted instead.
+
+**Six was measured against five and eight.** At five the ending arrives at
+meeting five for a chair opposed from the first, which is quick for something a
+presidency ends on; at eight the warning reaches a competent hard chair in 12 %
+of mandates instead of 43 %, and a consequence nobody is warned about is an
+ambush. Six is nine months at eight meetings a year, inside the period it is
+drawn from — the Securities Markets Programme began in May 2010, Weber went
+public in February 2011, Stark resigned that September.
+
+**The tutorial is exempt** and stays so: `tutorialProgress` returns before the
+survival block, easy ends on its goal, and the Fed tutorial has no hearing
+either.
+
+**And the guardrail that did not exist for any end condition.**
+`scoring/reachable.test.ts` plays 108 fictional mandates under three rules and
+fails if a listed ending never occurs, with every exclusion carrying its reason.
+Verified by setting the bar to 99: it fails naming `council_lost`.
+
+The question as it was asked is kept below.
+
+### The question as it was asked
 
 Found while checking a claim I was about to make in #18, and it is the most
 consequential piece of unreachable content this project has produced.
@@ -781,3 +867,91 @@ conditions**, which are the gates that decide whether a mandate ends, and one
 of them has been dead for as long as it has existed while two documents
 asserted it worked. A check that covers one family of hand-set thresholds and
 not the other is the same shape as a rule nobody runs.
+
+## 24. The six balance warnings, one line each — **ASKED FOR, and four were the score**
+
+> "Les six avertissements d'équilibrage que tu dis réels mais antérieurs à
+> cette passe : liste-les-moi en une ligne chacun, avec ce qu'ils coûtent au
+> joueur."
+
+**Four of the six were QUESTIONS #22 wearing a different hat.** The sweep
+compared `calculateScore`, the graded total, which under a survival structure
+rewards an early exit — so it reported that doing nothing beat every rule at
+five buckets while doing nothing was *being dismissed* at every one of them.
+With the sweep reading the banked score, as of this pass:
+
+| | warning | what it cost the player | status |
+| --- | --- | --- | --- |
+| 1 | `fed/easy: no rule scores better than doing nothing` | nothing: doing nothing banked 4,282 graded against competence's 4,091 while completing 76 % against 100 % | **still fires**, narrowly — see below |
+| 2 | `fed/medium: no rule...` | nothing: the graded score preferred a mandate dismissed at meeting nine | **gone** — banked, the toolkit scores 2,032 against 1,428 |
+| 3 | `fed/hard: never survived under any rule` | the real one — see below | **still fires** |
+| 4 | `fed/hard: no rule...` | nothing | **gone** — 392 against 509 is now a genuine tie, inside noise |
+| 5 | `ecb/medium: no rule...` | nothing | **gone** — the toolkit banks **3,687 against 417**, a nine-fold gradient that the graded score reported as 2,177 against 2,229 |
+| 6 | `ecb/hard: no rule...` | nothing | **gone** — 107 against 12 |
+
+So: **two warnings, both real, and neither costs the player anything today.**
+
+**#1, fed/easy.** Doing nothing banks 2,876 against competent play's 2,860 —
+a 0.6 % difference, well inside seed noise — but doing nothing *completes* 76 %
+of mandates against 100 %. The tutorial's economy partly heals itself, which
+journal 21 already recorded as a thin gradient. It costs the player nothing
+because the mandates passivity loses are the quarter it fails; it is on the
+record because a tutorial whose lesson is "the lever works" should not be
+winnable by not pulling it. **Not fixed**: the honest repair is a tutorial
+opening that does not heal, and that is the mode's character.
+
+**#3, fed/hard: "never survived under any rule. Unwinnable as configured."**
+This one is the sweep measuring the wrong thing, and it is worth knowing why
+before anybody retunes hard to satisfy it. `completed` under a survival
+structure means *served the full horizon* — 64 meetings, two Fed terms through
+two reappointment hearings. `config/tenure.ts` says in as many words that
+**neither horizon is meant to be reached often** and that the median run should
+end well short of it. So "0 % completed" at hard is the structure working, not
+the mode being unwinnable, and the warning is a fixed-length criterion applied
+to a game that stopped having fixed lengths. It costs the player nothing. The
+fix is to the sweep's definition of success, not to hard — and it is not made
+here, because changing what the balance tool calls winning is a thing to decide
+rather than slip in beside seven other changes.
+
+**What it cost to find out:** nothing but running it. The reason it had not
+been run is the one worth keeping — REPRISE claimed "no sweep warnings" from
+before the survival restructure, and nobody re-ran the thing the claim was
+about.
+
+## 25. The advisers' room — **it was already there; one gesture was missing**
+
+> "C'est mon idée de départ et elle n'est encore qu'à moitié là : les doctrines
+> parlent, mais je ne peux pas les CONVOQUER sur une situation précise. […] Si
+> « OPEN THE ROOM » fait déjà une partie de ça, dis-le-moi et complète au lieu
+> de reconstruire."
+
+You asked, so: **five of the six things on that list were built.** Not
+half — all of it except the door leading to the right place. Point by point,
+with where each lives:
+
+| asked for | where it is |
+| --- | --- |
+| open the room at any meeting | the `Open the room` control on the quick surface |
+| two or three advisers, by **maximum disagreement** | `doctrines/debate.ts` — the two furthest apart, then a third furthest from *both*, because a midpoint adds a number without adding an argument |
+| each gives school, reading of *this* state, what they would do and why | `DebatePanel` → `view.argument`, with the recommendation in basis points beside the name |
+| and answers the other **by name** | `DoctrineSpeaker.rebuttal`, built in `debate.ts` |
+| arguments that hold in front of an economist | `view.evidence` and the sources line — the hawk cites Barro and Gordon (1983) and the Bundesbank tradition |
+| the running scoreboard, "right 7 times in 10" | `ScoreboardPanel`, "Who has been right", settled by **counterfactual replay** rather than opinion: that school's meeting replayed with one rate changed, same shocks, judged four meetings later on the mandate's own loss |
+
+**What was actually missing.** `Open the room` set the room open and left the
+player on the newspaper, so the committee was three gestures away — open, then
+Policy Desk, then "The case". The desk already *defaults* to that face; the
+door simply did not lead there. It now opens onto the committee arguing, which
+is one gesture, which is what was asked. The newspaper is still one click away
+and is still where an unopened meeting lands.
+
+**On the cost**, you described it rather than asked for it: *"ouvrir la salle
+transforme une réunion rapide en réunion lourde"* — that is exactly what it
+does and has done since the restructure. The quick surface is 63 words and the
+room is 325 to 342. Nothing was added, because adding a second, mechanical
+penalty on top of it would charge twice for one decision.
+
+**Verified by playing seven meetings and opening the door**: the committee
+appears 625 bp apart, the hawk argues at +500 and rebuts the labour economist
+by name, and the scoreboard reads live mid-mandate — "The rule 4 of 4", "The
+fiscal realist 0 of 2, agreed with you 2×".

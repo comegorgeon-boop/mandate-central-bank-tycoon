@@ -1349,3 +1349,89 @@ player's own hands: banked 5,437 beside a graded 1,741 out of 10,000, for a
 mandate that served fourteen years and ended on a forced resignation. Both
 numbers are on the screen, a scroll apart, and the records page compares the
 second. QUESTIONS #22 is not an abstraction — it is on the report.
+
+---
+
+## 25 — A game that says what it is for, and an alarm that interrupts
+
+**What I did.** Seven things. Made the banked total the only score the player
+sees and killed the one that contradicted it. Replaced the ECB's unreachable
+ending with the mechanism that actually ended careers in 2011. Aligned every
+screen's claim about how long a mandate is. Wrote the orientation a complete
+beginner was missing. Built the bulletin that takes the screen. Opened the
+advisers' room onto the advisers. And listed the six balance warnings with what
+each costs.
+
+**What I measured.**
+
+| | before | after |
+| --- | --- | --- |
+| scores the player is shown | **2**, disagreeing | **1** |
+| balance warnings | 6 | **2**, both diagnosed |
+| `council_lost` firing rate, ecb/hard passive | **0 of 60** | **65 %** |
+| …and under competent play | 0 of 60 | **0 %**, warned 43 % |
+| meetings interrupted by a bulletin | — | capped at **4 a mandate**, median 1-4 |
+| quick surface, measured honestly | 55 (ruler wrong) | **63** (cap re-based to 75) |
+| gestures from a meeting to the arguing committee | 3 | **1** |
+| tests | 1170 | **1173** |
+
+**Three things were not true, and all three had been asserted in writing.**
+
+1. **`council_lost` could not fire** — the ECB's only distinguishing ending,
+   0 of 60 in every cell, while REPRISE asserted it as fact and the game told
+   the player "you can lose the room". Fixed by asking the right question:
+   dispersion is a fact about the member *economies*, and nobody resigned from
+   the Executive Board in 2011 because Spanish and German inflation had
+   diverged. What happened is a policy held while a bloc of the Council refused
+   it, in public, for a year. Every piece of that already existed in
+   `committeeVote.ts`; what was missing was a consequence beyond the
+   credibility charge.
+2. **Two screens quoted mandate lengths from two different dead structures** —
+   12/16/24 from the fixed-length table survival replaced, and 64 from the
+   tenure *horizon*, which is a denominator and a number no mandate is meant to
+   reach. The player was told 12 on one screen and 64 on the next.
+3. **The word budget never covered the order line.** `tools/words.mjs` scoped
+   the quick count to `[data-tempo="quick"]`, which does not contain the order
+   banner — so the eleven words QUESTIONS #14's own accounting lists *first*
+   were outside the measured number, as was every disclosure's summary. Found
+   because adding one line to that band did not move the count. The honest
+   surface is 63 to 74 against a cap of 60, and the cap is re-based to 75 as a
+   measurement, the way `COHESION_TOLERANCE` was last pass for the same reason.
+
+**The alarm was wallpaper on its first measurement, and that is the entry.**
+`dev/bulletinRate.ts` reported **18 to 27 % of meetings interrupted** at every
+bucket under both plays. Majors were the bulk of it — 178 to 258 a cell against
+a few dozen for the three critical kinds together — because they had been
+exempted from the cap on the reasoning that the catalogue rations them. Journal
+19 is why it does not: the event rate was tripled so that *the longest calm run
+of meetings is two*. An alarm on every major is an alarm every third meeting,
+which is precisely *"du papier peint en trois réunions"*.
+
+Then the cap itself leaked, which is worse. It was recomputed from
+`state.history` and `state.eventLog` — and `post_at_risk` fires off the **end
+conditions**, which a history snapshot does not carry, so that kind was
+uncounted and the worst mandates showed five and six against a cap of four. The
+count now lives on the session and the decision moved into `submitMeeting`,
+which also means a replay produces the same interruptions as the original run.
+After: `worst` is 4 on every bucket.
+
+**What still bothers me.** Two things, and the first is that I keep finding the
+same defect from new directions. The scrim on the bulletin was `bg-scrim`,
+which is opaque, and the first capture showed the whole screen flat near-black
+with the meeting gone — journal 21's blocking bug, and `tokens.css` has carried
+a translucent `--scrim-wash` ever since *with that incident written out beside
+it*. I read that note, wrote a docstring about it in the same component, and
+used the wrong token anyway.
+
+The second is `fed/easy`. Doing nothing banks 2,876 against competent play's
+2,860 while completing 76 % against 100 % — the tutorial is still, narrowly,
+winnable by not pulling the lever it exists to teach. Journal 21 recorded that
+gradient as thin and it is still thin. The repair is an opening that does not
+heal itself, which is the mode's character and therefore not mine.
+
+And one piece of good news worth stating plainly, because the brief asked me
+to check before rebuilding: **the advisers' room was already built.** Selection
+by maximum disagreement, each school's reading of the live state, rebuttals
+addressed by name, sources an economist would accept, and a scoreboard settled
+by counterfactual replay rather than opinion — all of it there. What was
+missing was that the door opened onto the newspaper.
