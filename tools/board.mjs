@@ -173,6 +173,10 @@ async function walk({ mandate, direction, size, standingPages = false }) {
         const subCount = await subTabs.count()
         for (let index = 0; index < subCount; index += 1) {
           const tab = subTabs.nth(index)
+          // The face the panel opened on is photographed twice, once as
+          // `desk` and once as `desk-the-case`. Left as it is to match
+          // `tools/contrast.mjs`, which has the same redundancy for a reason
+          // written out there: its state count is a measured floor.
           const name = (await tab.textContent().catch(() => null))?.trim() ?? `${index}`
           await tab.click().catch(() => {})
           await shoot(page, {

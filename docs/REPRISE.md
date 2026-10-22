@@ -66,6 +66,7 @@ survival restructure and that nobody had re-run.
 | fragmentation | `npx tsx src/simulation/dev/fragmentation.ts` | the penalty by channel, and what the tool costs |
 | guidance value | `npx tsx src/simulation/dev/guidanceValue.ts` | what speaking is worth, in points |
 | the ladder | `npx tsx src/simulation/dev/ladder.ts` | how many meetings the ladder lasts |
+| council ending | `npx tsx src/simulation/dev/councilProbe.ts` | **0 of 60 — it cannot fire. QUESTIONS #23** |
 | skill gradient | `npx tsx src/simulation/dev/skillGradient.ts` | does skill outlast idleness on hard |
 | severity | `npx tsx src/simulation/dev/severity.ts` | a major costs 2.0–7.8× a minor |
 | cadence | `npx tsx src/simulation/dev/cadence.ts` | longest calm run **2** everywhere |

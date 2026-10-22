@@ -22,9 +22,27 @@ import {
   startMandate,
 } from './drive.mjs'
 
-const OUT = 'captures/play'
 const scenario = process.argv[2] ?? null
 const seed = process.env.MANDATE_SEED ?? 'PLAY-ACHIEVEMENTS'
+/*
+ * The institution and difficulty are env-settable now, and the reason is a
+ * defect this tool could not have caught as it stood: it only ever played
+ * fed/easy, so a change to the *ECB's* toolkit — the one institution with a
+ * component of its own to steer — was unplayable by the one tool whose job is
+ * to play a mandate end to end and photograph it.
+ *
+ *     MANDATE_INSTITUTION=ecb MANDATE_DIFFICULTY=medium node tools/play.mjs
+ */
+const institution = process.env.MANDATE_INSTITUTION ?? 'fed'
+const difficulty = process.env.MANDATE_DIFFICULTY ?? 'easy'
+
+// A scenario keeps the original directory; a fictional mandate away from the
+// fed/easy default gets its own, so two runs do not overwrite each other's
+// captures and leave a board that is half one mandate and half another.
+const OUT =
+  scenario !== null || (institution === 'fed' && difficulty === 'easy')
+    ? 'captures/play'
+    : `captures/play-${institution}-${difficulty}`
 
 /** A move pattern with some life in it, so the run is not a flat hold. */
 const MOVES = [0, 25, 25, 0, -25, 0, 50, 0, 0, -25, 25, 0]
@@ -44,9 +62,11 @@ async function main() {
   }
 
   try {
-    await startMandate(page, { seed, scenario, difficulty: 'easy' })
+    await startMandate(page, { seed, scenario, institution, difficulty })
     await enterFirstMeeting(page)
-    console.log(`playing ${scenario ?? 'fed/easy'} on seed ${seed}`)
+    console.log(
+      `playing ${scenario ?? `${institution}/${difficulty}`} on seed ${seed}`,
+    )
 
     let meeting = 1
     for (; meeting <= 60; meeting += 1) {
