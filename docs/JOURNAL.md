@@ -1306,3 +1306,46 @@ is 1.3 and there is only 0.8 of room above the floor, so the tutorial punishes
 doing what it teaches. And `FRAGMENTATION.ecb.protectionSupport` was read by
 nothing while stating twice the real relief; deleted, with `fed.facilitySupport`
 beside it.
+
+---
+
+## 24 — Merged and deployed
+
+**Did.** Merged `7823353` into main and deployed. Live at
+`mandate-central-bank-tycoon.comegorgeon.workers.dev`.
+
+**Measured against the deployed site rather than the preview**, which is the
+version that counts: `MANDATE_URL=… npm run check:offline` is clean — 27
+requests, all to this origin, and a 21-meeting mandate played to its report
+with the wire cut and nothing attempted. `MANDATE_URL=… node tools/instrument.mjs`
+finds the newly-opened instrument on the desk at all three difficulties in both
+directions, which is the claim this pass turns on and the one a local build
+cannot make.
+
+Then a real mandate on the live URL: **56 meetings** of ecb/medium, which is
+the longest run this project has photographed. Worth having, because the arc
+only exists at that length — the order line *flips*, from
+*"BRING INFLATION BACK DOWN"* at six points above target to
+*"GET INFLATION BACK UP TO TARGET"* at 0.81 %, with a regional lender
+collapsing and the equity index shedding 38 % on the quarter in between. The
+objective statement reverts from the supply-regime wording to the ordinary one
+as the cost-push decays. None of that was designed as an arc; it is what the
+engine does over fourteen years.
+
+**Two things the capture confirms, and they are the pass's own claims.**
+
+The headline reads **banked 5,437, a meeting 97** — consistent, where the same
+screen photographed before the `quiet()` repair read *banked 0, a meeting 35*.
+
+And **cohesion scored 8 %**, with its reason on the row: *"Members sat 3.82
+points apart on average, of which 1.92 was beyond what the area's own structure
+produces."* Before the tolerance was corrected that row read 100 %, at every
+difficulty, however the area was steered. It is a live, charged, explained
+component now — on a run that never touched the instrument, which is the
+point: it is charged *and* answerable.
+
+**Bothers me.** The same capture shows the two scores disagreeing in the
+player's own hands: banked 5,437 beside a graded 1,741 out of 10,000, for a
+mandate that served fourteen years and ended on a forced resignation. Both
+numbers are on the screen, a scroll apart, and the records page compares the
+second. QUESTIONS #22 is not an abstraction — it is on the report.
