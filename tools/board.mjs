@@ -23,7 +23,7 @@
  */
 
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
-import { DIRECTIONS, PANELS, VIEWPORTS, decideAndAdvance, enterFirstMeeting, isResult, open, openPanel, settleMeeting, startMandate } from './drive.mjs'
+import { DIRECTIONS, PANELS, VIEWPORTS, decideAndAdvance, enterFirstMeeting, isResult, open, openPanel, quiet, settleMeeting, startMandate } from './drive.mjs'
 
 const OUT = 'docs/board'
 const SHOTS = `${OUT}/shots`
@@ -81,7 +81,21 @@ const SHOT_QUALITY = 62
 async function shoot(page, { mandate, direction, size, screen, overlay = false }) {
   const name = `${mandate}--${screen}--${direction}--${size}`.replace(/[^a-z0-9.-]+/gi, '_')
   const file = `${SHOTS}/${name}.jpg`
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))))
+  /*
+   * **Settle, properly.** This waited one animation frame, which is the
+   * hand-rolled ancestor of `quiet()` and is nowhere near enough: a single
+   * frame cannot tell *at rest* from *mid-spring*, let alone from *about to
+   * start*. It mostly got away with it because `openPanel` and `settleMeeting`
+   * call `quiet()` on the way in, so the panel shots were settled by
+   * somebody else's discipline — and the shots that are not behind either, the
+   * result screen and the sub-tab faces, were not.
+   *
+   * The sibling tool had the same gap and it produced a visible wrong
+   * photograph: an ECB report captured as "banked 0, a meeting 35" where the
+   * total was 532. A board exists to be looked at, so a board of screens that
+   * have not arrived is worse than no board.
+   */
+  await quiet(page)
 
   // What a photograph cannot show, measured instead.
   const metrics = await page.evaluate(() => ({
