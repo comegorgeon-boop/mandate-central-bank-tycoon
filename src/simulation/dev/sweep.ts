@@ -22,7 +22,7 @@ import { SIMULATION_VERSION } from '../version.ts'
 import { getInstitution } from '../config/institutions.ts'
 import { POLICY_RATE_FLOOR } from '../config/instruments.ts'
 import { createRunConfig } from '../engine/initialState.ts'
-import { calculateScore } from '../scoring/calculateScore.ts'
+import { theScore } from '../scoring/theScore.ts'
 import { playRun } from '../replay/replayRun.ts'
 import { staffRecommendation } from '../policy/staffRule.ts'
 import { guidedStaffPackage } from '../policy/guidedStaffRule.ts'
@@ -153,9 +153,7 @@ function main(): void {
         const session = playRun(config, (current) =>
           reactionRule(current, institution, 0.5),
         )
-        const score = calculateScore(session.state, session.outcome)
-
-        scores.push(score.score)
+        scores.push(theScore(session.state).total)
         // Two exclusions, both about telling a defect apart from the model
         // working. `saturated` is a 0-100 index reaching the top of its own
         // scale, which is a state the game has opinions about rather than an
@@ -182,20 +180,20 @@ function main(): void {
         const smoothed = playRun(config, (current) =>
           reactionRule(current, institution, 0),
         )
-        smoothedScores.push(calculateScore(smoothed.state, smoothed.outcome).score)
+        smoothedScores.push(theScore(smoothed.state).total)
         if (smoothed.outcome.status === 'completed') smoothedCompleted += 1
 
         // The same economy, left completely alone. A difficulty is only a real
         // decision problem if doing nothing is meaningfully worse than acting.
         const passive = playRun(config, () => ({ actions: [], communication: null }))
-        passiveScores.push(calculateScore(passive.state, passive.outcome).score)
+        passiveScores.push(theScore(passive.state).total)
         if (passive.outcome.status === 'completed') passiveCompleted += 1
 
         // The rule the staff advise from in game, targeting core inflation.
         const staff = playRun(config, (current) =>
           staffRule(current, institution, difficulty),
         )
-        staffScores.push(calculateScore(staff.state, staff.outcome).score)
+        staffScores.push(theScore(staff.state).total)
         if (staff.outcome.status === 'completed') staffCompleted += 1
 
         // The same rule announcing its own intentions honestly — the second
@@ -204,7 +202,7 @@ function main(): void {
         const guided = playRun(config, (current) =>
           guidedStaffPackage(current, institution, difficulty, 'honest'),
         )
-        guidedScores.push(calculateScore(guided.state, guided.outcome).score)
+        guidedScores.push(theScore(guided.state).total)
         if (guided.outcome.status === 'completed') guidedCompleted += 1
 
         // The same rule playing the whole toolkit rather than the rate alone.
@@ -214,7 +212,7 @@ function main(): void {
         const toolkit = playRun(config, (current) =>
           toolkitPackage(current, institution, difficulty),
         )
-        toolkitScores.push(calculateScore(toolkit.state, toolkit.outcome).score)
+        toolkitScores.push(theScore(toolkit.state).total)
         if (toolkit.outcome.status === 'completed') toolkitCompleted += 1
 
         const outcome = session.outcome.triggered

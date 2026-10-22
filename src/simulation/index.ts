@@ -51,7 +51,7 @@ export {
   SUBSTEPS_PER_MEETING,
   YEARS_PER_MEETING,
 } from './config/time.ts'
-export { MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
+export { BANKED, MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
 export { FISCAL } from './config/model.ts'
 export { fanReference, livingFan } from './policy/livingFan.ts'
 export type { LivingBand, LivingFan } from './policy/livingFan.ts'
@@ -250,6 +250,8 @@ export {
 
 // ---- Scoring --------------------------------------------------------------
 export { calculateScore, scoreBucketKey } from './scoring/calculateScore.ts'
+// The score. There is one — see the file's own argument.
+export { theScore, type TheScore } from './scoring/theScore.ts'
 export {
   tutorialExhausted,
   tutorialProgress,

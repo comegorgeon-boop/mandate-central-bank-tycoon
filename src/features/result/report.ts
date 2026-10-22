@@ -213,10 +213,10 @@ function describeWhyThisScore(
       reasons.push(`${state.guidance.brokenPromises} guidance promise(s) were broken`)
     }
     paragraphs.push(
-      `The mandate scored ${score.score.toLocaleString('en-US')}, most of it lost to conduct ` +
-        `rather than the economy: ${reasons.join(', ')}. Erratic, self-contradictory policy is ` +
-        `judged independently of how the economy happened to absorb it — the whole score was ` +
-        `scaled by a further ×${score.conductGate.toFixed(2)} for it, on top of everything below.`,
+      `Most of what this mandate lost went to conduct rather than to the economy: ` +
+        `${reasons.join(', ')}. Erratic, self-contradictory policy is judged independently ` +
+        `of how the economy happened to absorb it, and it scaled what the objectives below ` +
+        `were worth by a further ×${score.conductGate.toFixed(2)}.`,
     )
   }
 

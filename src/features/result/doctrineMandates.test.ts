@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DOCTRINES,
   SIMULATION_VERSION,
-  calculateScore,
+  theScore,
   createRunConfig,
   playRun,
   type Difficulty,
@@ -54,7 +54,7 @@ function compare(
   seed: string,
 ) {
   const session = playerRun(institution, difficulty, seed)
-  return compareMandates(session, calculateScore(session.state, session.outcome))
+  return compareMandates(session)
 }
 
 describe('the ten mandates', () => {
@@ -81,8 +81,8 @@ describe('the ten mandates', () => {
   it('is exact rather than estimated: the same seed gives the same table', () => {
     const first = compare('ecb', 'medium', '8RAW-LUHT')
     const second = compare('ecb', 'medium', '8RAW-LUHT')
-    expect(second.mandates.map((entry) => entry.score.score)).toEqual(
-      first.mandates.map((entry) => entry.score.score),
+    expect(second.mandates.map((entry) => entry.banked)).toEqual(
+      first.mandates.map((entry) => entry.banked),
     )
   })
 
@@ -90,9 +90,8 @@ describe('the ten mandates', () => {
     // Not a fresh economy: the institution, the difficulty and the seed are
     // the player's, which is the only reason the two columns are comparable.
     const session = playerRun('ecb', 'hard', 'SAME-WORLD')
-    const score = calculateScore(session.state, session.outcome)
-    const comparison = compareMandates(session, score)
-    expect(comparison.player).toBe(score.score)
+    const comparison = compareMandates(session)
+    expect(comparison.player).toBe(theScore(session.state).total)
     for (const entry of comparison.mandates) {
       expect(entry.meetings, entry.doctrine.id).toBeGreaterThan(0)
     }
@@ -100,14 +99,14 @@ describe('the ten mandates', () => {
     // And it is the player's seed rather than a fixed one: change the world
     // the player was in and the ten mandates change with it.
     const elsewhere = compare('ecb', 'hard', 'ANOTHER-WORLD')
-    expect(elsewhere.mandates.map((entry) => entry.score.score)).not.toEqual(
-      comparison.mandates.map((entry) => entry.score.score),
+    expect(elsewhere.mandates.map((entry) => entry.banked)).not.toEqual(
+      comparison.mandates.map((entry) => entry.banked),
     )
   })
 
   it('separates the schools rather than producing ten identical numbers', () => {
     const comparison = compare('ecb', 'medium', '8RAW-LUHT')
-    const scores = comparison.mandates.map((entry) => entry.score.score)
+    const scores = comparison.mandates.map((entry) => entry.banked)
     // If every rule landed in the same place the table would be decoration.
     expect(Math.max(...scores) - Math.min(...scores)).toBeGreaterThan(500)
   })
@@ -118,10 +117,10 @@ describe('the ten mandates', () => {
     // table would show that number and leave it looking like a policy.
     const comparison = compare('ecb', 'medium', '8RAW-LUHT')
     const holding = playerRun('ecb', 'medium', '8RAW-LUHT')
-    const holdingScore = calculateScore(holding.state, holding.outcome).score
+    const holdingScore = theScore(holding.state).total
     for (const entry of comparison.mandates) {
       if (entry.spoke > 0) continue
-      expect(entry.score.score, entry.doctrine.id).toBe(holdingScore)
+      expect(entry.banked, entry.doctrine.id).toBe(holdingScore)
     }
     expect(comparison.mandates.some((entry) => entry.spoke > 0)).toBe(true)
   })
@@ -129,14 +128,14 @@ describe('the ten mandates', () => {
   it('counts how many schools finished ahead of the player', () => {
     const comparison = compare('fed', 'medium', 'AHEAD-OF-ME')
     const ahead = comparison.mandates.filter(
-      (entry) => entry.score.score > comparison.player,
+      (entry) => entry.banked > comparison.player,
     ).length
     expect(comparison.beatenBy).toBe(ahead)
   })
 
   it('orders the table best first', () => {
     const scores = compare('fed', 'medium', 'AHEAD-OF-ME').mandates.map(
-      (entry) => entry.score.score,
+      (entry) => entry.banked,
     )
     for (let i = 1; i < scores.length; i += 1) {
       expect(scores[i]).toBeLessThanOrEqual(scores[i - 1])

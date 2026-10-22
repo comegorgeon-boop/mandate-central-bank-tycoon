@@ -97,10 +97,10 @@ describe.each(SCENARIOS.map((scenario) => [scenario.id, scenario] as const))(
     it('builds the doctrine comparison', () => {
       // Ten complete alternative mandates on the player's own seed, also in a
       // `useMemo` on the result screen.
-      const comparison = compareMandates(session, score)
+      const comparison = compareMandates(session)
       expect(comparison.mandates.length, `${id} compared nothing`).toBeGreaterThan(0)
       for (const mandate of comparison.mandates) {
-        expect(Number.isFinite(mandate.score.score), mandate.doctrine.id).toBe(true)
+        expect(Number.isFinite(mandate.banked), mandate.doctrine.id).toBe(true)
       }
     })
 

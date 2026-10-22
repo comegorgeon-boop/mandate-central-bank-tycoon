@@ -1,17 +1,16 @@
 import {
   DOCTRINES,
   SIMULATION_VERSION,
-  calculateScore,
   createRunConfig,
   doctrineContext,
   getInstrument,
   getInstrumentRange,
   playRun,
+  theScore,
   type Doctrine,
   type PolicyPackage,
   type RunConfig,
   type RunSession,
-  type ScoreBreakdown,
 } from '../../simulation/index.ts'
 
 /**
@@ -45,7 +44,19 @@ import {
 
 export interface DoctrineMandate {
   readonly doctrine: Doctrine
-  readonly score: ScoreBreakdown
+  /**
+   * What that school's mandate banked. **The** score — see
+   * `scoring/theScore.ts`.
+   *
+   * It was `ScoreBreakdown` and the table ranked on its total, which is the
+   * number that preferred an early exit: a school whose rule got it dismissed
+   * at meeting nine could out-rank one that served four years, because a
+   * short path has a better average. On a survival structure that is a table
+   * of who was fired soonest.
+   */
+  readonly banked: number
+  /** Banked per meeting served: the rate, which the total alone hides. */
+  readonly perMeeting: number
   /** Whether that school's mandate reached the end at all. */
   readonly completed: boolean
   readonly endedAs: string
@@ -65,8 +76,10 @@ export interface DoctrineMandate {
 }
 
 export interface MandateComparison {
-  /** The player's own score, for the line they are compared against. */
+  /** The player's own banked score, for the line they are compared against. */
   readonly player: number
+  /** And their rate, so the table compares like with like. */
+  readonly playerPerMeeting: number
   readonly mandates: readonly DoctrineMandate[]
   /** How many schools would have scored better on this seed. */
   readonly beatenBy: number
@@ -119,10 +132,11 @@ function playAs(doctrine: Doctrine, config: RunConfig): DoctrineMandate {
   }
 
   const session = playRun(config, choose)
-  const score = calculateScore(session.state, session.outcome)
+  const banked = theScore(session.state)
   return {
     doctrine,
-    score,
+    banked: banked.total,
+    perMeeting: banked.perMeeting,
     completed: session.outcome.status === 'completed',
     endedAs: session.outcome.summary ?? 'Served the full mandate.',
     endedLabel: session.outcome.label,
@@ -131,10 +145,7 @@ function playAs(doctrine: Doctrine, config: RunConfig): DoctrineMandate {
   }
 }
 
-export function compareMandates(
-  playerSession: RunSession,
-  playerScore: ScoreBreakdown,
-): MandateComparison {
+export function compareMandates(playerSession: RunSession): MandateComparison {
   const source = playerSession.state.config
   const config = createRunConfig({
     institution: source.institution,
@@ -144,13 +155,14 @@ export function compareMandates(
   })
 
   const mandates = DOCTRINES.map((doctrine) => playAs(doctrine, config)).sort(
-    (a, b) => b.score.score - a.score.score,
+    (a, b) => b.banked - a.banked,
   )
 
+  const player = theScore(playerSession.state)
   return {
-    player: playerScore.score,
+    player: player.total,
+    playerPerMeeting: player.perMeeting,
     mandates,
-    beatenBy: mandates.filter((entry) => entry.score.score > playerScore.score)
-      .length,
+    beatenBy: mandates.filter((entry) => entry.banked > player.total).length,
   }
 }

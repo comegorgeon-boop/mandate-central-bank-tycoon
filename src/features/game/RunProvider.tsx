@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
   SIMULATION_VERSION,
   calculateScore,
+  theScore,
   scoreBucketKey,
   createRunConfig,
   getInstrument,
@@ -228,7 +229,15 @@ export function RunProvider({ children }: { readonly children: ReactNode }) {
         // offer the player a mandate that had already been scored.
         clearSave()
         recordResult({
-          score: score.score,
+          /*
+           * **The banked total, which is the score.** This recorded
+           * `score.score`, the graded one — so the records page and every
+           * personal best ranked mandates by the number that prefers an early
+           * exit, while the report's headline showed the banked figure. A
+           * fourteen-year mandate stored 1,741 beside the 5,437 the player had
+           * just read. See `scoring/theScore.ts`.
+           */
+          score: theScore(session.state).total,
           outcome: session.outcome.triggered ?? 'mandate_completed',
           outcomeLabel: session.outcome.label ?? 'Mandate completed',
           meetingsServed: session.state.meetingIndex,
