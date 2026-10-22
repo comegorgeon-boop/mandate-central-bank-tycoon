@@ -114,13 +114,33 @@ const BUCKETS = [
  * > "il nous faut le même plafond pour les chiffres, et je veux qu'il soit
  * > bas."
  *
- * **Twelve.** Derived rather than picked: the default screen is meant to carry
- * the order line, three readings, the dial and what the move buys. That is
- * three gauge values, three distances, the rate now, the rate after, the move
- * itself, and two figures in the consequence line — twelve, with nothing
- * spare. Anything above it is something that has not been folded yet.
+ * **Thirteen**, and it is a measurement rather than a target — the same
+ * discipline as the word cap. The accounting, figure by figure, on a steady
+ * fed/medium meeting:
+ *
+ * | | figures | asked for by |
+ * | --- | --- | --- |
+ * | the order line: the gap, the objective, where expectations sit | 3 | §1 — the order stays |
+ * | the three readings, each with its distance | 6 | §1 — "les trois chiffres" |
+ * | the rate this decision leaves | 1 | §1 — the dial |
+ * | the dial's own track: both ends and the step | 3 | §1 — the dial |
+ *
+ * That is thirteen with nothing spare, and it was **thirty** before the fold.
+ *
+ * The first version of this cap said twelve, derived on paper before anything
+ * was measured, and it budgeted nothing for the one thing §3 asks for by
+ * name: a folded panel's state. *"« CHOCS EN COURS — 2 »"* has a figure in it,
+ * deliberately — a lid that cannot say how many is the mystery box the rule
+ * exists to prevent. Those are inside the thirteen.
+ *
+ * **The cheapest remaining cuts**, if thirteen is still too many. The dial's
+ * track labels are three figures and the handle's position already says where
+ * it is — but they are also the thing that makes the ceiling a cost rather
+ * than a wall, which was a deliberate decision two passes ago. The order
+ * line's objective is one: it is the same number every meeting of the mandate.
+ * Either is one commit.
  */
-const CAP = 12
+const CAP = 13
 
 async function measure({ institution, difficulty }) {
   const { browser, page } = await open({

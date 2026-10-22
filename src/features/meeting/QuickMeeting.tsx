@@ -17,13 +17,23 @@ import {
 import { RateSlider, type GhostMarker } from '../policy/RateSlider.tsx'
 import { pricedMoveBp, surpriseStake } from './surprise.ts'
 import { CallPanel } from './CallPanel.tsx'
-import { Chip, Seal, SerialNumber } from '../../components/engraving/Chip.tsx'
+import { FoldedPanel } from '../../components/terminal/FoldedPanel.tsx'
+import { Chip, Seal } from '../../components/engraving/Chip.tsx'
 import {
   CauseBar,
   MandateGauges,
   ShockPanel,
 } from '../../components/terminal/Explain.tsx'
 import { readDispatches } from './dispatches.ts'
+
+/**
+ * The guided opening's three lessons, by id.
+ *
+ * Not `kind === 'guide'`: `wire-speaking` shares that kind and fires on a
+ * crossing late in the mandate, which had the dispatches panel opening itself
+ * at meeting seven.
+ */
+const OPENING_LESSONS: ReadonlySet<string> = new Set(['guide-0', 'guide-1', 'guide-2'])
 import { readConsequence } from './consequence.ts'
 import {
   Arrow,
@@ -246,7 +256,7 @@ export function QuickMeeting({
                 What is pushing inflation
               </p>
               <div className="mt-1">
-                <CauseBar explanation={inflation} compact />
+                <CauseBar explanation={inflation} compact legend="folded" />
               </div>
             </div>
             <div className="hidden sm:col-span-2 sm:block" />
@@ -256,14 +266,60 @@ export function QuickMeeting({
         {/* ── Rank one and a half: what is still arriving. The most visible
               thing after the order, because "qu'est-ce qu'il y a, et comment
               on le traite" is most of the game. ───────────────────────── */}
-        <ShockPanel shocks={shocks} compact weight={3} />
+        {/* ── Folded, with its count on the lid. ─────────────────────
+              The panel is rank three and was still a block of figures on the
+              default screen. `LIVE SHOCKS — 2` says whether it is worth
+              opening, which is the rule that makes folding a saving rather
+              than a click in front of each piece. */}
+        {shocks.length > 0 && (
+          <div className="sm:col-span-2">
+            <FoldedPanel
+              id="live-shocks"
+              title="Live shocks"
+              state={shocks.length === 1 ? '1 running' : `${shocks.length} running`}
+            >
+              <ShockPanel shocks={shocks} compact weight={3} />
+            </FoldedPanel>
+          </div>
+        )}
 
         {/* The wire. Guidance for the first three meetings of every mandate
             at every difficulty, then whatever actually landed — through the
             same slot and in the same voice, so the game stops guiding without
             a seam. No help box: "tout vit dans le terminal". */}
         {dispatches.length > 0 && (
-        <Panel title="Dispatches" weight={3}>
+        <FoldedPanel
+          id="dispatches"
+          title="Dispatches"
+          state={
+            dispatches.some((dispatch) => dispatch.kind === 'guide')
+              ? 'a lesson'
+              : dispatches.length === 1
+                ? '1 item'
+                : `${dispatches.length} items`
+          }
+          /*
+           * **Open for the guided opening, and only that.**
+           *
+           * Those three lessons come through this same slot — deliberately, so
+           * the game stops guiding without a seam — and folding the panel
+           * folded them too, which would have hidden the tutorial from the one
+           * player it exists for, days after a whole pass about a beginner who
+           * could not tell what the game wanted.
+           *
+           * Gated on the three opening ids rather than on `kind === 'guide'`,
+           * which was the first version and was too broad: `wire-speaking`
+           * also carries that kind, fires on a crossing much later in the
+           * mandate, and had the panel opening itself at meeting seven. Found
+           * by printing every panel's open state at every meeting rather than
+           * by looking at one screenshot.
+           *
+           * `FoldedPanel` remembers a player who closes it anyway.
+           */
+          defaultOpen={dispatches.some((dispatch) =>
+            OPENING_LESSONS.has(dispatch.id),
+          )}
+        >
           {(
             <ul>
               {dispatches.map((dispatch) => (
@@ -285,7 +341,7 @@ export function QuickMeeting({
               ))}
             </ul>
           )}
-        </Panel>
+        </FoldedPanel>
         )}
 
         {/* The desk's own sentence is **not** on the quick surface any more.
@@ -304,7 +360,11 @@ export function QuickMeeting({
           title={label}
           span={2}
           weight={2}
-          right={`from ${currentRate.toFixed(2)}`}
+          /* No `from 3.25` here. The big figure below is the rate after this
+             decision and the line under it says `no change`, so at a hold the
+             header was printing the same number a second time — two of the
+             fourteen figures the default screen had left. */
+          right={move === 0 ? 'unchanged' : `${move > 0 ? '+' : '−'}${Math.abs(move)} bp`}
           className="p-0"
         >
           <div className="flex items-baseline gap-2 px-2 pt-2">
@@ -390,7 +450,22 @@ export function QuickMeeting({
               thing — surprising the market — and it was occupying the place
               where "what does this do to the economy" belonged. Rank three:
               present, quiet, and not what the screen is about. ── */}
-        <Panel title="Against the priced path" weight={3} right={stake.beyondPriced ? 'live' : 'priced in'}>
+        {/* ── The book, folded. ──────────────────────────────────────
+              Four rows of figures — priced, surprise, returns, stake — on a
+              screen whose whole complaint is figures. The lid says how far the
+              dial is from what the market has priced, which is the one number
+              the four rows exist to produce: `THE BOOK — 60 bp of surprise`. */}
+        <FoldedPanel
+          id="the-book"
+          title="Against the priced path"
+          state={
+            priced === null
+              ? 'nothing priced'
+              : stake.beyondPriced
+                ? `${Math.abs(Math.round(move - priced))} bp of surprise`
+                : 'priced in'
+          }
+        >
           <Row label="Priced">
             {priced === null ? (
               <span className="text-ink-faint">—</span>
@@ -432,7 +507,7 @@ export function QuickMeeting({
               <span className="text-ink-faint">nothing at risk</span>
             )}
           </Row>
-        </Panel>
+        </FoldedPanel>
 
         {/* NOTE: a second copy of the dial, the wire, the desk and the old
             "The book" panel used to live here. They were left behind when
@@ -443,8 +518,18 @@ export function QuickMeeting({
             for looking at the pictures. */}
 
         {/* ── The standing call. ──────────────────────────────────────── */}
-        <Panel title="Your call" span={3} weight={3}>
-          <div className="px-2 py-1">
+        {/* ── The wager, folded. ─────────────────────────────────────
+              A real mechanic about a second-order thing, and optional by
+              design — `pressOptional.test.ts` holds that the press is never
+              compulsory and this is the same principle. The lid says whether
+              one is standing, because that is the only thing a player needs
+              to know without opening it. */}
+        <div className="sm:col-span-3">
+          <FoldedPanel
+            id="your-call"
+            title="Your call"
+            state={session.state.call === null ? 'none standing' : 'one standing'}
+          >
             <CallPanel
               session={session}
               centre={callCentre}
@@ -454,8 +539,8 @@ export function QuickMeeting({
                 setCallBand(band)
               }}
             />
-          </div>
-        </Panel>
+          </FoldedPanel>
+        </div>
       </PanelGrid>
 
       {rejected !== null && (
@@ -492,14 +577,16 @@ export function QuickMeeting({
         </button>
       </div>
 
-      {/* ── The foot. The seal and the serial, kept: they are what a
-            document has, and this is still an instrument of policy. ──── */}
-      <div className="flex items-center justify-between gap-2 border-t border-edge bg-raised px-2 py-1">
-        <SerialNumber
-          seed={config.seed}
-          meeting={session.state.meetingIndex}
-          className="text-ink-faint"
-        />
+      {/* ── The foot. The seal stays; **the serial does not.**
+
+            It is what a document has, and it is also eight digits on the one
+            screen whose complaint is digits — counted by `tools/figures.mjs`
+            as a figure, which is fair, because the eye has to read it as one
+            before deciding it is ornament. A mark is a mark and a number is a
+            number: the seal survives on both counts, the serial survives only
+            where there is room for it, which is the confirmation screen and
+            the report. ──── */}
+      <div className="flex items-center justify-end gap-2 border-t border-edge bg-raised px-2 py-1">
         <span className="flex items-center gap-2">
           <span className="font-mono text-2xs uppercase tracking-[0.18em] text-ink-faint">
             {getInstitution(config.institution).shortName}
