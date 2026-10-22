@@ -158,40 +158,110 @@ export function hearingBar(politicalPressure: number): number {
  * meetings — a slow loss of the room rather than a vote you can lose on the
  * day, because that is how it actually happens.
  */
-/*
- * **These bars cannot be met, and nothing had measured them.**
+/**
+ * Losing the Council: the ECB's own ending, and the only one it has.
  *
- * `council_lost` is the only way a fictional ECB presidency ends short of a
- * catastrophe, and it is the one structural difference between the two
- * institutions' survival. Measured in `dev/councilProbe.ts` over 360 ECB
- * mandates: the highest member inflation dispersion ever reached is **1.85**
- * against the 2.4 bar, and it is reached at ecb/hard under *competent* play,
- * which is where fragmentation is lowest because a competent rule uses the
- * anti-fragmentation instrument. The two quantities peak under opposite
- * conditions, so the conjunction is satisfied on **0.0 %** of meetings at every
- * difficulty under every play, and the ending fires 0 of 60 in every cell.
+ * ## It could not happen, and that is why this is written out
  *
- * It is the conjunction rather than the heights: at the loosest candidate pair
- * measured, the condition is still held long enough in 2-3 % of passive runs
- * and 0 % of competent ones.
+ * The first version gated on **member inflation dispersion at 2.4 points and
+ * area fragmentation at 290 basis points, held for five consecutive
+ * meetings.** Measured in `dev/councilProbe.ts` over 360 mandates, the
+ * conjunction was satisfied on **0.0 %** of meetings at every difficulty under
+ * every play, and the ending fired 0 times in 60 in every cell. The highest
+ * dispersion ever reached was 1.85 against the 2.4 bar — and it was reached at
+ * ecb/hard under *competent* play, which is precisely where fragmentation is
+ * lowest, because a competent rule uses the anti-fragmentation instrument. The
+ * two quantities peak under opposite conditions. It was not the heights: at the
+ * loosest candidate pair measured the condition still held long enough in 2-3 %
+ * of passive runs and 0 % of competent ones.
  *
- * `watchDispersion` at 1.8 *is* reached at hard, so the game tells the player
- * "you can lose the room" and then cannot take it.
+ * So the game announced an ending to the player — *"You can lose the room"* —
+ * that it had no mechanism to carry out, in the one place the two institutions
+ * are structurally different from each other.
  *
- * Not repaired here, because the repair is a decision about how an ECB
- * presidency ends rather than a threshold: see docs/QUESTIONS.md **#23**, which
- * carries three options, the measurements behind each, and the exact edit for
- * the recommended one — gating on the blended cohesion penalty, which is one
- * number, is already on the player's scorecard, and is answerable with the
- * instrument `config/instruments.ts` now opens from easy.
+ * ## What it is now, and why this is the faithful version
+ *
+ * > "Choisis l'option qui garde le sens historique : on perd le Conseil parce
+ * > qu'on tient une politique qu'un bloc de membres ne peut plus accepter —
+ * > Weber et Stark en 2011 — pas parce qu'un dé est tombé."
+ *
+ * Dispersion was the wrong quantity. It is a fact about the *economies* of the
+ * member states, which a president inherits and only partly steers; nobody
+ * resigned from the Executive Board in 2011 because Spanish and German
+ * inflation had diverged. What happened is that a policy was adopted and held,
+ * and a part of the Council could not accept it: Axel Weber left the
+ * Bundesbank in February 2011 and Jürgen Stark the Executive Board in
+ * September 2011, both over the Securities Markets Programme, and neither was
+ * outvoted — the programme continued.
+ *
+ * That is **sustained dissent by a bloc**, and the engine already models every
+ * part of it: `policy/committeeVote.ts` casts the ballots, publishes the
+ * dissents under the wing that cast them, and charges credibility for a
+ * committee that cannot hold a majority behind its own policy. What was
+ * missing was a consequence beyond the charge.
+ *
+ * So: a third of the committee against the decision, for
+ * `meetingsToFail` consecutive meetings, and the count resets the moment the
+ * room comes back. It cannot be rolled: it is a policy the player chose and
+ * kept choosing while being told, in the published record, that a bloc would
+ * not follow. And it is *answerable* — the dissents name what they wanted
+ * instead at every one of those meetings.
+ *
+ * ## The rate, measured
+ *
+ * The bar the player set is "frequent enough to be real, rare enough to stay
+ * an event". Measured in `dev/councilProbe.ts`, 60 mandates a cell:
+ *
+ * | | ends on it | shown the warning | longest streak |
+ * | --- | --- | --- | --- |
+ * | ecb/medium, competent | **0 %** | 7 % | 2 |
+ * | ecb/medium, passive | 92 % | 100 % | 6 |
+ * | ecb/medium, stubborn | 87 % | 100 % | 6 |
+ * | ecb/hard, competent | **0 %** | **43 %** | **4** |
+ * | ecb/hard, passive | 65 % | 100 % | 6 |
+ * | ecb/hard, stubborn | 53 % | 100 % | 6 |
+ *
+ * A competent chair never loses the Council — and at hard is *told* it is
+ * straining in 43 % of mandates and gets within two meetings of losing it.
+ * That is the shape worth having: a real threat that can be answered, rather
+ * than either a tax or a decoration.
+ *
+ * **Six was chosen against five and eight, measured.** At five, the ending
+ * arrives at meeting five for a chair who was opposed from the first, which is
+ * quick for something a presidency ends on. At eight, a competent chair at
+ * hard is shown the warning in 12 % of mandates instead of 43 % — the threat
+ * stops being visible, and a consequence nobody is warned about is an ambush.
+ * Six meetings is nine months at eight meetings a year, which also sits inside
+ * the period it is drawn from: the Securities Markets Programme began in May
+ * 2010, Weber went public in February 2011 and Stark resigned that September.
+ *
+ * **The tutorial is exempt, and that is deliberate.** `tutorialProgress`
+ * returns before the survival block in `endConditions`, because easy ends on
+ * its goal rather than on a term — the Fed tutorial has no reappointment
+ * hearing either. Worth knowing because the probe shows a 28-meeting dissent
+ * streak at ecb/easy under passive play: the accumulator runs there, and
+ * nothing reads it. The first version of the probe counted the accumulator and
+ * duly reported "100 % warned" for a mechanic that was not running.
+ *
+ * Re-measure after anything that moves the committee's views or the chair's
+ * incentives.
  */
 export const COUNCIL = {
-  /** Member inflation dispersion, in points, above which the room strains. */
-  fractureDispersion: 2.4,
-  /** And the fragmentation that goes with it. */
-  fractureFragmentation: 290,
-  /** Consecutive meetings of both before the presidency is untenable. */
-  meetingsToFail: 5,
-  /** The warning tier, which fires first. */
-  watchDispersion: 1.8,
+  /**
+   * Consecutive meetings with a dissenting bloc before the presidency is
+   * untenable.
+   *
+   * Six, measured against five and eight — see the table above. Nine months
+   * of holding a policy a third of the room has refused in public.
+   */
+  meetingsToFail: 6,
+  /**
+   * The warning tier, in consecutive meetings.
+   *
+   * Two, so the player is told while there is still time to do something —
+   * which is the whole difference between a mechanic and an ambush, and the
+   * reason the old version was worse than useless: its warning fired at a
+   * dispersion the game reached and its failure did not.
+   */
+  meetingsToWarn: 2,
 } as const

@@ -1,118 +1,186 @@
 /**
- * Does the ECB's own ending ever actually happen?
+ * Does the ECB's own ending actually happen, and how often?
  *
  * `council_lost` is the only way a fictional ECB presidency ends short of a
- * catastrophe: there is no reappointment to withhold and nobody can remove the
- * president, so the Treaty's answer is that a president who cannot carry the
- * Governing Council is finished anyway. It gates on member inflation
- * dispersion at or above `COUNCIL.fractureDispersion` **and** area
- * fragmentation at or above `COUNCIL.fractureFragmentation`, held for
- * `COUNCIL.meetingsToFail` consecutive meetings.
+ * catastrophe, and it is the whole structural difference between the two
+ * institutions: nobody can remove an ECB president and there is no second term
+ * to withhold, so what ends the presidency is losing the room.
  *
- * It is also the structure docs/QUESTIONS.md #18 was offered as option (b) —
- * "take cohesion out of the score and put it in the revocation condition" —
- * and the answer given there is that the structure already exists. That answer
- * is worth nothing if the condition cannot fire, which is this project's most
- * repeated defect: a gate authored by hand against a quantity nobody had
- * measured, invisible to every test that asks what a mechanic *does*. Three of
- * the three gates in `dev/gateProbe.ts`'s first run were wrong in exactly that
- * way, one of them because an index sitting near 100 was read as a percentage
- * deviation.
+ * ## The first version could not fire
  *
- * So this measures the two quantities against their two bars, rather than
- * asking whether the ending happened to appear in a sample.
+ * It gated on member inflation dispersion at 2.4 points **and** area
+ * fragmentation at 290 basis points, held five consecutive meetings. Measured
+ * here over 360 mandates: satisfied on **0.0 %** of meetings at every
+ * difficulty under every play, 0 endings in 60 in every cell. The highest
+ * dispersion ever reached was 1.85, at ecb/hard under *competent* play —
+ * exactly where fragmentation is lowest, because a competent rule uses the
+ * anti-fragmentation instrument. The two quantities peak under opposite
+ * conditions, so it was the conjunction rather than the heights: at the
+ * loosest pair tried, the condition still held long enough in 2-3 % of passive
+ * runs and 0 % of competent ones.
+ *
+ * Meanwhile the game told the player, in as many words, *"You can lose the
+ * room."*
+ *
+ * ## What it measures now
+ *
+ * Sustained dissent by a bloc — a third of the committee voting against the
+ * policy for `COUNCIL.meetingsToFail` consecutive meetings, the count
+ * resetting whenever the room comes back. See `config/tenure.ts` for why that
+ * is the historically faithful quantity and dispersion was not.
  *
  * Run with: npx tsx src/simulation/dev/councilProbe.ts
+ *
+ * Read the output as: **`ended` is the claim.** The bar the player set is
+ * "frequent enough to be real, rare enough to stay an event". A mechanic that
+ * fires on nobody is the defect above; one that fires on a competent chair as
+ * often as on a reckless one is a tax rather than a consequence, which is what
+ * the two play columns are for.
  */
 
 import type { Difficulty } from '../types/core.ts'
+import type { PolicyPackage } from '../types/policy.ts'
 import { SIMULATION_VERSION } from '../version.ts'
 import { COUNCIL } from '../config/tenure.ts'
 import { createRunConfig } from '../engine/initialState.ts'
-import { dispersion } from '../engine/members.ts'
-import { playRun, type RunSession } from '../replay/replayRun.ts'
+import { startRun, submitMeeting, type RunSession } from '../replay/replayRun.ts'
 import { toolkitPackage } from '../policy/toolkitRule.ts'
+import { dissentingBloc } from '../policy/committeeVote.ts'
 
 const RUNS = 60
 
 const DIFFICULTIES: readonly Difficulty[] = ['easy', 'medium', 'hard']
 
-function quantile(values: readonly number[], fraction: number): number {
-  if (values.length === 0) return Number.NaN
-  const sorted = [...values].sort((a, b) => a - b)
-  return sorted[Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))]
+type Play = 'competent' | 'passive' | 'stubborn'
+
+/**
+ * A chair who holds one direction whatever the room says.
+ *
+ * The population the mechanic is *for*. The toolkit rule reacts to the data
+ * and therefore drifts toward wherever the committee's own views are; a chair
+ * who picks a stance at the first meeting and never revisits it is the one who
+ * should lose the Council, and a condition that never catches them is not a
+ * condition. Deliberately not a saboteur: it holds a *coherent* policy, which
+ * is what Weber and Stark resigned over.
+ */
+function stubborn(): PolicyPackage {
+  return {
+    actions: [{ instrument: 'policy_rate', magnitude: 50 }],
+    communication: null,
+  }
+}
+
+function choose(play: Play, difficulty: Difficulty) {
+  return (session: RunSession): PolicyPackage => {
+    if (play === 'passive') return { actions: [], communication: null }
+    if (play === 'stubborn') return stubborn()
+    return toolkitPackage(session, 'ecb', difficulty)
+  }
+}
+
+interface Reading {
+  /** Share of runs that ended on `council_lost`. */
+  readonly ended: number
+  /** Share of meetings at which a bloc was against the chair. */
+  readonly blocShare: number
+  /** The longest dissent streak reached, across the whole sample. */
+  readonly longestStreak: number
+  /**
+   * Share of runs where the player was actually *shown* the warning.
+   *
+   * Read off `outcome.warnings` rather than off the streak, and the difference
+   * matters: the first version of this probe counted the streak and reported
+   * 100 % warned at ecb/easy, where the condition is never evaluated at all —
+   * `tutorialProgress` returns before it, because a tutorial ends on its goal
+   * rather than on a term. A probe that measures the accumulator instead of
+   * the consequence reports a mechanic that is not running.
+   */
+  readonly warned: number
+  readonly medianTenure: number
+}
+
+function measure(difficulty: Difficulty, play: Play): Reading {
+  let ended = 0
+  let warned = 0
+  let blocMeetings = 0
+  let allMeetings = 0
+  let longestStreak = 0
+  const tenures: number[] = []
+
+  for (let index = 0; index < RUNS; index += 1) {
+    const config = createRunConfig({
+      institution: 'ecb',
+      difficulty,
+      seed: `council-${index}`,
+      simulationVersion: SIMULATION_VERSION,
+    })
+
+    // Stepped rather than `playRun`, because the streak is the thing being
+    // measured and it only exists between meetings: a finished session carries
+    // the final count, not the highest one reached.
+    let session = startRun(config)
+    let peak = 0
+    let sawWarning = false
+    while (session.outcome.status === 'active') {
+      const result = submitMeeting(session, choose(play, difficulty)(session))
+      if (!result.ok) break
+      session = result.session
+      if (dissentingBloc(session.vote)) blocMeetings += 1
+      allMeetings += 1
+      peak = Math.max(peak, session.state.councilDissent)
+      if (session.outcome.warnings.some((w) => w.id === 'council_lost')) {
+        sawWarning = true
+      }
+    }
+
+    if (session.outcome.triggered === 'council_lost') ended += 1
+    if (sawWarning) warned += 1
+    longestStreak = Math.max(longestStreak, peak)
+    tenures.push(session.state.meetingIndex)
+  }
+
+  const sorted = [...tenures].sort((a, b) => a - b)
+  return {
+    ended: ended / RUNS,
+    warned: warned / RUNS,
+    blocShare: allMeetings === 0 ? 0 : blocMeetings / allMeetings,
+    longestStreak,
+    medianTenure: sorted[Math.floor(sorted.length / 2)] ?? 0,
+  }
 }
 
 function main(): void {
   console.log('')
   console.log(`Can the Council actually be lost? — engine ${SIMULATION_VERSION}`)
   console.log(
-    `Bars: dispersion >= ${COUNCIL.fractureDispersion} AND fragmentation >= ` +
-      `${COUNCIL.fractureFragmentation}, for ${COUNCIL.meetingsToFail} consecutive meetings.`,
+    `A third of the committee against, for ${COUNCIL.meetingsToFail} consecutive ` +
+      `meetings. Warning from ${COUNCIL.meetingsToWarn}.`,
   )
-  console.log(`Warning tier at dispersion >= ${COUNCIL.watchDispersion}.`)
+  console.log(`${RUNS} ECB mandates a cell.`)
   console.log('='.repeat(100))
   console.log(
     [
       'bucket'.padEnd(22),
-      'disp p50'.padEnd(9),
-      'disp p90'.padEnd(9),
-      'disp max'.padEnd(9),
-      'frag p90'.padEnd(9),
-      'frag max'.padEnd(9),
-      'both'.padEnd(6),
-      'ended',
+      'ENDED'.padEnd(8),
+      'warned'.padEnd(8),
+      'bloc mtgs'.padEnd(10),
+      'longest'.padEnd(8),
+      'tenure',
     ].join(' '),
   )
   console.log('-'.repeat(100))
 
   for (const difficulty of DIFFICULTIES) {
-    for (const play of ['competent', 'passive'] as const) {
-      const dispersions: number[] = []
-      const fragmentations: number[] = []
-      let bothMet = 0
-      let meetings = 0
-      let ended = 0
-
-      for (let index = 0; index < RUNS; index += 1) {
-        const config = createRunConfig({
-          institution: 'ecb',
-          difficulty,
-          seed: `council-${index}`,
-          simulationVersion: SIMULATION_VERSION,
-        })
-        const session = playRun(config, (current: RunSession) =>
-          play === 'competent'
-            ? toolkitPackage(current, 'ecb', difficulty)
-            : { actions: [], communication: null },
-        )
-        for (const snapshot of session.state.history) {
-          if (snapshot.members.length === 0) continue
-          const spread = dispersion(snapshot.members, 'inflationOffset')
-          const fragmentation = snapshot.latent.fragmentation
-          dispersions.push(spread)
-          fragmentations.push(fragmentation)
-          meetings += 1
-          if (
-            spread >= COUNCIL.fractureDispersion &&
-            fragmentation >= COUNCIL.fractureFragmentation
-          ) {
-            bothMet += 1
-          }
-        }
-        if (session.outcome.triggered === 'council_lost') ended += 1
-      }
-
+    for (const play of ['competent', 'passive', 'stubborn'] as const) {
+      const reading = measure(difficulty, play)
       console.log(
         [
           `ecb/${difficulty} ${play}`.padEnd(22),
-          quantile(dispersions, 0.5).toFixed(2).padEnd(9),
-          quantile(dispersions, 0.9).toFixed(2).padEnd(9),
-          quantile(dispersions, 1).toFixed(2).padEnd(9),
-          quantile(fragmentations, 0.9).toFixed(0).padEnd(9),
-          quantile(fragmentations, 1).toFixed(0).padEnd(9),
-          `${((bothMet / Math.max(1, meetings)) * 100).toFixed(1)}%`.padEnd(6),
-          `${ended}/${RUNS}`,
+          `${(reading.ended * 100).toFixed(0)}%`.padEnd(8),
+          `${(reading.warned * 100).toFixed(0)}%`.padEnd(8),
+          `${(reading.blocShare * 100).toFixed(1)}%`.padEnd(10),
+          `${reading.longestStreak}`.padEnd(8),
+          `${reading.medianTenure}`,
         ].join(' '),
       )
     }
@@ -120,107 +188,10 @@ function main(): void {
   }
 
   console.log('')
-  console.log('`both` is the share of meetings where BOTH bars are met at once — the')
-  console.log('thing the five-meeting counter counts. If it is 0.0 % the ending cannot')
-  console.log('happen, and the warning tier above it is a threat the game cannot carry out.')
-
-  candidates()
+  console.log('ENDED is the mechanic. `longest` is the diagnostic that tells a bar set')
+  console.log('too high apart from a mechanism that cannot reach it: a longest streak')
+  console.log('well below meetingsToFail means the bloc never holds, whatever the bar.')
   console.log('')
-}
-
-/**
- * Where the bars belong, if they belong anywhere.
- *
- * `dev/gateProbe.ts`'s lesson, applied: **set a gate from a measurement of two
- * populations, and put it where it bills the pattern rather than the
- * accident.** A bar competent play clears is a tax; a bar neglect never
- * reaches is decoration; the useful bar is between them.
- *
- * Reported as the share of *runs* in which the condition would be held for
- * `COUNCIL.meetingsToFail` consecutive meetings — which is what the counter
- * actually asks, and is not the same as the share of meetings at which both
- * bars happen to be met.
- */
-function candidates(): void {
-  const DISPERSIONS = [0.6, 0.8, 1.0, 1.2]
-  const FRAGMENTATIONS = [250, 300, 350]
-
-  console.log('')
-  console.log('Candidate bars — share of runs the condition would be HELD long enough')
-  console.log(
-    `(${COUNCIL.meetingsToFail} consecutive meetings), competent / passive, ecb/hard then medium`,
-  )
-  console.log('='.repeat(100))
-
-  for (const difficulty of ['hard', 'medium'] as const) {
-    const paths = new Map<string, { readonly spread: number; readonly frag: number }[][]>()
-    for (const play of ['competent', 'passive'] as const) {
-      const runs: { readonly spread: number; readonly frag: number }[][] = []
-      for (let index = 0; index < RUNS; index += 1) {
-        const config = createRunConfig({
-          institution: 'ecb',
-          difficulty,
-          seed: `council-${index}`,
-          simulationVersion: SIMULATION_VERSION,
-        })
-        const session = playRun(config, (current: RunSession) =>
-          play === 'competent'
-            ? toolkitPackage(current, 'ecb', difficulty)
-            : { actions: [], communication: null },
-        )
-        runs.push(
-          session.state.history
-            .filter((snapshot) => snapshot.members.length > 0)
-            .map((snapshot) => ({
-              spread: dispersion(snapshot.members, 'inflationOffset'),
-              frag: snapshot.latent.fragmentation,
-            })),
-        )
-      }
-      paths.set(play, runs)
-    }
-
-    const heldShare = (
-      runs: { readonly spread: number; readonly frag: number }[][],
-      spreadBar: number,
-      fragBar: number,
-    ): number => {
-      let hit = 0
-      for (const path of runs) {
-        let streak = 0
-        let reached = false
-        for (const point of path) {
-          streak = point.spread >= spreadBar && point.frag >= fragBar ? streak + 1 : 0
-          if (streak >= COUNCIL.meetingsToFail) {
-            reached = true
-            break
-          }
-        }
-        if (reached) hit += 1
-      }
-      return hit / Math.max(1, runs.length)
-    }
-
-    console.log('')
-    console.log(`ecb/${difficulty}`)
-    console.log(
-      `  ${'dispersion'.padEnd(12)}` +
-        FRAGMENTATIONS.map((frag) => `frag ${frag}`.padStart(16)).join(''),
-    )
-    for (const spreadBar of DISPERSIONS) {
-      const cells = FRAGMENTATIONS.map((fragBar) => {
-        const competent = heldShare(paths.get('competent')!, spreadBar, fragBar)
-        const passive = heldShare(paths.get('passive')!, spreadBar, fragBar)
-        return `${(competent * 100).toFixed(0)}% / ${(passive * 100).toFixed(0)}%`.padStart(16)
-      })
-      console.log(`  ${spreadBar.toFixed(1).padEnd(12)}${cells.join('')}`)
-    }
-  }
-
-  console.log('')
-  console.log('Read it as: competent% / passive%. The bar belongs where the first is')
-  console.log('near zero and the second is not — a president who steers the area keeps')
-  console.log('the room, and one who lets it come apart does not.')
 }
 
 main()

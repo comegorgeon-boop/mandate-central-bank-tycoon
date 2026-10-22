@@ -307,6 +307,23 @@ export interface SimulationState {
    * `COMMUNICATION.reversalCost`'s doc comment.
    */
   readonly reversalCount: number
+  /**
+   * Consecutive meetings on which a *bloc* of the committee dissented.
+   *
+   * The ECB's own ending, and the only way a fictional presidency ends short
+   * of a catastrophe. It is a count rather than a flag because what ends a
+   * presidency is not a vote lost on the day — nobody can remove an ECB
+   * president and there is no second term to withhold — but a policy a part
+   * of the room has stopped being able to accept, held anyway, meeting after
+   * meeting. Weber left the Bundesbank in February 2011 and Stark the
+   * Executive Board in September 2011, both over the Securities Markets
+   * Programme, and neither was outvoted.
+   *
+   * Accumulated here rather than derived from `history`, because the ballots
+   * are not in the history: a snapshot carries the economy, and a dissent is
+   * a fact about the decision. See `COUNCIL` in `config/tenure.ts`.
+   */
+  readonly councilDissent: number
   /** Clamp and instability records. Developer-facing only. */
   readonly diagnostics: readonly DiagnosticEvent[]
   /** One snapshot per completed meeting, oldest first. */
