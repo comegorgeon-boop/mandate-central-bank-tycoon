@@ -267,6 +267,14 @@ export {
   orientation,
   type OrientationPoint,
 } from './explain/orientation.ts'
+// The bulletin that takes the screen. Majors and the critical only — see the
+// file for why the gating is on transitions rather than on states.
+export {
+  readBulletin,
+  type Bulletin,
+  type BulletinKind,
+  type BulletinReading,
+} from './explain/bulletin.ts'
 export {
   tutorialExhausted,
   tutorialProgress,

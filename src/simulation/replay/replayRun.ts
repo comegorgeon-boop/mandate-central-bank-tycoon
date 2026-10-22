@@ -14,6 +14,7 @@ import { applyScheduledEvents, isScheduledMajor } from '../scenarios/scheduled.t
 import { applyGoldDrain } from '../scenarios/goldStandard.ts'
 import { generateObservation } from '../observation/generateObservation.ts'
 import { committeeVote, type CommitteeVote } from '../policy/committeeVote.ts'
+import { readBulletin, type Bulletin } from '../explain/bulletin.ts'
 import type { CallOutcome } from '../policy/forecastCall.ts'
 import { evaluateEndConditions } from '../scoring/endConditions.ts'
 import type { DecisionLog, DecisionLogEntry } from './decisionLog.ts'
@@ -55,6 +56,33 @@ export interface RunSession {
    */
   readonly onTheDay: ObservationSet | null
   readonly outcome: EndConditionResult
+  /**
+   * The end conditions as they stood at the *previous* meeting. Null at the
+   * first.
+   *
+   * Kept for the same reason `previousObservation` is: a warning that has just
+   * become severe is news and a warning that *is* severe is furniture, and the
+   * only way to tell them apart is to have both. `explain/bulletin.ts` is the
+   * caller, and without this it would have to re-announce an at-risk post at
+   * every meeting until it cleared — which is the wallpaper the bulletin exists
+   * not to be.
+   */
+  readonly previousOutcome: EndConditionResult | null
+  /**
+   * The bulletin that should take the screen at this meeting, or null — which
+   * is most meetings. See `explain/bulletin.ts`.
+   */
+  readonly bulletin: Bulletin | null
+  /**
+   * How many bulletins this mandate has shown, including this one.
+   *
+   * Carried here rather than on the state because a bulletin is explanation
+   * and not economy — nothing in the engine reads it — and it has to be exact:
+   * the per-mandate allowance is the whole feature, and the first version
+   * recomputed it from history and leaked, because `post_at_risk` fires off
+   * the end conditions and a history snapshot carries only the economy.
+   */
+  readonly bulletinsShown: number
   /** Ordered decisions so far, ready to be serialised. */
   readonly decisions: readonly DecisionLogEntry[]
   /**
@@ -154,6 +182,11 @@ export function startRun(config: RunConfig): RunSession {
     state,
     observation: observe(state, [], []),
     previousObservation: null,
+    previousOutcome: null,
+    // The opening cannot be news: nothing has changed and the briefing has
+    // just said what the economy is.
+    bulletin: null,
+    bulletinsShown: 0,
     onTheDay: null,
     outcome,
     // No decision has been taken, so there is nothing to have voted on. The
@@ -233,6 +266,25 @@ export function submitMeeting(
   const minorEvents = allResolved.filter((record) => !isMajor(record))
   const newswire = minorEvents.map((record) => record.newswire)
 
+  /*
+   * The bulletin, decided here rather than in the interface.
+   *
+   * Two reasons and both are about it being exact. The allowance has to be
+   * counted somewhere every bulletin passes through, and this is that place —
+   * the first version recomputed it from history in the component and leaked,
+   * because `post_at_risk` fires off the end conditions and a history snapshot
+   * carries only the economy. And deciding it here means a replay produces the
+   * same interruptions as the original run, which a decision taken in a
+   * component would not.
+   */
+  const bulletin = readBulletin(
+    advanced,
+    majorEvent,
+    outcome.warnings,
+    session.outcome.warnings,
+    session.bulletinsShown,
+  )
+
   return {
     ok: true,
     validation: applied.validation,
@@ -240,8 +292,11 @@ export function submitMeeting(
       state: advanced,
       observation: observe(advanced, newswire, resolution.clues),
       previousObservation: session.observation,
+      previousOutcome: session.outcome,
       onTheDay,
       outcome,
+      bulletin,
+      bulletinsShown: session.bulletinsShown + (bulletin === null ? 0 : 1),
       decisions: [...session.decisions, { meetingIndex, package: pkg }],
       newswire,
       minorEvents,

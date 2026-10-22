@@ -41,6 +41,7 @@ import { OrderBanner } from '../../components/terminal/Explain.tsx'
 import { GuillocheBand } from '../../components/engraving/Guilloche.tsx'
 import { readOrder } from './order.ts'
 import { AimDisclosure } from './AimDisclosure.tsx'
+import { BulletinFlash } from './BulletinFlash.tsx'
 import { TutorialGoalPanel } from './panels/TutorialGoalPanel.tsx'
 import { readStanding } from './standing.ts'
 import { PricesPanel } from './panels/PricesPanel.tsx'
@@ -130,6 +131,20 @@ export function MeetingScreen({
   const [roomOpen, setRoomOpen] = useState(false)
   const quick = tempo === 'quick' && !roomOpen
   const order = readOrder(session)
+
+  /*
+   * The bulletin that takes the screen: a major event, or something critical
+   * that has just *become* critical. Null at most meetings by construction —
+   * see `explain/bulletin.ts` for why every kind fires on a transition rather
+   * than on a state, and for the per-mandate cap.
+   *
+   * `useState` keyed on nothing, because this component is remounted at every
+   * meeting: dismissing it dismisses it for this meeting and the next one
+   * starts clean, which is the same mechanism the interval player and the
+   * reaction screen already use.
+   */
+  const bulletin = session.bulletin
+  const [bulletinSeen, setBulletinSeen] = useState(false)
 
   const { settings } = useSettings()
   // This component is remounted at every meeting, so each of these is shown
@@ -377,6 +392,23 @@ export function MeetingScreen({
         </div>
       ) : (
         <>
+          {/*
+              **The bulletin, before the guide and before the meeting.**
+
+              It is the only thing in the game that interrupts, and the order
+              matters: a flash drawn *under* the first-meeting spotlight would
+              be an alarm behind a tutorial. It is also deliberately not shown
+              during the interval or the reaction screen above — those are
+              already a sequence the player is stepping through, and an alarm
+              inside a cutscene is a third thing happening at once.
+          */}
+          {bulletin !== null && !bulletinSeen && (
+            <BulletinFlash
+              bulletin={bulletin}
+              onDismiss={() => setBulletinSeen(true)}
+            />
+          )}
+
           {showGuide && (
             <FirstMeetingGuide
               onPanel={(next) => setPanel(next as PanelId)}
