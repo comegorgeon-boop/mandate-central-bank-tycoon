@@ -1,13 +1,12 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import {
-  tenureSentence,
   getInstitution,
   tutorialProgress,
   type SeriesId,
 } from '../simulation/index.ts'
 import { useRun } from '../features/game/runContext.ts'
-import { formatMeetings, transmissionLag } from '../features/policy/lag.ts'
 import { Mascot } from '../components/Mascot.tsx'
+import { WhatYouAreFor } from '../features/meeting/WhatYouAreFor.tsx'
 import { openingLine } from '../features/meeting/mascotLine.ts'
 
 /**
@@ -34,7 +33,6 @@ export default function BriefingPage() {
   // Null at every difficulty but easy. See `scoring/tutorialGoal.ts`.
   const tutorial = tutorialProgress(session.state)
   const institution = getInstitution(config.institution)
-  const lag = transmissionLag(config.difficulty)
 
   const readings = OPENING_SERIES.map((id) => session.observation.indicators[id]).filter(
     (indicator) => indicator !== undefined,
@@ -50,34 +48,33 @@ export default function BriefingPage() {
       </h1>
 
       <section className="mt-6" aria-labelledby="mandate-heading">
+        {/*
+            **The orientation replaces the mandate prose rather than joining
+            it.** This section used to carry `institution.mandateSummary` and a
+            tenure sentence, both of which `explain/orientation.ts` now says
+            properly and in context — and the player's standing rule on this
+            project is that an addition replaces rather than adds. Saying the
+            mandate twice, once vaguely, is how a briefing becomes a thing
+            people skip.
+
+            Why it is here at all, in the player's words: *"il m'a demandé en
+            boucle « c'est quoi le but, qu'est-ce que je dois faire ». Les trois
+            réunions guidées ne règlent pas ça, parce qu'elles guident la
+            DÉCISION et pas la DIRECTION."*
+        */}
         <h2 id="mandate-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
-          Your mandate
+          What you are trying to do
         </h2>
-        <p className="mt-2 text-sm text-onwood-soft">{institution.mandateSummary}</p>
-        {tutorial === null ? (
-          <p className="mt-2 text-sm text-onwood-soft">
-            {/*
-                This said "You will chair {config.meetingCount} scheduled
-                meetings", and `config.meetingCount` on a fictional run is the
-                *tenure horizon* — 64, two Fed terms or one ECB term — which is
-                the longest a player could possibly serve and is what the
-                engine divides by. It was never a schedule, and no mandate is
-                meant to reach it. See `explain/tenureCopy.ts`.
-            */}
-            {tenureSentence(config)} At each meeting you set the policy rate.
-            The inflation objective is{' '}
-            {institution.inflationTarget.toFixed(1)} %, and the employment side of the
-            mandate is judged against how far unemployment sits from its sustainable
-            level.
-          </p>
-        ) : (
+        <div className="mt-3">
+          <WhatYouAreFor config={config} />
+        </div>
+        {tutorial === null ? null : (
           <>
-            <p className="mt-2 text-sm text-onwood-soft">
-              This mandate has no fixed number of meetings. You inherit an economy
-              running hot, and it ends when you have brought it back — not when a
-              clock runs out.
-            </p>
-            <div className="mt-3 rounded-lg border-l-4 border-edge-accent bg-inset p-3">
+            {/* The goal itself, as figures. Point 4 of the orientation above
+                already says the tutorial ends on its objective rather than on
+                a clock; this is the objective, which is a different thing and
+                is worth having in numerals. */}
+            <div className="mt-4 rounded-lg border-l-4 border-edge-accent bg-inset p-3">
               <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-accent-onwood">
                 What ends it
               </p>
@@ -130,18 +127,23 @@ export default function BriefingPage() {
         </p>
       </section>
 
-      <section className="mt-6" aria-labelledby="lag-heading">
-        <h2 id="lag-heading" className="text-sm font-semibold uppercase tracking-wide text-onwood-soft">
-          How policy acts
-        </h2>
-        <p className="mt-2 text-sm text-onwood-soft">
-          A rate change does not act on the day it is made. On this mandate its effect
-          peaks around {formatMeetings(lag.peakMeetings)} later and is mostly delivered
-          within {formatMeetings(lag.spanMeetings)}. You will be judged on the whole
-          path of the economy across the mandate, not on where it ends up at the last
-          meeting.
-        </p>
-      </section>
+      {/*
+          **"How policy acts" is gone, because point 3 above is it.**
+
+          Both said the lag, and they said it with *different numbers* — this
+          panel read the built kernel and reported 3.5 meetings, the
+          orientation divided `LAG_KERNEL.peakSubsteps` and reported 4. Two
+          figures for one quantity, three inches apart, in the one text a
+          player takes entirely on trust. The orientation now reads the same
+          kernel, and one of the two statements had to go: this one, because
+          the other is in the list a player actually reads.
+
+          What this panel had and the point does not is the *span* — "mostly
+          delivered within 7.8 meetings" — and the judged-on-the-whole-path
+          line. The span is on the policy desk under every move, where it is
+          needed for a decision rather than for orientation; the path line is
+          in orientation point 4, which is where "how it ends" belongs.
+      */}
 
       {/* The one piece of whimsy in the room, and it carries a point: the
           tortoise exists because the lag does. See `mascotLine.ts`. */}

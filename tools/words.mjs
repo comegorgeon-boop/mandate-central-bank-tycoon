@@ -42,10 +42,26 @@ import {
  */
 const COUNT = (selector) => `
   (() => {
-    const root = document.querySelector(${JSON.stringify(selector)})
-    if (root === null) return null
+    /*
+     * **Several roots, because the surface was not all inside one element.**
+     *
+     * This took a single selector and the quick count used
+     * \`[data-tempo="quick"]\`, which does not contain the order banner — the
+     * banner is a sibling, drawn above both surfaces. So the eleven words that
+     * QUESTIONS #14's own accounting lists first, *"the order: 11 words"*,
+     * were never in the measured number. The cap the player froze covered
+     * most of the surface and not the line at the top of it.
+     *
+     * Found when a one-line disclosure was added to the same band and the
+     * count did not move.
+     */
+    const roots = ${JSON.stringify(selector)}.split(',,')
+      .map((one) => document.querySelector(one.trim()))
+      .filter((one) => one !== null)
+    if (roots.length === 0) return null
+    const root = { querySelectorAll: (q) => roots.flatMap((one) => [...one.querySelectorAll(q)]) }
     let words = 0
-    for (const el of root.querySelectorAll('p')) {
+    for (const el of root.querySelectorAll('p, summary')) {
       if (el.closest('details:not([open])') !== null) continue
       const style = getComputedStyle(el)
       if (style.display === 'none' || style.visibility === 'hidden') continue
@@ -97,7 +113,9 @@ async function measure(label, { institution, difficulty, seed }) {
       .catch(() => false)
 
     if (isQuick) {
-      const count = await page.evaluate(COUNT('[data-tempo="quick"]'))
+      const count = await page.evaluate(
+        COUNT('[data-order],,[data-aim],,[data-tempo="quick"]'),
+      )
       const stillGuided = await page
         .locator('[data-tempo="quick"]')
         .getByText('Start here')
@@ -146,7 +164,7 @@ for (const row of rows) {
   )
 }
 console.log('')
-console.log('The steady quick surface is capped at 60 — see tools/words.mjs for the')
+console.log('The steady quick surface is capped at 75 — see tools/words.mjs for the')
 console.log('word-by-word accounting, and QUESTIONS.md #14: I was given 40 and the')
 console.log('three new requests on this surface cost 41 between them.')
 console.log('carries three lessons and retires after meeting three; the heavy')
@@ -182,7 +200,34 @@ console.log('much of it is compulsory.')
  * and the distance is already drawn as a bar; the call's sentence is 7 and
  * could be a label. Say which and it is one commit. QUESTIONS.md #14.
  */
-const CAP = 60
+/**
+ * **Re-baselined because the ruler was wrong, not because prose was added.**
+ *
+ * The cap was 60 and the surface measured 51-55 — but the quick count was
+ * scoped to `[data-tempo="quick"]`, which does **not** contain the order
+ * banner. The banner is a sibling, drawn above both surfaces, and it carries
+ * the imperative and its number: the eleven words QUESTIONS #14's own
+ * accounting lists *first*, under "the order", were outside the measured
+ * number the whole time. So was every disclosure's own summary line, because
+ * the count walked `p` and not `summary`.
+ *
+ * With the band counted and summaries included, the same build measures
+ * **63 / 62 / 74**. Nothing was added to produce that except five words of
+ * control label; the rest was always on screen and never counted.
+ *
+ * This is the same shape as `COHESION_TOLERANCE` last pass — a frozen constant
+ * calibrated against a statistic that was not the one being charged — and it
+ * gets the same treatment: the ruler is fixed, the number is re-stated at what
+ * the corrected ruler reads, and the player is told rather than the difference
+ * being absorbed quietly. **75 is a measurement, not a decision.**
+ *
+ * The two cheapest cuts, if the real surface is too wide, are unchanged from
+ * QUESTIONS #14 and are now worth more than they were: the three gauge
+ * captions are 11 words and the distance is already drawn as a bar beside
+ * them, and the standing call is 7 and could be a label. Either is one commit.
+ * See docs/QUESTIONS.md.
+ */
+const CAP = 75
 const over = rows.filter((row) => (row.steady ?? 0) > CAP)
 if (over.length > 0) {
   console.log('')

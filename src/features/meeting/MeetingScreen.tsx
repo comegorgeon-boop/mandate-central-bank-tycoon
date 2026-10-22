@@ -40,6 +40,7 @@ import { StandingPanel } from './panels/StandingPanel.tsx'
 import { OrderBanner } from '../../components/terminal/Explain.tsx'
 import { GuillocheBand } from '../../components/engraving/Guilloche.tsx'
 import { readOrder } from './order.ts'
+import { AimDisclosure } from './AimDisclosure.tsx'
 import { TutorialGoalPanel } from './panels/TutorialGoalPanel.tsx'
 import { readStanding } from './standing.ts'
 import { PricesPanel } from './panels/PricesPanel.tsx'
@@ -440,6 +441,16 @@ export function MeetingScreen({
             compact={quick}
             warnings={severeWarnings.map((warning) => warning.message)}
           />
+
+          {/* "What am I trying to do?", at one gesture, on both surfaces.
+
+              A player who knows which way to move the rate at every meeting
+              and never learns what the rate is being moved toward has a very
+              good interface to a game they are not playing. The guided
+              opening, the order line and the consequence copy all answer
+              *what should I do with this number*; this is the other question,
+              and it was being asked in a loop. Closed it costs one line. */}
+          <AimDisclosure config={session.state.config} compact={quick} />
 
           {/* The record, in the room rather than above the order.
               What has been held and what is slipping is a thing to consult,

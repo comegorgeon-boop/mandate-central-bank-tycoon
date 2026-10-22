@@ -260,6 +260,13 @@ export {
   tenureSentence,
   termOfOffice,
 } from './explain/tenureCopy.ts'
+// What the player is trying to do, in five lines. Direction, never decisions.
+export {
+  aimLine,
+  lagInMeetings,
+  orientation,
+  type OrientationPoint,
+} from './explain/orientation.ts'
 export {
   tutorialExhausted,
   tutorialProgress,
