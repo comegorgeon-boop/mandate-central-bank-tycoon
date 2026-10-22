@@ -58,6 +58,28 @@ export function BalanceSheetPanel({
 
   if (instruments.length === 0) return null
 
+  /*
+   * **The balance-sheet sentence needs the balance-sheet controls, not the
+   * balance-sheet series.**
+   *
+   * It used to be gated on `balanceSheet !== null`, which asks whether the
+   * holdings are *published* — and they are published at every difficulty,
+   * with no lag and no measurement error. So the moment this panel first
+   * rendered at easy, it explained that "purchases add to that at an annual
+   * pace and runoff subtracts from it" on a screen carrying neither control:
+   * `asset_purchases` and `balance_sheet_runoff` are both
+   * `availableFrom: 'medium'`.
+   *
+   * Found by photographing the easy desk rather than by any test, and it is
+   * this project's own parade again — copy describing a control that is not
+   * there, which is the same defect as a gate that cannot fire, read from the
+   * other end. The condition is now what the sentence is actually about.
+   */
+  const explainsBalanceSheet = instruments.some(
+    (instrument) =>
+      instrument.id === 'asset_purchases' || instrument.id === 'balance_sheet_runoff',
+  )
+
   return (
     <section
       aria-labelledby="toolkit-heading"
@@ -72,7 +94,7 @@ export function BalanceSheetPanel({
       <p className="mt-1 text-sm text-ink-soft">
         These stay in force between meetings. Leaving one alone is a decision to
         keep it where it is, not an absence of one.
-        {balanceSheet !== null && (
+        {balanceSheet !== null && explainsBalanceSheet && (
           <>
             {' '}
             The balance sheet currently holds{' '}

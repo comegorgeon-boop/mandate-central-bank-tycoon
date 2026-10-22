@@ -2493,10 +2493,37 @@ below about 2.0 however well the area is steered. What sits above that floor
 and passive play — the shape of going back to being a constant subtracted from
 every ECB score.
 
+**Update, 21 October 2026: every number in this section was measured with the
+wrong ruler.** `dev/cohesion.ts` declared a local `dispersion` that is an
+unweighted population standard deviation, where `calculateScore` charges
+`engine/members.ts`'s GDP-weighted mean absolute deviation — so the floor this
+section reports as "about 2.0", the 2.49-against-3.15 at hard, and the
+tolerance derived from them are all readings of a statistic the chair is never
+charged on. Both now call `scoring/cohesionPenalty.ts`. On the statistic the
+score actually charges, the competent floor is **1.88 / 1.79 / 1.92** across
+easy, medium and hard over 100 mandates a cell, and `COHESION_TOLERANCE` is
+**1.9**. See docs/QUESTIONS.md #19.
+
+The component is also no longer charged with no instrument behind it:
+`transmission_protection` is open from easy, and cohesion under competent play
+now runs 0.983 / 0.959 / 0.830 against 0.729 / 0.552 / 0.387 for the same play
+forbidden the tool. The penalty's three channels are decomposed in
+`dev/fragmentation.ts` — the sovereign-spread range is both the largest and
+the only one any instrument reaches.
+
 ### Closed: the standing `marketExpectedRate` warning
 
 `npm run sim:sweep` reports **no balance warnings** for the first time in this
-document's history. The clamp that fired in two or three completed ecb/hard
+document's history.
+
+**Update, 21 October 2026: it reports six again, and has since the survival
+restructure.** Five buckets report "no rule scores better than doing nothing"
+and fed/hard reports "unwinnable as configured". Checked against `main` by
+stashing, so they predate this pass — the cause is that `calculateScore` still
+grades path averages, which under a structure where a mandate ends when it is
+lost rewards being dismissed early. That is the defect `scoring/banked.ts` was
+written to remove, and the conversion stopped at the headline. docs/QUESTIONS.md
+#22, with three options; it is a decision about what the score means. The clamp that fired in two or three completed ecb/hard
 mandates per 150, carried here as "not diagnosed" for several sessions, no
 longer fires.
 

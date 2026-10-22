@@ -1142,3 +1142,140 @@ One more tool broken by my own change, caught by the audit rather than by me:
 splitting the mode choice in two put the scenario buttons behind a door, and
 `drive.mjs` waited thirty seconds for a button it had not opened and reported
 a timeout that looked like the game hanging.
+
+---
+
+## 23 — An instrument for the thing I was being charged for, and three rulers that were wrong
+
+**What I did.** Three things you asked for, and the first one took one line of
+config and found a defect on the way. Opened `transmission_protection` from
+easy, because `cohesion` is charged at every difficulty and the tool was
+withheld below hard. Rewrote the cohesion penalty into one shared function,
+because the script that calibrates its tolerance was computing a different
+statistic from the score. Measured communication in points instead of anchor
+points. Measured how long the difficulty ladder lasts. Wrote four harnesses
+and four tests, and fixed the fifth occurrence of this project's favourite
+defect plus the lint rule that was supposed to have caught the fourth.
+
+**What I measured.**
+
+| | before | after |
+| --- | --- | --- |
+| cohesion, competent, easy / medium / hard | 0.729 / 0.552 / 0.387 | **0.983 / 0.959 / 0.830** |
+| cohesion rows that are always 1.00 | easy and medium | **none** |
+| banked per meeting at ecb/hard, using the tool vs not | — | **20 vs 9** |
+| speaking, mandates served at ecb/medium | — | **48/80 vs 33/80 silent** |
+| speaking, median tenure at ecb/medium | — | **64 vs 51** |
+| ladder holds through, fed / ecb | meeting 0 (asserted) | **meeting 6 / 5** |
+| growth guard broken, easy / medium / hard (fed) | — | **2 % / 3 % / 12 %** |
+| contrast | 0 failures / 664 states | 0 failures / **848 states** |
+| tests | 1146 | **1165** |
+
+**Three rulers were wrong, and that is the entry.**
+
+1. **The cohesion tolerance was set against a statistic the score never
+   charges.** `dev/cohesion.ts` exists for one purpose — to calibrate
+   `COHESION_TOLERANCE` against the penalty — and its docstring said it
+   "duplicates the three lines of `calculateScore`". It duplicated their
+   shape. The score charges a GDP-weighted mean absolute deviation; the script
+   computed an unweighted population standard deviation. About 0.4 of penalty
+   apart at every difficulty, always the same direction, so the tolerance sat
+   above what competent play produces and the component scored a constant 1.00
+   at easy and medium. **QUESTIONS #2 had noticed that constant row and blamed
+   the euro area's structure.** It was the ruler. There is now one function,
+   `scoring/cohesionPenalty.ts`, and everything calls it.
+
+2. **The trend-growth cut I credited with holding hard's third reading does
+   not hold it, and I wrote that claim down without measuring it.** Journal 22
+   says hard's third broken reading "is now carried by a cut to trend growth,
+   which survives the rebound because it is where the rebound lands". The
+   arithmetic is not close: the rebound out of a −5.5 output gap is about +4.6
+   points of growth against a cut of 1.8. And the cut is *floored* at 0.1
+   where it is applied, so on the ECB — baseline trend 1.3, cut 1.8 — any
+   value below −1.2 does nothing whatsoever. A constant that cannot act,
+   credited in a journal entry with doing the work.
+
+3. **Counting broken readings was the wrong ruler for the ladder.** Asked how
+   long the ladder lasts, the count says one meeting, and that reading treats
+   a guard as a target. `explain/mandate.ts` declares growth "not a target —
+   the cost of reaching the other two"; a guard broken for thirty meetings is
+   a third target, and one nobody is pushing against should close. On the two
+   targets as a distance the ladder holds through meeting 6 and 5, and the
+   guard is ordered 2 / 3 / 12 % by difficulty across the whole walk.
+
+**The fifth occurrence, and the mechanism that had a hole in it.** The contrast
+audit came back with 2.3:1 on the −/+ stepper buttons: `text-ink` with
+`disabled:opacity-30`, which is exactly the defect there is a lint rule for,
+in one `className`. The rule did not fire because its pattern required the
+utility to be preceded by whitespace or the start of the string, and a Tailwind
+variant prefix is neither — so every `disabled:`, `hover:`, `focus:` and
+`dark:` form had been invisible to it for as long as it has existed. Journal 18
+wrote that rule and said "this time I built the mechanisms instead of
+specifying them". The mechanism was leaning on the slow check it was written to
+replace. Fixed in both: the pattern takes variant chains, and
+`lintGuards.test.ts` now hands the rule three forms it must reject and one it
+must not, because **a rule that catches nothing is indistinguishable from a
+codebase with nothing to catch.** It immediately found a third site nobody had
+looked at — `disabled:opacity-50` on the button that starts every mandate.
+
+**And the audit had never visited the screen.** The desk has three sub-tabs and
+`openPanel` lands on "The case", so "The words" and **"The toolkit" — every
+instrument stepper in the game** — had never been contrast-audited in either
+direction. Blind spot number four, the same one every time, and found because
+a *different* tool I wrote this pass to check that the instrument reaches the
+screen reported it ABSENT at all three difficulties including the one where it
+has always been available. That tool had made the same mistake first. The audit
+now walks every face of every panel: 664 states to **848**.
+
+Photographing the easy desk then found one more: "purchases add to that at an
+annual pace and runoff subtracts from it", on a screen carrying neither
+control, because the sentence was gated on whether the balance-sheet *series*
+is published rather than on whether its *instruments* are reachable.
+
+**What still bothers me.** One thing, and it is big enough that it is
+QUESTIONS #22 rather than a line here. **The game has two scores and they
+disagree about whether competence beats passivity.** `bankedTotal` is the
+headline and says competence wins by 8× at medium; `calculateScore` is the
+scorecard beside it, still grades path averages, and says passivity wins —
+2,318 against 2,159 at ecb/medium, 2,519 against 1,278 at ecb/hard. Banked
+scoring was written precisely to stop a survival structure rewarding an early
+exit, and the conversion stopped at the headline. It is also why
+`npm run sim:sweep` reports six balance warnings, which I checked against
+`main` by stashing: **they are not new in this pass, and REPRISE has been
+claiming "no sweep warnings" while they were there.** The fix changes what
+every component means, so it is yours, with three options in that entry.
+
+**And one more, found by checking a sentence before writing it.** Answering
+your point 1, I was about to tell you that option (b) — cohesion out of the
+score and into the revocation condition — already exists in the game, because
+`council_lost` is right there in `endConditions.ts`. I checked first.
+**It cannot fire.** Over 360 ECB mandates the highest member inflation
+dispersion ever reached is 1.85 against a bar of 2.4, and it is reached at
+ecb/hard under *competent* play, which is exactly where fragmentation is
+lowest because a competent rule uses the instrument — so the two bars peak
+under opposite conditions and the conjunction is satisfied on 0.0 % of meetings
+at every difficulty under every play. 0 of 60 in every cell.
+
+That is the only way a fictional ECB presidency ends short of a catastrophe. It
+is the one structural difference between the two institutions' survival, it is
+written up in DIRECTION as a design decision, **REPRISE has asserted it as a
+fact for several passes**, and the game tells the player in as many words that
+they can lose the room. They cannot. I measured candidate bars rather than
+guessing one, and the loosest pair still fires on 2-3 % of passive runs and
+0 % of competent ones, so it is the conjunction and not the heights.
+
+I did not fix it: how an ECB presidency ends is the same class of decision as
+the council veto and the survival structure, and both of those were yours.
+QUESTIONS **#23** carries three options, the measurement behind each, and the
+exact edit for the one I recommend. What it also exposes is that
+`dev/gateProbe.ts` — written two passes ago *because* three hand-authored gates
+were wrong, two of them unable to fire — probes the **event** gates and nothing
+probes the **end conditions**, which are the gates that decide whether a
+mandate ends at all.
+
+Smaller: at ecb/easy a chair who follows the tutorial's own lesson breaks the
+growth guard on 44 % of meetings, against 29 % at hard — the ECB's trend growth
+is 1.3 and there is only 0.8 of room above the floor, so the tutorial punishes
+doing what it teaches. And `FRAGMENTATION.ecb.protectionSupport` was read by
+nothing while stating twice the real relief; deleted, with `fed.facilitySupport`
+beside it.

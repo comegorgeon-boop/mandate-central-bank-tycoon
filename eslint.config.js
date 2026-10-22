@@ -27,11 +27,11 @@ export default tseslint.config(
       /**
        * `opacity-*` never goes on an element that also carries a text colour.
        *
-       * This is the single most repeated defect in the project — four
-       * occurrences now, twice in one pass. It is attractive every time and
-       * wrong every time, because it is invisible in review: both halves look
-       * correct. `text-onwood-faint` is a documented 5.3:1 against the vault
-       * and `opacity-60` is an innocuous-looking dimmer, and the product is
+       * This is the single most repeated defect in the project — **five**
+       * occurrences now. It is attractive every time and wrong every time,
+       * because it is invisible in review: both halves look correct.
+       * `text-onwood-faint` is a documented 5.3:1 against the vault and
+       * `opacity-60` is an innocuous-looking dimmer, and the product is
        * 3.18:1, which fails AA on body text. The ratio the token promises is
        * the ratio of the token, not of the token times something else.
        *
@@ -43,14 +43,34 @@ export default tseslint.config(
        * To dim something, pick a quieter token. To dim something that is not
        * read — a rosette, a seal, a guilloché band — put the opacity on the
        * SVG, which carries no text and so is not matched here.
+       *
+       * ## The fifth occurrence got past this rule, and the reason is the fix
+       *
+       * `InstrumentStepper` carried `text-ink … disabled:opacity-30` on the
+       * −/+ buttons, which is this exact defect, in one `className`, and this
+       * rule did not fire. The old pattern required the token to be preceded
+       * by whitespace or the start of the string: `(^|\s)opacity-`. A Tailwind
+       * *variant prefix* is neither, so `disabled:opacity-30` — and
+       * `hover:`, `focus:`, `dark:`, `md:`, `group-hover:`, and every chain of
+       * them — slipped straight through a rule written for precisely this.
+       *
+       * It was found by the contrast audit, at 2.3:1, on a screen the audit
+       * had itself never visited until this pass. So the one defence that was
+       * supposed to be a mechanism rather than a habit had a hole in it for
+       * as long as it has existed, and the thing that found the hole was the
+       * slow check it was written to make unnecessary.
+       *
+       * The pattern now allows any chain of variant prefixes before the
+       * utility, on both halves — a `disabled:text-ink` paired with a bare
+       * `opacity-30` is the same defect from the other side.
        */
       'no-restricted-syntax': [
         'error',
         {
           selector:
-            'JSXAttribute[name.name="className"] > Literal[value=/(^|\\s)(text-(ink|onwood|good|bad|accent|on-)[\\w-]*)(\\s|$)/][value=/(^|\\s)opacity-(\\[[^\\]]*\\]|\\d+)(\\s|$)/]',
+            'JSXAttribute[name.name="className"] > Literal[value=/(^|\\s)([\\w-]+:)*(text-(ink|onwood|good|bad|accent|on-)[\\w-]*)(\\s|$)/][value=/(^|\\s)([\\w-]+:)*opacity-(\\[[^\\]]*\\]|\\d+)(\\s|$)/]',
           message:
-            'Opacity on a text element composites its colour below the ratio its token documents — this is the fourth time. Choose a quieter text token instead, or move the opacity onto a non-text element.',
+            'Opacity on a text element composites its colour below the ratio its token documents — this is the fifth time, and the first to arrive behind a variant prefix. Choose a quieter text token instead (disabled:text-ink-faint, not disabled:opacity-30), or move the opacity onto a non-text element.',
         },
       ],
     },

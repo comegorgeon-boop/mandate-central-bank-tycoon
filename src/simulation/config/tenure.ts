@@ -158,6 +158,33 @@ export function hearingBar(politicalPressure: number): number {
  * meetings — a slow loss of the room rather than a vote you can lose on the
  * day, because that is how it actually happens.
  */
+/*
+ * **These bars cannot be met, and nothing had measured them.**
+ *
+ * `council_lost` is the only way a fictional ECB presidency ends short of a
+ * catastrophe, and it is the one structural difference between the two
+ * institutions' survival. Measured in `dev/councilProbe.ts` over 360 ECB
+ * mandates: the highest member inflation dispersion ever reached is **1.85**
+ * against the 2.4 bar, and it is reached at ecb/hard under *competent* play,
+ * which is where fragmentation is lowest because a competent rule uses the
+ * anti-fragmentation instrument. The two quantities peak under opposite
+ * conditions, so the conjunction is satisfied on **0.0 %** of meetings at every
+ * difficulty under every play, and the ending fires 0 of 60 in every cell.
+ *
+ * It is the conjunction rather than the heights: at the loosest candidate pair
+ * measured, the condition is still held long enough in 2-3 % of passive runs
+ * and 0 % of competent ones.
+ *
+ * `watchDispersion` at 1.8 *is* reached at hard, so the game tells the player
+ * "you can lose the room" and then cannot take it.
+ *
+ * Not repaired here, because the repair is a decision about how an ECB
+ * presidency ends rather than a threshold: see docs/QUESTIONS.md **#23**, which
+ * carries three options, the measurements behind each, and the exact edit for
+ * the recommended one — gating on the blended cohesion penalty, which is one
+ * number, is already on the player's scorecard, and is answerable with the
+ * instrument `config/instruments.ts` now opens from easy.
+ */
 export const COUNCIL = {
   /** Member inflation dispersion, in points, above which the room strains. */
   fractureDispersion: 2.4,

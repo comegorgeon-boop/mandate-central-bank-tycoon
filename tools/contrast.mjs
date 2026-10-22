@@ -370,6 +370,38 @@ async function walk({
     for (const panel of PANELS) {
       if (await openPanel(page, panel)) {
         await audit(page, `${direction}:${tag}:m${meeting}:tab:${panel}`)
+
+        /*
+         * **The desk has sub-tabs, and two of its three faces had never been
+         * measured.** Blind spot number four, and the same one every time: a
+         * screen this tool never visited cannot have failed. `openPanel` lands
+         * the desk on "The case", so "The words" and "The toolkit" — which is
+         * every instrument stepper in the game, the corridor, the facilities,
+         * the whole balance sheet — were unaudited in both directions for as
+         * long as they have existed.
+         *
+         * Found while checking that an instrument opened at a new difficulty
+         * reached the screen at all: a separate tool reported it ABSENT at
+         * every difficulty, including the one where it had always been
+         * available, because that tool made this exact mistake first.
+         */
+        const subTabs = page.locator(`#panel-${panel} [role="tab"]`)
+        const subCount = await subTabs.count()
+        for (let index = 0; index < subCount; index += 1) {
+          const tab = subTabs.nth(index)
+          const name = (await tab.textContent().catch(() => null))?.trim() ?? `${index}`
+          await tab.click().catch(() => {})
+          await quiet(page)
+          // Disclosures inside a face that was closed when the page-wide sweep
+          // ran are still shut, so each face needs its own.
+          await page.evaluate(() => {
+            for (const element of document.querySelectorAll('details')) element.open = true
+          })
+          await audit(
+            page,
+            `${direction}:${tag}:m${meeting}:tab:${panel}:${name.toLowerCase().replace(/\s+/g, '-')}`,
+          )
+        }
       }
     }
 

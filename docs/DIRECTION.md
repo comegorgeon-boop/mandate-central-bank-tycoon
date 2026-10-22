@@ -617,3 +617,83 @@ gate is sensible; it measures how often it is open for two populations.
 `check:offline` does not check that nothing failed; it cuts the wire.
 
 A check that can only confirm is not a check.
+
+## A sixth defect, and the four mechanisms built for it
+
+The section above ends on "a check that can only confirm is not a check", and
+journal 17 adds that the one real defence had been *a method rather than a
+mechanism*: it works because somebody remembers to apply it. This pass found a
+sixth kind of defect that the five above do not cover, and built mechanisms
+rather than writing down more proposed ones.
+
+### 6. A ruler that measures a different quantity from the thing it calibrates
+
+`dev/cohesion.ts` exists for exactly one purpose: to set
+`COHESION_TOLERANCE` against the cohesion penalty the score charges. Its own
+docstring said it "duplicates the three lines of `calculateScore` that build
+the penalty". It duplicated their **shape** and not their arithmetic:
+`calculateScore` imports `dispersion` from `engine/members.ts`, a GDP-weighted
+mean absolute deviation, and the script declared a local one that was an
+unweighted population standard deviation.
+
+About 0.4 of penalty apart at every difficulty, always in the same direction.
+So the constant that decides whether the chair is charged anything at all sat
+above what competent play actually produces, and the component scored a
+constant 1.00 at easy and medium however the area was steered.
+
+**The part that makes this a new class, rather than defect 2 again.** "One
+quantity stated in three places" is caught by the three disagreeing with the
+model. Here there were only two places and they *agreed with each other about
+the wrong thing* — the script and the score both reported a number that
+behaved plausibly, moved when the economy moved, and had a unit. Worse, it was
+*believed*: docs/QUESTIONS.md #2 read the constant row the mis-calibration
+produced and attributed it to the euro area's own structure barely responding
+to policy. A wrong ruler does not look like an absence. It looks like a
+finding.
+
+**The mechanism.** `scoring/cohesionPenalty.ts`, which the score, the
+calibration script and the diagnosis all call. The only repair that holds for
+a quantity stated twice is for there to be one of it. The general rule: **a
+dev harness that calibrates a constant must import the function the constant
+gates, never re-implement it** — and if the function does not exist as a
+function, that is the work.
+
+### Four mechanisms, and what each replaces
+
+| | mechanism | the habit it replaces |
+| --- | --- | --- |
+| 1 | `scoring/instrumentReach.test.ts` | remembering that a billed component needs a lever |
+| 2 | `tools/instrument.mjs` | believing "adding a tool never means editing a screen" |
+| 3 | the sub-tab walk in `tools/contrast.mjs` | assuming a panel is one screen |
+| 4 | the rule-probe in `src/lintGuards.test.ts` | trusting a lint rule that has never rejected anything |
+
+The fourth is the one worth dwelling on, because it is this section's own
+lesson arriving one level up. Journal 18 wrote the opacity-on-text lint rule
+and said, in those words, "so this time I built the mechanisms instead of
+specifying them". The mechanism had a hole in it from the day it was written:
+the pattern required the utility to be preceded by whitespace or the start of
+the string, and a Tailwind variant prefix is neither — so `disabled:opacity-30`,
+`hover:opacity-50` and every chained form were invisible to a rule written for
+precisely that mistake. `InstrumentStepper` carried the defect on both of its
+buttons the whole time. It was found at 2.3:1 by the slow check the rule exists
+to make unnecessary, on a screen the slow check had itself never visited.
+
+So: **a rule that has never rejected anything is indistinguishable from a
+codebase with nothing to reject.** The guard now hands the rule three forms it
+must reject and one it must not. That is the same discipline as "write the
+thing that tries to falsify it", applied to the falsifier.
+
+### And the third occurrence of the oldest one
+
+Defect 5 — measuring a screen before it arrived — has a sibling that is now
+three for three: **a screen the tool never visited cannot have failed.** The
+sentence is at the top of `tools/drive.mjs`, written after three audits made
+it. This pass made it twice more in one hour: `tools/instrument.mjs` reported
+an instrument absent at every difficulty, *including the one where it has
+always been available*, because it looked at the desk without clicking "The
+toolkit"; and the contrast audit had been doing the same thing since the desk
+grew sub-tabs, leaving every instrument stepper in the game unaudited in both
+directions.
+
+The itinerary is the evidence. Both tools print theirs, and the audit's state
+count went from 664 to 848 the moment it started clicking what was there.

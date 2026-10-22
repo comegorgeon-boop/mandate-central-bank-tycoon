@@ -325,7 +325,14 @@ export default function SetupPage() {
              said they wanted a historical one — the quietest possible way to
              ignore an answer. */
           disabled={trimmed.length === 0 || (kind === 'historical' && scenario === null)}
-          className="rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood disabled:cursor-not-allowed disabled:opacity-50"
+          /* Disabled by colour, not by transparency. `disabled:opacity-50`
+             dimmed the *text* along with the button and composited
+             `text-on-accent` below AA — the same defect as the steppers, on
+             the button that starts every mandate, and unmeasured because
+             every walk fills the seed before photographing it. The accent
+             ground goes quiet instead, which is what "not yet" should look
+             like anyway. */
+          className="rounded-md border border-edge-accent bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-panel transition-colors hover:bg-accent-onwood disabled:cursor-not-allowed disabled:border-edge disabled:bg-sunk disabled:text-ink-faint"
         >
           Start the mandate
         </button>

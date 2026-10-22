@@ -443,19 +443,341 @@ play.
 What is left is whether people believe it will stay there."* Fired on the
 crossing rather than on the state, so it is news rather than furniture.
 
-## 18. A careful ECB chair is punished on cohesion (NOT FIXED — flagged)
+## 18. A careful ECB chair is punished on cohesion — **ANSWERED: give the instrument**
 
-On ecb/hard, competent play now scores **0.934** on area cohesion against
-passivity's **0.966**. Tightening into a downturn widens the spreads between
-members, so the rule that fights inflation hardest pulls the area furthest
-apart.
+**Settled on 21 October 2026, by you, in these words:** *"DONNE-MOI
+L'INSTRUMENT. La BCE en a un dans la vraie vie, et il est fait exactement pour
+ça : les achats ciblés contre la fragmentation, l'OMT en 2012, le TPI en 2022.
+Si j'ai des facilités de liquidité, j'ai un levier sur les spreads — et la
+cohésion redevient alors un composant de score légitime, parce que je peux
+agir dessus."*
 
-I left it and changed the test to assert that cohesion *responds to policy*
-rather than that competence improves it — because asserting the opposite would
-be asserting away the euro area's own dilemma, which is the whole of 2011.
+**Applied, and it was one line of config.** `transmission_protection` already
+existed, with the right mechanism and a political cost attached. It was
+`availableFrom: 'hard'`, and `cohesion` carries 0.08 of the ECB's scorecard at
+**every** difficulty. So the instrument was never the problem. Its
+availability was. It is now open from easy.
 
-But it does mean an ECB chair doing the right thing on the mandate loses marks
-on a component they have no instrument for. If that is the wrong trade, the
-fix is either a smaller weight on cohesion at hard, or an instrument that
-reaches fragmentation directly — the engine has the fragmentation variable and
-no tool pointed at it.
+**Measured, per channel, in `dev/fragmentation.ts`** — written for this, and
+the decomposition is what made the answer obvious. The penalty is three
+quantities added together and the instruments reach exactly one of them:
+
+| channel | weight | what reaches it | ecb/hard, competent |
+| --- | --- | --- | --- |
+| inflation dispersion | 1.0 | nothing | 0.50 |
+| unemployment dispersion | 0.6 | nothing | 0.63 |
+| spread range ÷ 100 | 1.0 | three instruments | **1.36** |
+
+The spread range is the biggest of the three *and* the only one that responds,
+so an instrument pointed at it can carry the component. Cohesion under
+competent play, before and after opening the tool:
+
+| | never using it | reaching for it | holding it at full |
+| --- | --- | --- | --- |
+| ecb/easy | 0.729 | **0.983** | 1.000 |
+| ecb/medium | 0.552 | **0.959** | 1.000 |
+| ecb/hard | 0.387 | **0.830** | 1.000 |
+
+**And it is not free, which is what keeps it a decision.** Holding it at full
+for a whole mandate costs political pressure — which is what brings the
+demands of `politics/demands.ts` forward, including the one that puts the
+mandate itself on the order paper — and at medium it costs eight meetings of
+tenure. Paired on the seed, reaching for it when the area is coming apart
+banks **20 a meeting at hard against 9** for never touching it. At medium it
+banks *less* (53 against 67), and that is correct rather than broken: the
+instrument restores policy transmission, medium's economy is cost-push, and
+restoring transmission in a cost-push economy transmits the cost and not the
+cure. It is the real trade and it is the thing to understand about the area.
+
+**The residual, stated plainly.** Passivity still scores slightly better on
+cohesion than competence at hard — 0.971 against 0.830 — because tightening
+into a downturn widens member spreads and a committee that does nothing does
+not. The instrument narrows that from a 0.58 gap to 0.14 and makes it
+*answerable*; it does not close it, and closing it would be asserting away the
+whole of 2011, which you have said twice not to do.
+
+**Option (b) does not work, and I nearly told you it did.** You offered
+"cohesion out of the score and into revocation" as the fallback, and my first
+draft of this entry said the structure already exists — `council_lost` in
+`scoring/endConditions.ts`, which ends an ECB presidency on member inflation
+dispersion with fragmentation, held for five meetings. I checked before
+claiming it. **It cannot fire.** See **#23**.
+
+**The rule, generalised.** `scoring/instrumentReach.test.ts` fails the build
+when a component with weight at an institution has none of its instruments
+available at a difficulty. Verified by putting the bug back: it names the
+mode, the weight and the instruments.
+
+## 19. The cohesion tolerance was calibrated against the wrong statistic (FIXED)
+
+Found while answering #18, and it is the defect of this pass.
+
+`dev/cohesion.ts` is the committed script whose entire job is to set
+`COHESION_TOLERANCE` against the penalty the score charges, and its docstring
+said it "duplicates the three lines of `calculateScore` that build the
+penalty". It duplicated their *shape*. `calculateScore` imports `dispersion`
+from `engine/members.ts` — a **GDP-weighted mean absolute deviation**. The
+script declared its own, an **unweighted population standard deviation**.
+
+The two differ by about 0.4 of penalty at every difficulty, always in the same
+direction, so the tolerance sat above what competent play actually produces
+and the component scored a constant **1.00** at easy and medium however the
+area was steered. Question **#2** in this file noticed that constant row and
+attributed it to the union's structure barely responding to policy. It was not
+the structure. It was the ruler.
+
+**Applied.** `scoring/cohesionPenalty.ts` now holds the penalty, decomposed,
+and the score, the calibration script and the diagnosis all call it — the only
+repair that holds for a quantity stated in two places is for there to be one
+place. The tolerance is **1.9**, the measured competent floor on the statistic
+the score charges (min 1.88 / 1.79 / 1.92 across the three difficulties, 100
+mandates a cell).
+
+**What that changes.** Cohesion is now a live row at every difficulty instead
+of a full one at two of them, which also answers the honest half of #2: medium
+does not need its row dropped, it needed its ruler fixed.
+
+**To turn it back.** `COHESION_TOLERANCE = 2.3` and re-run
+`npx tsx src/simulation/dev/cohesion.ts` — which will now disagree with it,
+because the script has been corrected.
+
+## 20. Communication is worth tenure, not points (MEASURED)
+
+**Your correction, and it was right:** *"Ça mesure le MÉCANISME, pas le GAIN.
+Donne-moi la valeur en POINTS DE SCORE : est-ce qu'un joueur compétent qui
+parle bat un joueur compétent qui ne parle jamais, en fin de partie réussie ?"*
+
+`dev/guidanceValue.ts` measures it in both scores the player is shown, paired
+on the seed — the same economy, the same package, spoken or not. Silence is
+not a worse package; it is the same one unannounced, and it is *advantaged* on
+the conduct gate, because a committee that promises nothing breaks no promises.
+
+**The answer has two halves, and the second one is the instrument.**
+
+**At the end of a successful mandate, the gain is a coin flip.** On ecb/medium
+— the only bucket where enough mandates survive in both arms to compare —
+speaking banked 5,429 against silence's 5,212 and won **15 of 30**. On its own
+that reads exactly as you feared: decorative.
+
+**Conditioning on success is what hides it.** Speaking is not what wins points
+in a mandate that succeeded; it is what makes the mandate succeed:
+
+| | speaking | silent |
+| --- | --- | --- |
+| ecb/medium, mandates served | **48 / 80** | 33 / 80 |
+| ecb/medium, median tenure | **64** | 51 |
+| fed/medium, mandates served | **9 / 80** | 3 / 80 |
+| fed/medium, mean tenure | **35.6** | 28.4 |
+
+And because the banked score multiplies length by quality, that survival gain
+*is* the points gain once the conditioning comes off: ecb/medium banks **3,856
+speaking against 2,526 silent**.
+
+So the instrument is alive and no repair is called for — but the earlier
+reading was looking in the wrong place twice, and the second time was mine:
+not only mechanism-versus-gain, which you named, but the conditioning, which
+throws away precisely the seeds where the instrument did its work.
+
+**Pinned.** `engine/guidanceValue.test.ts` holds the claim as tenure at
+medium, with the banked total beside it so tenure cannot be bought with worse
+meetings. Verified by swapping the arms: it fails naming both institutions.
+
+**Not asserted, and the reason is a finding.** The survival *count* is the more
+legible statistic and cannot be bounded at fed/medium at any sample size this
+suite can afford: the base rate is about one mandate in ten. That the benchmark
+rule clears a Fed reappointment roughly a tenth of the time is in #22 below.
+
+## 21. The difficulty ladder: it holds through meeting five or six (MEASURED)
+
+**Your question:** *"Sur combien de réunions l'échelle tient-elle, en facile,
+en moyen et en difficile ? Si elle s'effondre au bout de trois réunions, elle
+ne décrit que l'écran d'accueil et pas le jeu."*
+
+`dev/ladder.ts` walks the mandate instead of reading meeting zero. The first
+answer it gave was **one meeting**, and that answer is wrong for two reasons
+worth separating.
+
+**A count cannot carry a ladder.** Inflation one point above target and
+inflation six points above target are both "broken", and the difference
+between them is most of what separates the modes. The rung has to be a
+*distance*.
+
+**The third reading is a guard, not a target.** `explain/mandate.ts` says so
+in the words the player reads — growth is *"not a target, the cost of reaching
+the other two"*. A guard broken for thirty consecutive meetings is a third
+target, and a guard nobody is pushing against should close. Counting it
+alongside the targets is what produced the one-meeting reading.
+
+**The number, measured on the two targets as a distance, under passivity:**
+
+| | holds through |
+| --- | --- |
+| fed | **meeting 6** |
+| ecb | **meeting 5** |
+
+**And the guard, as a frequency, which is how a guard works:**
+
+| | easy | medium | hard |
+| --- | --- | --- | --- |
+| fed, passive | 2 % | 3 % | **12 %** |
+| ecb, passive | 4 % | 5 % | **16 %** |
+
+So the ladder outlasts the opening screen by five or six meetings rather than
+collapsing at one, and the guard is ordered by difficulty across the whole
+walk. `engine/ladder.test.ts` holds both, with the bound at 4 — below both
+measurements, because what is worth failing a build over is the ladder
+shrinking back to meeting zero.
+
+**Beyond meeting six the modes cross, for a reason worth recording: hard
+mandates end.** Mean tenure under passivity is 12.5 meetings at fed/hard
+against 18.8 at fed/medium, so a hard average at meeting 18 compares the seeds
+that survived against medium's whole population. The late-mandate ladder is
+tenure, not readings.
+
+**Two things found on the way, both corrections to this file's own claims.**
+The trend-growth cut that journal 22 credits with holding hard's third reading
+does not hold it and never did — the rebound out of a −5.5 output gap is about
+**+4.6 points of growth** against a cut of 1.8, and the cut is additionally
+*floored* at 0.1, so on the ECB any value below −1.2 does nothing at all. The
+floor is now a named constant with its reason; the false claim is gone.
+
+**Open, and not fixed.** Under *competent* play the guard's ladder inverts at
+easy on the ECB: a chair following the lesson breaks the growth guard on 44 %
+of meetings at ecb/easy against 29 % at hard, because the ECB's trend growth
+is 1.3 and there is only 0.8 of room above the floor. The tutorial punishes
+the player for doing what it teaches. Fixing it means retuning easy, which is
+a mode's character; say the word.
+
+## 22. Two scores disagree, and one of them rewards being fired (OPEN — yours)
+
+Found three times over in this pass, from three directions, and it is one
+thing.
+
+The game has **two** scores. `bankedTotal` is the headline on the result
+screen, earned meeting by meeting, built precisely so that being dismissed
+early stops paying — see `scoring/banked.ts`, which argues it at length.
+`calculateScore` is the scorecard underneath it, and it still grades **path
+averages**: RMSE of inflation, mean credibility shortfall, mean stress. Under a
+survival structure that rewards brevity, which is the exact defect banked
+scoring was written to remove, and the conversion stopped halfway.
+
+**Measured, ECB, competent against passive:**
+
+| | banked | graded |
+| --- | --- | --- |
+| medium | 2,611 vs **331** | 2,159 vs **2,318** |
+| hard | 329 vs **40** | 1,278 vs **2,519** |
+
+The headline says competence wins by 8× at medium. The scorecard says
+passivity wins. Both are on the result screen, and `calculateScore().score` is
+what the records page compares and what every bucket's personal best is set on.
+
+It is also why `npm run sim:sweep` reports **six balance warnings** — "no rule
+scores better than doing nothing" at five buckets and "unwinnable as
+configured" at fed/hard. **Those are not new in this pass**: `main` reports the
+same six, checked by stashing. REPRISE's "no sweep warnings" is stale and dates
+from before survival landed.
+
+**Why I did not decide it.** Converting the scorecard to bank per meeting
+changes what every component means and voids every measurement in
+docs/BALANCE.md; leaving it means the game ships two verdicts that disagree.
+Either way it is what the score *means*, which this file has said four times
+is yours. The three options, in my order of preference:
+
+a) **Weight the graded components per meeting served** rather than averaging
+   the path, which is the same repair banked scoring already made, applied one
+   level up. Every component keeps its meaning; the aggregation changes.
+b) **Show only the banked total** and demote `calculateScore` to the
+   explanation of *why* — it is already presented that way under "Why this
+   score", so this is mostly deleting a number.
+c) Leave it, and change the sweep's warning to compare banked rather than
+   graded, so the tool stops reporting a defect the headline does not have.
+
+## 23. The ECB's own ending cannot happen (MEASURED, NOT FIXED — yours)
+
+Found while checking a claim I was about to make in #18, and it is the most
+consequential piece of unreachable content this project has produced.
+
+`council_lost` is the **only** way a fictional ECB presidency ends short of a
+catastrophe. The structure is deliberate and it is written up in
+`docs/DIRECTION.md`: nobody can remove an ECB president and there is no second
+term to withhold, so what ends the presidency is losing the Governing Council.
+`docs/REPRISE.md` has stated it as a fact for several passes. The warning tier
+tells the player, in the game, *"You cannot be removed and you cannot be denied
+a second term. You can lose the room."*
+
+**You cannot lose the room.** Measured over 360 ECB mandates in
+`dev/councilProbe.ts`:
+
+| | dispersion p50 | p90 | **max** | fragmentation p90 | both bars met |
+| --- | --- | --- | --- | --- | --- |
+| ecb/easy, competent | 0.37 | 0.48 | 0.51 | 151 | **0.0 %** |
+| ecb/medium, passive | 0.43 | 0.55 | 1.08 | 281 | **0.0 %** |
+| ecb/hard, competent | 0.49 | 0.94 | **1.85** | 139 | **0.0 %** |
+| ecb/hard, passive | 0.48 | 0.66 | 1.31 | 263 | **0.0 %** |
+
+The bar is `COUNCIL.fractureDispersion = 2.4` with
+`fractureFragmentation = 290`, held five consecutive meetings. The highest
+dispersion ever reached is **1.85**, and it was reached at ecb/hard under
+*competent* play — where fragmentation is lowest, because a competent rule uses
+the anti-fragmentation instrument. The two quantities peak under opposite
+conditions and the conjunction is never satisfied, at any difficulty, under any
+play. `ended` is 0 of 60 in every cell.
+
+**The warning fires and the failure cannot.** `watchDispersion` is 1.8, which
+the hard mode does reach — so a player can be told the Council is straining,
+repeatedly, by a game that has no mechanism to carry it out.
+
+**Why the levels are not the fix.** I measured candidate bars rather than
+guessing one, which is `dev/gateProbe.ts`'s rule — set a gate from two
+populations and put it where it bills the pattern, not the accident. At the
+loosest candidate pair the condition is still held long enough in 2-3 % of
+*passive* runs and 0 % of competent ones:
+
+| ecb/medium | frag 250 | frag 300 | frag 350 |
+| --- | --- | --- | --- |
+| dispersion 0.6 | 0 % / **3 %** | 0 % / 2 % | 0 % / 0 % |
+| dispersion 0.8 | 0 % / 0 % | 0 % / 0 % | 0 % / 0 % |
+
+So it is the **conjunction** that is unreachable, not the height of either bar.
+Inflation dispersion is driven by energy-exposure differentials and the local
+Phillips curve; fragmentation is driven by the policy rate and the output gap.
+They do not move together, and requiring both for five consecutive meetings
+asks for a coincidence the model does not produce.
+
+**Why I did not fix it.** The repair is not a threshold, it is a decision about
+**how an ECB presidency ends**, which is the same class as #5 (can the
+committee refuse) and #6 (survival instead of a fixed count) and has been
+yours both times. Three options, in my order of preference:
+
+a) **Gate it on the cohesion penalty itself** — the blended quantity
+   `scoring/cohesionPenalty.ts` now computes and the scorecard already charges.
+   One number instead of a conjunction, it is the thing the player is already
+   being shown, and it is *answerable*, because the instrument opened in #18
+   moves it. Measured, that penalty runs about 1.8-2.4 under competent play and
+   2.6-3.1 when the tool is never used, so a bar near 3.2 held for five
+   meetings would separate them. **This also delivers your option (b) from #18
+   properly** — cohesion in the revocation condition — without taking it out of
+   the score, which (a) made unnecessary.
+b) **Gate it on fragmentation alone**, which is the quantity that actually
+   separates competent from neglectful play (p90 139 against 263 at hard). Loses
+   the "members apart on inflation" idea, which is the better story.
+c) **Remove the ending and the warning**, and let an ECB presidency end only on
+   the catastrophes. Honest, and it gives up the one structural difference
+   between the two institutions' survival.
+
+**To make option (a) real** — `COUNCIL` in `config/tenure.ts` grows a
+`fracturePenalty` and loses `fractureDispersion`/`fractureFragmentation`; the
+block in `endConditions.ts` calls `cohesionChannelsAt(state.members).total`
+instead of `dispersion(...)` and compares against it; the warning tier becomes
+a fraction of the same number. `dev/councilProbe.ts` is written to re-measure
+it, and the test that should exist — and does not, for any end condition — is
+one that asserts every condition in the catalogue is reachable at all.
+
+**The lesson, which is bigger than this entry.** `dev/gateProbe.ts` was written
+two passes ago precisely because three hand-authored gates were wrong, two of
+them unable to fire. It probes the *event* gates. Nothing probes the **end
+conditions**, which are the gates that decide whether a mandate ends, and one
+of them has been dead for as long as it has existed while two documents
+asserted it worked. A check that covers one family of hand-set thresholds and
+not the other is the same shape as a rule nobody runs.
