@@ -87,8 +87,11 @@ export default function RecordsPage() {
                       className="flex flex-wrap items-baseline justify-between gap-x-4 border-t border-edge-room pt-2 text-sm"
                     >
                       <span className="text-onwood-soft">
-                        {entry.outcomeLabel} · {entry.meetingsServed} of{' '}
-                        {entry.meetingCount} meetings · seed {entry.seed}
+                        {/* Not "N of M": the stored `meetingCount` is the
+                            tenure horizon, so "15 of 64" read as a mandate
+                            that had skipped forty-nine appointments. */}
+                        {entry.outcomeLabel} · {entry.meetingsServed} meeting
+                        {entry.meetingsServed === 1 ? '' : 's'} · seed {entry.seed}
                         <span className="ml-2 text-onwood-faint">
                           {when(entry.finishedAt)}
                         </span>

@@ -252,6 +252,14 @@ export {
 export { calculateScore, scoreBucketKey } from './scoring/calculateScore.ts'
 // The score. There is one — see the file's own argument.
 export { theScore, type TheScore } from './scoring/theScore.ts'
+// How long a mandate lasts, said once. See the file: two screens were quoting
+// lengths from two different dead structures.
+export {
+  difficultyLength,
+  isTutorial,
+  tenureSentence,
+  termOfOffice,
+} from './explain/tenureCopy.ts'
 export {
   tutorialExhausted,
   tutorialProgress,

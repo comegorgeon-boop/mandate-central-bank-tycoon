@@ -72,7 +72,11 @@ function describeWhatHappened(
 
   if (majors.length === 0) {
     paragraphs.push(
-      `${name} served ${meetingsServed} of ${state.config.meetingCount} scheduled meetings` +
+      // Not "of N scheduled meetings": `meetingCount` on a fictional run is
+      // the tenure horizon, which is the longest anybody *could* serve and is
+      // not a schedule. A report that said "served 15 of 64 scheduled" read as
+      // a mandate that had skipped forty-nine appointments.
+      `${name} served ${meetingsServed} meeting${meetingsServed === 1 ? '' : 's'}` +
         (outcome.status === 'completed'
           ? ' without a single major crisis to answer.'
           : ', before the mandate ended early.') +

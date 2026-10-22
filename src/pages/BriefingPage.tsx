@@ -1,5 +1,6 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import {
+  tenureSentence,
   getInstitution,
   tutorialProgress,
   type SeriesId,
@@ -55,8 +56,16 @@ export default function BriefingPage() {
         <p className="mt-2 text-sm text-onwood-soft">{institution.mandateSummary}</p>
         {tutorial === null ? (
           <p className="mt-2 text-sm text-onwood-soft">
-            You will chair {config.meetingCount} scheduled meetings. At each one you
-            set the policy rate. The inflation objective is{' '}
+            {/*
+                This said "You will chair {config.meetingCount} scheduled
+                meetings", and `config.meetingCount` on a fictional run is the
+                *tenure horizon* — 64, two Fed terms or one ECB term — which is
+                the longest a player could possibly serve and is what the
+                engine divides by. It was never a schedule, and no mandate is
+                meant to reach it. See `explain/tenureCopy.ts`.
+            */}
+            {tenureSentence(config)} At each meeting you set the policy rate.
+            The inflation objective is{' '}
             {institution.inflationTarget.toFixed(1)} %, and the employment side of the
             mandate is judged against how far unemployment sits from its sustainable
             level.
