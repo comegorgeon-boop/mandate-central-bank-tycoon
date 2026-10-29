@@ -321,7 +321,17 @@ export function ShockPanel({
   shocks,
   compact = false,
   weight = 2,
+  bare = false,
 }: {
+  /**
+   * Render the rows without the panel's own title strip.
+   *
+   * For when this sits inside a `FoldedPanel`, whose lid already says `LIVE
+   * SHOCKS — 1 running`. Without it the header appeared twice, one line apart,
+   * saying the same thing — which a capture showed immediately and no test
+   * would ever have asked about.
+   */
+  readonly bare?: boolean
   readonly shocks: readonly LiveShock[]
   /** Where this sits in the eye's path. See `Panel`. */
   readonly weight?: 1 | 2 | 3
@@ -342,13 +352,8 @@ export function ShockPanel({
 }) {
   const reduced = useReducedMotion()
 
-  return (
-    <Panel
-      title="Live shocks"
-      span={2}
-      weight={weight}
-      right={shocks.length === 0 ? 'clear' : `${shocks.length} running`}
-    >
+  const body = (
+    <>
       {shocks.length === 0 ? (
         <p className="px-2 py-2 font-mono text-2xs text-ink-faint">
           {compact ? 'Nothing still arriving.' : 'Nothing is still arriving. Everything in the figures is the economy itself.'}
@@ -402,6 +407,19 @@ export function ShockPanel({
           ))}
         </ul>
       )}
+    </>
+  )
+
+  return bare ? (
+    body
+  ) : (
+    <Panel
+      title="Live shocks"
+      span={2}
+      weight={weight}
+      right={shocks.length === 0 ? 'clear' : `${shocks.length} running`}
+    >
+      {body}
     </Panel>
   )
 }

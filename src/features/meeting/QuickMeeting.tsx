@@ -278,7 +278,7 @@ export function QuickMeeting({
               title="Live shocks"
               state={shocks.length === 1 ? '1 running' : `${shocks.length} running`}
             >
-              <ShockPanel shocks={shocks} compact weight={3} />
+              <ShockPanel shocks={shocks} compact bare />
             </FoldedPanel>
           </div>
         )}
