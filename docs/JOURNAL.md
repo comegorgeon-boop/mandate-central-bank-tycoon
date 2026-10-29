@@ -1435,3 +1435,80 @@ by maximum disagreement, each school's reading of the live state, rebuttals
 addressed by name, sources an economist would accept, and a scoreboard settled
 by counterfactual replay rather than opinion — all of it there. What was
 missing was that the door opened onto the newspaper.
+
+---
+
+## 26 — The unfolding, and three attempts at remembering one click
+
+**What I did.** Finished the previous pass's gate, then the second tester's
+verdict: *"on est encore noyé dans les chiffres"*. Built the figure budget,
+folded everything that is not the decision behind headers that say their own
+state, and measured it. Also fixed three tools that were lying — one blocked by
+my own modal, one blind to the class that broke, one counting the wrong half of
+a screen.
+
+**What I measured.**
+
+| | before | after |
+| --- | --- | --- |
+| figures on the default phone screen, fed/medium | **30** | **12** |
+| …ecb/medium | 31 | 12 |
+| words, steady quick surface | 63 | 53-68 |
+| order-only reader, easy | 40/40 | **40/40** |
+| contrast | 788 / 0 | **796 / 0** |
+| class names the checker can see | 297 | **319** |
+| tests | 1173 | **1177** |
+
+**The measurement had to come first, because the word budget cannot see this.**
+A terminal can sit inside its sixty words and still be a wall: *"énergie 62 %,
+demande 10 %, salaires 4 %, anticipations 22 %, la monnaie 3 %"* is five figures
+and almost no prose. Drowning is not a property of sentences. So
+`tools/figures.mjs` counts numerals on the default **phone** screen, which is
+where both testers were drowning, and `npm run check:figures` is on the finish
+line beside `check:words`.
+
+**The lid rule is the feature.** Folding on its own is the same information with
+a click in front of each piece, and the rational response is to open everything
+every meeting. `FoldedPanel` therefore requires its `state` prop: `LIVE SHOCKS —
+1 running`, `WHAT IS PUSHING IT — mostly expectations`, `AGAINST THE PRICED PATH
+— 150 bp of surprise`. A player has to be able to decide *not* to open one.
+
+**Three defects, each found by fixing the one before it, and that is the
+entry.**
+
+1. **The bulletin blocked every browser tool.** It is a real modal, so
+   Playwright's next click landed on the scrim: the contrast audit died at 182
+   states with "intercepts pointer events". That is the *good* failure — the bad
+   one is a tool reporting clean over screens it never reached. The driver now
+   dismisses it, offering it to the audit first so it is measured rather than
+   skipped.
+2. **Which let the audit reach it, where it failed on contrast.** The urgent
+   band used `text-on-bad`, and `--on-bad` does not exist: Tailwind emits no
+   rule for an unknown colour, the class was inert, the text silently inherited.
+   QUESTIONS #11 verbatim.
+3. **And `check:classes` should have caught that in one second.** It paired any
+   quote with any other, so in a template-literal `className` with a ternary
+   inside `${…}` — the commonest shape in this codebase — the opening backtick
+   paired with the first `'` and desynchronised everything after it. Neither
+   branch was ever seen as a class list. Pairing same-type quotes made it worse,
+   because the backtick then swallows the whole literal. Backticks are now not
+   delimiters at all, and the extractor sees **319 names where it saw 297** —
+   twenty-two real classes had been invisible to it.
+
+So the one-second check was blind in exactly the region the ten-minute check
+had to find for it. That is the arrangement the one-second check exists to end,
+and it had been that way since it was written.
+
+**What still bothers me.** The fold's memory took three attempts and all three
+were the same mistake: **treating something the code did as something the
+player did.** It wrote on every change of `open`, so a default was recorded as a
+preference. It held its state, and `MeetingScreen` is reconciled rather than
+remounted, so a panel stayed open on three-meeting-old information. And
+`<details open={…}>` fires `toggle` on a programmatic change exactly as on a
+click, so React's own render was still being written to storage. A single
+screenshot looked correct all three times; what found it was printing
+`localStorage` beside every panel's open flag at every meeting of a walk.
+
+The lesson is not about `<details>`. It is that **"the screen looks right" and
+"the state is right" are different claims**, and this project has now spent
+three passes learning that a capture answers the first one only.
