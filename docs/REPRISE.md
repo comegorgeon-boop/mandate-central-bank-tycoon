@@ -9,9 +9,8 @@ the screen before anything lands there.
 
 | commit | what |
 | --- | --- |
-| `96093f8` | merge: coherent openings, a dial that costs, figures from the first meeting |
 | `7823353` | an instrument for the component it is charged for, and three rulers that were wrong |
-| *this one* | a game that says what it is for, one score, and an alarm that interrupts |
+| *this one* | a game that says what it is for, one score, an alarm that interrupts, and the unfolding |
 
 ## What the game is now
 
@@ -53,11 +52,12 @@ survival restructure and that nobody had re-run.
 | | command | last reading |
 | --- | --- | --- |
 | build | `npm run build` | clean |
-| tests | `npm test` | **1173 passing** |
+| tests | `npm test` | **1177 passing** |
 | lint | `npm run lint` | 0 errors, 13 warnings |
-| contrast | `npm run check:contrast` | 0 failures / **810 states**, both directions |
-| classes | `npm run check:classes` | **297** names, all real |
-| words | `npm run check:words` | quick **63-74** steady (cap **75** — re-based, see below), heavy 325-342 |
+| contrast | `npm run check:contrast` | 0 failures / **796 states**, both directions |
+| classes | `npm run check:classes` | **320** names, all real |
+| words | `npm run check:words` | quick **53-68** steady (cap 75), heavy 325-342 |
+| figures | `npm run check:figures` | default phone screen **12** (cap 13), the room 60-63 |
 | offline | `npm run check:offline` | clean, all this origin |
 | sweep | `npm run sim:sweep` | **2 balance warnings**, both diagnosed — QUESTIONS #24 |
 | instrument reach | `node tools/instrument.mjs` | every open instrument is on the desk |
@@ -112,6 +112,12 @@ built the next time the habit fails.
   on an institution whose real term is absent, on copy that states a length
   without saying that reaching it is not the expected case, and on a difficulty
   label containing a digit at all.
+- `components/terminal/FoldedPanel.test.tsx` — the two rules that make a fold a
+  saving rather than a tax: a shut panel shows its state, and the memory
+  records **only a toggle the player performed**. It took three attempts, all
+  the same mistake — `<details open={…}>` fires `toggle` on a programmatic
+  change exactly as on a click, so React's own render was writing itself to
+  storage as a preference, and the panel then outlived the reason it was open.
 - `explain/bulletin.test.ts` — the interruption stays inside its per-mandate
   allowance on every seed, **and** can actually fire on more than one kind of
   thing. Both halves, because this feature has two opposite ways to be
@@ -140,7 +146,12 @@ built the next time the habit fails.
   difficulty, clicks through to the toolkit, and requires the instrument's
   label to be on the desk in both directions.
 - `npm run check:classes` extracts every `className` token from `src/` and
-  fails on any with no matching rule in the generated stylesheet.
+  fails on any with no matching rule in the generated stylesheet. **It was
+  blind to the commonest shape in this codebase** — a ternary inside a `${…}`
+  in a template-literal `className` — because it paired any quote with any
+  other, so the opening backtick desynchronised everything after it. Fixed; it
+  now sees 320 names where it saw 297, and it had let a genuinely dead class
+  through to the contrast audit.
 - `quiet()` in `tools/drive.mjs` waits for real visual stillness — three
   identical frames of every inline style **and the page's text**, nothing
   running in `getAnimations()`, **and 400 ms of continuous stillness**. All
@@ -197,6 +208,30 @@ Hard's third reading is **not** held by the cut to trend growth, whatever
 journal 22 says: the rebound out of a −5.5 gap is +4.6 points of growth against
 a cut of 1.8, and the cut is floored at `POTENTIAL_GROWTH_FLOOR`, so below −1.2
 it does nothing at all on the ECB.
+
+## The unfolding: what the default screen carries
+
+New this pass, after a second tester gave the same verdict as the first —
+*"on est encore noyé dans les chiffres"*.
+
+**The default phone screen is the order line, the three readings, the dial,
+what the move buys and costs, and the button. Thirty figures became twelve.**
+Everything else folds behind a header that says its own state:
+`WHAT IS PUSHING IT — mostly expectations`, `LIVE SHOCKS — 1 running`,
+`DISPATCHES — 1 item`, `AGAINST THE PRICED PATH — 150 bp of surprise`,
+`YOUR CALL — none standing`.
+
+**The lid rule is the feature and not a nicety.** Folding alone is the same
+information with a click in front of each piece, and the rational response is
+to open everything every meeting. `FoldedPanel` requires its `state` prop for
+that reason: a player has to be able to decide *not* to open one.
+
+`npm run check:figures` is the budget, on the finish line beside
+`check:words`, and it measures the **phone**, which is where drowning happens.
+The cap is 13 and the accounting is in the tool. The dispatches panel defaults
+open while it carries one of the guided opening's three lessons — gated on
+those three ids, not on `kind === 'guide'`, which also covers a late crossing
+dispatch and had the panel opening itself at meeting seven.
 
 ## What the player is trying to do, in five lines
 
