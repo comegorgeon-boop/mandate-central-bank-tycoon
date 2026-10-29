@@ -1512,3 +1512,52 @@ screenshot looked correct all three times; what found it was printing
 The lesson is not about `<details>`. It is that **"the screen looks right" and
 "the state is right" are different claims**, and this project has now spent
 three passes learning that a capture answers the first one only.
+
+---
+
+## 27 — Merged and deployed
+
+**Did.** Merged `5972041` into main and deployed. Live at
+`mandate-central-bank-tycoon.comegorgeon.workers.dev`.
+
+**Measured against the deployed site rather than the preview.**
+`MANDATE_URL=… npm run check:offline` is clean — nothing leaves this origin and
+a 21-meeting mandate plays to its report with the wire cut and nothing
+attempted. `MANDATE_URL=… npm run check:figures` reports **12** on the default
+phone screen at both institutions, which is the claim this pass turns on and
+the one a local build cannot make.
+
+**And the two things the player asked to see, checked on the live site rather
+than described.** The difficulty selector now reads *"Easy — ends when the job
+is done"*, *"Medium — served until revoked"*, *"Hard — served until revoked"*:
+no meeting count anywhere, because difficulty stopped setting one when survival
+landed. And the briefing's fourth point:
+
+> **Fed** — "A 4-year term — 32 meetings — and then a reappointment hearing you
+> can fail. You serve until you are revoked; most mandates end well short of
+> the term."
+>
+> **ECB** — "One 8-year term of 64 meetings, which the treaties do not allow to
+> be renewed or cut short. Nobody can remove you; you can lose the Governing
+> Council. Most mandates end well short of the term."
+
+Where before one screen said twelve and the next said sixty-four.
+
+**Bothers me.** Nothing about the deployment. One thing about the two passes:
+**five separate guardrails turned out to have holes in them**, and every one was
+found by a different check covering for it rather than by itself.
+`check:classes` could not see a ternary inside a template literal — twenty-two
+classes invisible, and it let a genuinely dead one through to the contrast
+audit. The opacity lint rule could not see a variant prefix. `quiet()` could not
+see a delayed animation. `words.mjs` never counted the order line, which is the
+first item in its own accounting. And nothing at all probed the end conditions,
+which is how the ECB's only ending stayed dead while two documents asserted it
+worked.
+
+The pattern is not carelessness in any one of them. It is that **a check which
+silently covers less than it claims reports exactly what a correct check
+reports**, so the only thing that ever finds one is another check arriving from
+a different direction. Four of the five were found that way this week. The
+fifth — the end conditions — was found by my refusing to write a sentence I had
+not verified, which is a habit and not a mechanism, and habits are what this
+journal keeps recording as insufficient.
