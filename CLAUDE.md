@@ -21,11 +21,19 @@
   les deux règles de lint qui sont des bugs et non du style : un hook après
   un retour anticipé, et une opacité posée sur un élément qui porte du texte
 - `npm run lint` n'a pas d'erreur (les avertissements sont tolérés)
-- `npm run check:words` est vert — la surface rapide reste sous 40 mots de
-  prose. 40 est un plafond gelé : toute addition remplace, elle ne s'ajoute
-  pas. Ce qui rend le plafond sûr est `npx tsx src/simulation/dev/orderOnly.ts`,
+- `npm run check:words` est vert — la surface rapide reste sous 75 mots de
+  prose. Le plafond est un **relevé** : il était à 60, mais le compte ne
+  couvrait pas la ligne d'ordre — l'outil ne mesurait que
+  `[data-tempo="quick"]`, qui ne contient pas la bannière. Toute addition
+  remplace, elle ne s'ajoute pas. Ce qui rend le plafond sûr est `npx tsx src/simulation/dev/orderOnly.ts`,
   qui joue un lecteur ne voyant que la ligne d'ordre et tient 40/40 mandats
   faciles — le reste des mots est donc facultatif
+- `npm run check:figures` est vert — l'écran par défaut, **sur téléphone**,
+  reste sous 13 chiffres. C'est le jumeau du budget de mots et il mesure ce
+  que celui-ci ne peut pas voir : cinq pourcentages alignés sous une barre,
+  c'est cinq chiffres et presque aucune prose. Le détail se replie derrière un
+  en-tête, et **un panneau replié affiche son état en un mot** — sinon c'est
+  une boîte mystère et personne ne l'ouvre
 - `npm run check:classes` est vert — aucun nom de classe de `src/` n'est
   absent de la feuille de style générée. Tailwind n'émet rien pour une
   couleur inconnue : la classe ne fait alors rien du tout, le texte hérite,

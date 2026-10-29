@@ -859,6 +859,7 @@ export function createInitialState(
     eventLog: [],
     contradictionCost: 0,
     reversalCount: 0,
+    councilDissent: 0,
     diagnostics: [],
     history: [{ meetingIndex: 0, timeYears: 0, latent: latentAtOpen, members }],
   }

@@ -1,5 +1,4 @@
 import type { RecordEntry } from '../records/storage.ts'
-import type { ScoreBreakdown } from '../../simulation/index.ts'
 
 /**
  * This mandate against the last one you played like it.
@@ -27,11 +26,12 @@ import type { ScoreBreakdown } from '../../simulation/index.ts'
  * without it.
  */
 export function AgainstYourselfPanel({
-  score,
+  banked,
   previousBest,
   bucketLabel,
 }: {
-  readonly score: ScoreBreakdown
+  /** What this mandate banked. The score — see `scoring/theScore.ts`. */
+  readonly banked: number
   /** The best in this bucket before this run, or null if this is the first. */
   readonly previousBest: RecordEntry | null
   /** What this bucket is called, in the player's words. */
@@ -47,7 +47,7 @@ export function AgainstYourselfPanel({
     )
   }
 
-  const difference = score.score - previousBest.score
+  const difference = banked - previousBest.score
   const beaten = difference > 0
 
   return (
@@ -68,14 +68,14 @@ export function AgainstYourselfPanel({
             <span className="font-semibold text-good-strong">
               A personal best for {bucketLabel}
             </span>{' '}
-            — {score.score.toLocaleString()} against{' '}
+            — {banked.toLocaleString()} against{' '}
             {previousBest.score.toLocaleString()}, by{' '}
             {Math.abs(difference).toLocaleString()}.
           </>
         ) : difference === 0 ? (
           <>
             Exactly your best for {bucketLabel}:{' '}
-            {score.score.toLocaleString()}, again.
+            {banked.toLocaleString()}, again.
           </>
         ) : (
           <>

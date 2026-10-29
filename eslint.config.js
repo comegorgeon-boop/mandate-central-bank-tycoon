@@ -75,4 +75,48 @@ export default tseslint.config(
       ],
     },
   },
+
+  /**
+   * **There is one score, and no screen may show a second.**
+   *
+   * > "LE SCORE ENGRANGÉ EST LE SCORE. […] le joueur n'en voit plus qu'un.
+   * > Deux scores qui se contredisent, c'est pire que n'importe lequel des
+   * > deux."
+   *
+   * `calculateScore(...).score` is the old graded total. It still exists on
+   * purpose — its *components* are the report's explanation and the balance
+   * harnesses read them — but it is no longer a score the player is shown or
+   * compared on. What made it worth a rule rather than a note is that the
+   * defect was never a calculation: it was a dozen *call sites*, each
+   * individually reasonable, which together meant a fourteen-year mandate
+   * showed 5,437 banked beside 1,741 graded and the records page ranked on the
+   * second.
+   *
+   * Scoped to the player's own tree. `src/simulation/dev/` and every test may
+   * read it freely, because a harness comparing components is asking a
+   * different question from a player reading a score.
+   */
+  {
+    files: ['src/pages/**/*.{ts,tsx}', 'src/features/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          /*
+           * Two shapes, because the first version missed most of them. The
+           * common form is `entry.score.score` — a member expression whose
+           * object is itself one ending in `score` — but the commonest of all
+           * is the bare `score.score`, where the object is a plain identifier
+           * and the first selector matched nothing. A rule that catches the
+           * rarer half of a defect reads exactly like a rule that works.
+           */
+          selector:
+            'MemberExpression[property.name="score"][object.property.name="score"], MemberExpression[property.name="score"][object.name="score"]',
+          message:
+            'This is the old graded total on a screen the player sees. There is one score and it is the banked one — use `theScore(state)` from simulation/scoring/theScore.ts. Two scores that contradict each other are worse than either of them.',
+        },
+      ],
+    },
+  },
 )

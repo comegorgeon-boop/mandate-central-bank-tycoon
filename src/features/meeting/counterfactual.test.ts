@@ -191,8 +191,8 @@ describe('no line claims a null effect where the engine finds one', () => {
       regimeObjective(session.observation, target).reason,
       closingLine({
         completed: true,
-        score: 5000,
-        maxScore: 10000,
+        perMeeting: 125,
+        fullMarksPerMeeting: 250,
         conductGate: 1,
         supplyRegimeShare: 0.8,
       }),

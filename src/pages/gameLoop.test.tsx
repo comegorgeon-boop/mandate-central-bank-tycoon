@@ -127,8 +127,18 @@ describe('the playable loop', () => {
       screen.getByRole('heading', { name: /Objective (met|not reached)/ }),
     ).toBeInTheDocument()
     expect(screen.getByText(/meetings? served|repaired and held/)).toBeInTheDocument()
-    // A score out of 10,000, with its components broken down.
-    expect(screen.getByText('/ 10,000')).toBeInTheDocument()
+    /*
+     * **One score, and the objectives that explain it.**
+     *
+     * This asserted `/ 10,000` — the graded total — which is exactly the
+     * second score the player had to decide about, because it sat a scroll
+     * below the banked headline and disagreed with it. The headline is the
+     * score now; the component rows stay, because they are the explanation
+     * and that is what they were always worth. See `scoring/theScore.ts`.
+     */
+    expect(screen.queryByText('/ 10,000')).not.toBeInTheDocument()
+    expect(screen.getByText('Banked')).toBeInTheDocument()
+    expect(screen.getByText('Where the points went')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Price stability/ })).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Tenure/ })).toBeInTheDocument()
 

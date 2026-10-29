@@ -176,3 +176,37 @@ function headlineFor(inFavour: number, against: number): string | null {
     `committee. The chair's vote carries it.`
   )
 }
+
+/**
+ * Is a *bloc* of the committee against this decision, rather than a voice?
+ *
+ * The distinction the ECB's ending turns on. One dissent is ordinary and the
+ * Fed publishes them routinely; `credibilityCost` already prices the margin
+ * above a single voice. What this asks is different and narrower: has a
+ * substantial part of the room refused the policy, in a way that would not be
+ * resolved by anybody changing their mind about one meeting?
+ *
+ * A share rather than a count, so it does not silently change meaning when the
+ * committee's size does — which is how `maxOccurrences` came to stop working
+ * when mandates got longer, recorded in journal 19.
+ */
+export function dissentingBloc(vote: CommitteeVote): boolean {
+  if (vote.ballots.length === 0) return false
+  const against = vote.ballots.filter((ballot) => ballot.dissents).length
+  return against / vote.ballots.length >= BLOC_SHARE
+}
+
+/**
+ * The share of the committee that makes a dissent a bloc.
+ *
+ * A third, and it is the historically loaded number rather than a round one:
+ * the 2011 Governing Council had 23 members and the opposition to the
+ * Securities Markets Programme was a national-central-bank minority, not a
+ * near-majority — Weber, Stark and the Bundesbank position behind them. A bar
+ * at a half would describe a committee that had already lost the vote, which
+ * is not what happened and is not what ends a presidency; a bar at one voice
+ * would fire on ordinary disagreement.
+ *
+ * Measured against what play actually produces, in `dev/councilProbe.ts`.
+ */
+const BLOC_SHARE = 1 / 3

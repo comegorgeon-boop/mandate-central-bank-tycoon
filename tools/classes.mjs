@@ -58,6 +58,54 @@ for (const match of css.matchAll(/\.((?:[\w-]|\\.)+)/g)) {
   defined.add(match[1].replace(/\\/g, ''))
 }
 
+
+/**
+ * The quoted class lists inside a `className={…}` expression.
+ *
+ * **A backtick is not a delimiter here**, and getting that wrong twice is the
+ * reason this function exists instead of a regex inline.
+ *
+ * The commonest shape in this codebase is a template literal with a ternary
+ * inside a `${…}`:
+ *
+ *     className={`flex gap-3 ${urgent ? 'bg-bad text-on-bad' : 'bg-accent'}`}
+ *
+ * The first version paired any quote with any other — ``/[`"']([^`"']*)[`"']/``
+ * — so the opening backtick paired with the first `'`, desynchronising
+ * everything after it: neither branch of the ternary was ever seen as a class
+ * list. Pairing same-type quotes instead made it worse in a new way, because
+ * then the backtick pairs with the *closing* backtick and swallows the whole
+ * literal as one chunk, which fails the punctuation guard and is discarded
+ * whole.
+ *
+ * So backticks are ignored as delimiters altogether. What comes out is every
+ * `'…'` and `"…"` run — which is where the ternary's branches live — plus the
+ * literal text of the template with its interpolations removed, which is where
+ * the static classes live.
+ *
+ * It let a real one through while it was broken: `BulletinFlash`'s urgent band
+ * carried `text-on-bad`, and `--on-bad` does not exist. Tailwind emits no rule
+ * for an unknown colour, so the class was inert and the text silently
+ * inherited — QUESTIONS #11 verbatim, the exact defect this tool exists to
+ * make impossible. The contrast audit found it instead, which is the ten-minute
+ * arrangement this one-second check is supposed to replace.
+ */
+function chunksOf(body) {
+  const out = []
+  for (const match of body.matchAll(/'([^']*)'|"([^"]*)"/g)) {
+    out.push(match[1] ?? match[2] ?? '')
+  }
+  // And the template's own literal text, with interpolations and the quoted
+  // runs above taken out so nothing is scanned twice.
+  out.push(
+    body
+      .replace(/\$\{[\s\S]*?\}/g, ' ')
+      .replace(/'[^']*'|"[^"]*"/g, ' ')
+      .replace(/`/g, ' '),
+  )
+  return out
+}
+
 const found = new Map()
 for (const file of walk('src')) {
   const source = readFileSync(file, 'utf8')
@@ -74,8 +122,27 @@ for (const file of walk('src')) {
   const region = /className\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([\s\S]{0,1200}?)\}\s*\n?\s*(?:>|\w+=))/g
   for (const match of source.matchAll(region)) {
     const body = match[1] ?? match[2] ?? match[3] ?? ''
-    const chunks =
-      match[3] === undefined ? [body] : [...body.matchAll(/[`"']([^`"']*)[`"']/g)].map((m) => m[1])
+    /*
+     * **Same-type quotes only**, and that correction is why a dead class got
+     * through.
+     *
+     * This paired any quote with any other: ``/[`"']([^`"']*)[`"']/``. On the
+     * commonest shape in this codebase — a template-literal `className` with a
+     * ternary inside a `${…}` — the opening backtick pairs with the first
+     * `'`, which desynchronises everything after it, so the ternary's two
+     * branches are split across pairs and **neither is ever seen as a class
+     * list**. Measured with a probe: `text-definitely-not-a-token` inside such
+     * a ternary was reported as fine.
+     *
+     * It let a real one through. `BulletinFlash`'s urgent band used
+     * `bg-bad text-on-bad`, and `--on-bad` does not exist — Tailwind emits no
+     * rule for an unknown colour, so the class was inert and the text silently
+     * inherited, which is QUESTIONS #11 verbatim and the exact defect this
+     * tool was written to make impossible. The contrast audit caught it
+     * instead, ten minutes at a time, which is the arrangement this tool
+     * exists to replace.
+     */
+    const chunks = match[3] === undefined ? [body] : chunksOf(body)
 
     for (const chunk of chunks) {
       // Class lists are lowercase, dashed, and contain no stray punctuation.

@@ -40,6 +40,8 @@ import { StandingPanel } from './panels/StandingPanel.tsx'
 import { OrderBanner } from '../../components/terminal/Explain.tsx'
 import { GuillocheBand } from '../../components/engraving/Guilloche.tsx'
 import { readOrder } from './order.ts'
+import { AimDisclosure } from './AimDisclosure.tsx'
+import { BulletinFlash } from './BulletinFlash.tsx'
 import { TutorialGoalPanel } from './panels/TutorialGoalPanel.tsx'
 import { readStanding } from './standing.ts'
 import { PricesPanel } from './panels/PricesPanel.tsx'
@@ -129,6 +131,20 @@ export function MeetingScreen({
   const [roomOpen, setRoomOpen] = useState(false)
   const quick = tempo === 'quick' && !roomOpen
   const order = readOrder(session)
+
+  /*
+   * The bulletin that takes the screen: a major event, or something critical
+   * that has just *become* critical. Null at most meetings by construction —
+   * see `explain/bulletin.ts` for why every kind fires on a transition rather
+   * than on a state, and for the per-mandate cap.
+   *
+   * `useState` keyed on nothing, because this component is remounted at every
+   * meeting: dismissing it dismisses it for this meeting and the next one
+   * starts clean, which is the same mechanism the interval player and the
+   * reaction screen already use.
+   */
+  const bulletin = session.bulletin
+  const [bulletinSeen, setBulletinSeen] = useState(false)
 
   const { settings } = useSettings()
   // This component is remounted at every meeting, so each of these is shown
@@ -376,6 +392,23 @@ export function MeetingScreen({
         </div>
       ) : (
         <>
+          {/*
+              **The bulletin, before the guide and before the meeting.**
+
+              It is the only thing in the game that interrupts, and the order
+              matters: a flash drawn *under* the first-meeting spotlight would
+              be an alarm behind a tutorial. It is also deliberately not shown
+              during the interval or the reaction screen above — those are
+              already a sequence the player is stepping through, and an alarm
+              inside a cutscene is a third thing happening at once.
+          */}
+          {bulletin !== null && !bulletinSeen && (
+            <BulletinFlash
+              bulletin={bulletin}
+              onDismiss={() => setBulletinSeen(true)}
+            />
+          )}
+
           {showGuide && (
             <FirstMeetingGuide
               onPanel={(next) => setPanel(next as PanelId)}
@@ -441,6 +474,16 @@ export function MeetingScreen({
             warnings={severeWarnings.map((warning) => warning.message)}
           />
 
+          {/* "What am I trying to do?", at one gesture, on both surfaces.
+
+              A player who knows which way to move the rate at every meeting
+              and never learns what the rate is being moved toward has a very
+              good interface to a game they are not playing. The guided
+              opening, the order line and the consequence copy all answer
+              *what should I do with this number*; this is the other question,
+              and it was being asked in a loop. Closed it costs one line. */}
+          <AimDisclosure config={session.state.config} compact={quick} />
+
           {/* The record, in the room rather than above the order.
               What has been held and what is slipping is a thing to consult,
               not a thing to be told before every decision — so it keeps its
@@ -470,7 +513,21 @@ export function MeetingScreen({
             <QuickMeeting
               session={session}
               onConfirm={onConfirm}
-              onOpenRoom={() => setRoomOpen(true)}
+              onOpenRoom={() => {
+                setRoomOpen(true)
+                /*
+                 * **Land on the desk, where the advisers are arguing.**
+                 *
+                 * The room opened on the Press tab, so "the room" — the thing
+                 * the player asked for as *"à n'importe quelle réunion, je
+                 * peux ouvrir la salle"* — was three gestures from the
+                 * committee: open, then Policy Desk, then "The case". The desk
+                 * already defaults to that face; it simply was not where the
+                 * door led. The newspaper is still one click away and is still
+                 * where an unopened meeting lands.
+                 */
+                setPanel('desk')
+              }}
               shock={session.majorEvent?.title ?? session.minorEvents[0]?.title ?? null}
             />
           ) : narrow ? (

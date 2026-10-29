@@ -10,6 +10,7 @@ import { meaningOf } from '../../simulation/index.ts'
 import type { SeriesId } from '../../simulation/index.ts'
 import { Panel, Row } from './Terminal.tsx'
 import { RollingNumber, useReducedMotion } from '../engraving/motion.tsx'
+import { FoldedPanel } from './FoldedPanel.tsx'
 
 /**
  * The explaining furniture: the order, the cause, the live shocks, the card.
@@ -148,13 +149,39 @@ const CAUSE_FILL: Record<string, string> = {
   currency: 'var(--color-term-text-3)',
 }
 
+/**
+ * The dominant cause, for the lid of a folded legend.
+ *
+ * One word or two, which is the rule: *"« CE QUI POUSSE L'INFLATION — surtout
+ * l'énergie »"*. Named rather than quantified, because the question the lid
+ * answers is "is this worth opening", and a share belongs inside.
+ */
+export function dominantCause(explanation: InflationExplanation): string {
+  const ordered = [...explanation.causes].sort((a, b) => b.share - a.share)
+  const first = ordered[0]
+  if (first === undefined) return 'nothing dominant'
+  const second = ordered[1]
+  if (second !== undefined && first.share - second.share < 0.12) {
+    return `${first.label} and ${second.label}`.toLowerCase()
+  }
+  return first.share >= 0.5
+    ? `mostly ${first.label.toLowerCase()}`
+    : `${first.label.toLowerCase()} leads`
+}
+
 export function CauseBar({
   explanation,
   compact = false,
+  legend = 'inline',
 }: {
   readonly explanation: InflationExplanation
-  /** On a quick meeting the bar appears without its legend. */
+  /** On a quick meeting the bar appears without its per-cause point figures. */
   readonly compact?: boolean
+  /**
+   * `folded` puts the numbered legend behind a gesture. The quick surface uses
+   * it; the room does not, because explaining is what the room is for.
+   */
+  readonly legend?: 'inline' | 'folded'
 }) {
   const reduced = useReducedMotion()
   const ordered = CAUSE_ORDER.map((id) =>
@@ -201,10 +228,56 @@ export function CauseBar({
         ))}
       </div>
 
-      {/* The legend names everything the bar could not, and repeats the
-          shares. It is a list of labels rather than prose, so it costs the
-          quick meeting's word budget nothing — which is why it can be here
-          on both surfaces instead of only the heavy one. */}
+      {/*
+        **The legend folds on the quick surface, and that is the correction.**
+
+        It was on both surfaces, on the reasoning that a list of labels is not
+        prose and therefore costs the word budget nothing. True, and it was the
+        wrong budget: *"cinq pourcentages alignés sous la barre — énergie 62 %,
+        demande 10 %, salaires 4 %, anticipations 22 %, la monnaie 3 % — c'est
+        exactement la sensation de noyade."* Drowning is not a property of
+        sentences, which is why `tools/figures.mjs` now exists beside
+        `tools/words.mjs`: five shares are five figures and almost no words.
+
+        So the bar keeps the names of the segments wide enough to carry them —
+        two, usually — and the numbered detail opens on a gesture. The summary
+        on the lid is the dominant cause, which is the thing the legend was
+        being read for.
+      */}
+      {legend === 'folded' ? (
+        <FoldedPanel
+          id="cause-legend"
+          title="What is pushing it"
+          state={dominantCause(explanation)}
+        >
+        <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+          {ordered
+            .filter((cause) => cause.share > 0.02)
+            .map((cause) => (
+              <li
+                key={cause.id}
+                className="flex items-center gap-1 font-mono text-2xs text-ink-soft"
+              >
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-2 w-2 shrink-0"
+                  style={{ background: CAUSE_FILL[cause.id] }}
+                />
+                {cause.label}{' '}
+                <span className="tabular-nums text-ink-faint">
+                  {(cause.share * 100).toFixed(0)}%
+                </span>
+                {!compact && (
+                  <span className="tabular-nums text-ink-faint">
+                    ({cause.points >= 0 ? '+' : '−'}
+                    {Math.abs(cause.points).toFixed(2)})
+                  </span>
+                )}
+              </li>
+            ))}
+        </ul>
+        </FoldedPanel>
+      ) : (
       <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
         {ordered
           .filter((cause) => cause.share > 0.02)
@@ -231,6 +304,7 @@ export function CauseBar({
             </li>
           ))}
       </ul>
+      )}
     </div>
   )
 }
@@ -247,7 +321,17 @@ export function ShockPanel({
   shocks,
   compact = false,
   weight = 2,
+  bare = false,
 }: {
+  /**
+   * Render the rows without the panel's own title strip.
+   *
+   * For when this sits inside a `FoldedPanel`, whose lid already says `LIVE
+   * SHOCKS — 1 running`. Without it the header appeared twice, one line apart,
+   * saying the same thing — which a capture showed immediately and no test
+   * would ever have asked about.
+   */
+  readonly bare?: boolean
   readonly shocks: readonly LiveShock[]
   /** Where this sits in the eye's path. See `Panel`. */
   readonly weight?: 1 | 2 | 3
@@ -268,13 +352,8 @@ export function ShockPanel({
 }) {
   const reduced = useReducedMotion()
 
-  return (
-    <Panel
-      title="Live shocks"
-      span={2}
-      weight={weight}
-      right={shocks.length === 0 ? 'clear' : `${shocks.length} running`}
-    >
+  const body = (
+    <>
       {shocks.length === 0 ? (
         <p className="px-2 py-2 font-mono text-2xs text-ink-faint">
           {compact ? 'Nothing still arriving.' : 'Nothing is still arriving. Everything in the figures is the economy itself.'}
@@ -328,6 +407,19 @@ export function ShockPanel({
           ))}
         </ul>
       )}
+    </>
+  )
+
+  return bare ? (
+    body
+  ) : (
+    <Panel
+      title="Live shocks"
+      span={2}
+      weight={weight}
+      right={shocks.length === 0 ? 'clear' : `${shocks.length} running`}
+    >
+      {body}
     </Panel>
   )
 }

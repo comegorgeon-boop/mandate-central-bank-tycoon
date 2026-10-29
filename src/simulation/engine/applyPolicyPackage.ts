@@ -17,6 +17,7 @@ import { committeeViews } from '../policy/staffRule.ts'
 import {
   chairMoveOf,
   committeeVote,
+  dissentingBloc,
   type CommitteeVote,
 } from '../policy/committeeVote.ts'
 import { settleCall, type CallOutcome } from '../policy/forecastCall.ts'
@@ -942,6 +943,22 @@ export function applyPolicyPackage(
       // `SimulationState.contradictionCost`'s own doc comment for why.
       contradictionCost: state.contradictionCost + packageContradictionCost,
       reversalCount,
+      /*
+       * **A bloc, held across meetings.** Reset the moment the room comes back
+       * behind the chair, because what ends an ECB presidency is a policy a
+       * part of the Council cannot accept *and which is held anyway* — a
+       * single divided meeting is ordinary central banking and the vote
+       * already prices it in credibility.
+       *
+       * Counted for both institutions and read only for one: a Fed chair who
+       * loses the room loses it at the reappointment hearing instead, which
+       * `endConditions` already models through political pressure. Counting it
+       * anyway costs a number and means the Fed's own record is there if a
+       * later pass wants it.
+       */
+      councilDissent: dissentingBloc(vote)
+        ? state.councilDissent + 1
+        : 0,
       diagnostics:
         diagnostics.length > 0
           ? [...state.diagnostics, ...diagnostics]

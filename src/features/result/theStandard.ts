@@ -1,7 +1,7 @@
 import {
   SIMULATION_VERSION,
   availableInstruments,
-  calculateScore,
+  theScore,
   createRunConfig,
   getInstrument,
   getInstrumentRange,
@@ -59,9 +59,14 @@ export interface TheStandard {
   /** Meetings at which the player was easier. */
   readonly easier: number
   readonly player: ScoreBreakdown
+  /** What the player banked on the same seed, for the only comparison shown. */
+  readonly playerBanked: number
+  readonly playerPerMeeting: number
   /** The history replayed on the player's seed, with its own outcome. */
   readonly replay: {
-    readonly score: ScoreBreakdown
+    /** What the history banked on this seed. The score — see `theScore`. */
+    readonly banked: number
+    readonly perMeeting: number
     readonly completed: boolean
     readonly endedAs: string | null
     readonly meetings: number
@@ -166,8 +171,11 @@ export function buildTheStandard(
     tighter: gaps.filter((gap) => gap > SAME_DECISION).length,
     easier: gaps.filter((gap) => gap < -SAME_DECISION).length,
     player: score,
+    playerBanked: theScore(session.state).total,
+    playerPerMeeting: theScore(session.state).perMeeting,
     replay: {
-      score: calculateScore(replaySession.state, replaySession.outcome),
+      banked: theScore(replaySession.state).total,
+      perMeeting: theScore(replaySession.state).perMeeting,
       completed: replaySession.outcome.status === 'completed',
       endedAs: replaySession.outcome.label,
       meetings: replaySession.state.meetingIndex,

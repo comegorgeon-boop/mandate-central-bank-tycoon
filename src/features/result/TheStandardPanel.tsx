@@ -55,9 +55,9 @@ export function TheStandardPanel({
   }, [session, score])
   if (standard === null) return null
 
-  const { meetings, replay, yours, meanGap } = standard
+  const { meetings, replay, yours, meanGap, playerBanked, playerPerMeeting } = standard
   const played = meetings.filter((meeting) => meeting.yours !== null)
-  const ahead = score.score - replay.score.score
+  const ahead = playerBanked - replay.banked
 
   return (
     <section className="mt-10" aria-labelledby="standard-heading">
@@ -121,17 +121,26 @@ export function TheStandardPanel({
           <tbody>
             <tr className="border-b border-edge">
               <th scope="row" className="py-2 pr-2 font-medium text-ink">
-                Score
+                Banked
+                <span className="block text-xs font-normal text-ink-faint">
+                  and per meeting served
+                </span>
               </th>
               <td className="py-2 pr-2 text-right font-semibold tabular-nums text-ink">
-                {score.score.toLocaleString('en-US')}
+                {playerBanked.toLocaleString('en-US')}
+                <span className="block text-xs font-normal tabular-nums text-ink-faint">
+                  {playerPerMeeting} a meeting
+                </span>
               </td>
               <td
                 className={`py-2 text-right tabular-nums ${
                   ahead < 0 ? 'font-semibold text-accent-strong' : 'text-ink'
                 }`}
               >
-                {replay.score.score.toLocaleString('en-US')}
+                {replay.banked.toLocaleString('en-US')}
+                <span className="block text-xs font-normal tabular-nums text-ink-faint">
+                  {replay.perMeeting} a meeting
+                </span>
               </td>
             </tr>
             <tr className="border-b border-edge">

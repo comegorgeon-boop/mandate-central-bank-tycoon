@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  MEETING_COUNT,
   SCENARIOS,
   getInstitution,
 } from '../simulation/index.ts'
@@ -135,10 +134,11 @@ export default function HomePage() {
             <dt className="font-medium text-onwood">An invented economy</dt>
             <dd className="text-onwood-soft">
               A seeded world, an institution you pick, and a difficulty that is
-              not a damage multiplier: easy serves problems with a right answer
-              over {MEETING_COUNT.easy} meetings, medium is where the two halves
-              of the mandate start pulling against each other, and hard is made
-              of the problems that have no right answer.
+              not a damage multiplier and no longer sets a length: easy serves
+              problems with a right answer and ends when you have solved them,
+              medium is where the two halves of the mandate start pulling
+              against each other, and hard is made of the problems that have no
+              right answer. Past the tutorial you serve until you are revoked.
             </dd>
           </div>
           <div>

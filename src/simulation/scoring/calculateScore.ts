@@ -47,13 +47,23 @@ import { EQUITY_BASE, getSeries } from '../observation/series.ts'
  * growth cannot buy their way past it.
  */
 
-/** The records bucket a run belongs to. Buckets are never compared. */
+/**
+ * The records bucket a run belongs to. Buckets are never compared.
+ *
+ * **The scoring version is in the key, and it had to be.** The key carried the
+ * *engine* version only, on the reasoning that a run replays differently when
+ * the model moves. That is true and it is not sufficient: when the score is
+ * the banked total rather than the graded one, the same mandate stores 5,437
+ * where it used to store 1,741, and a records page keyed on the engine alone
+ * would rank those against each other — a leaderboard of which build a run
+ * happened to be played on. See `version.ts`, `SCORING_VERSION` 2.0.0.
+ */
 export function scoreBucketKey(
   institution: Institution,
   difficulty: Difficulty,
   simulationVersion: string,
 ): string {
-  return `${institution}:${difficulty}:${simulationVersion}`
+  return `${institution}:${difficulty}:${simulationVersion}:s${SCORING_VERSION}`
 }
 
 /** Maps a path statistic onto 0..1: 1 is perfect, `scale` is one e-fold down. */

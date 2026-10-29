@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  MEETING_COUNT,
+  difficultyLength,
   SCENARIOS,
   getInstitution,
   type Difficulty,
@@ -194,7 +194,8 @@ export default function SetupPage() {
           <p className="mt-1 text-sm text-onwood-soft">
             Difficulty here is what was known at the time, and it is already
             decided: {getInstitution(chosen.institution).shortName},{' '}
-            {chosen.meetingCount} meetings, on the statistics that were actually
+            {chosen.meetingCount} meetings — the length of the period itself —
+            on the statistics that were actually
             published — including the ones that were wrong in one direction the
             whole way through. The seed still changes what happens around you.
           </p>
@@ -269,7 +270,7 @@ export default function SetupPage() {
                 <span
                   className={`font-medium ${selected ? 'text-onwood' : 'text-onwood'}`}
                 >
-                  {copy.name} — {MEETING_COUNT[id]} scheduled meetings
+                  {copy.name} — {difficultyLength(id)}
                 </span>
                 <span className="mt-1 block text-sm text-onwood-soft">
                   {copy.summary}

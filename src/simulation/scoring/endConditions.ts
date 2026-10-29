@@ -20,7 +20,6 @@ import {
   termOf,
 } from '../config/tenure.ts'
 import { realRateGap, unemploymentGap } from '../engine/indices.ts'
-import { dispersion } from '../engine/members.ts'
 
 /**
  * End-state evaluation.
@@ -719,13 +718,22 @@ export function evaluateEndConditions(
    * for too long. There is no reappointment to withhold, so this is the only
    * way an ECB presidency ends other than the catastrophes above.
    */
-  if (fictional && institution === 'ecb' && state.members.length > 0) {
-    const spread = dispersion(state.members, 'inflationOffset')
-    const fracturing =
-      spread >= COUNCIL.fractureDispersion &&
-      latent.fragmentation >= COUNCIL.fractureFragmentation
-    const held = fracturing ? (breachCounters.council ?? 0) + 1 : 0
-    breachCounters.council = held
+  if (fictional && institution === 'ecb') {
+    /*
+     * **Sustained dissent by a bloc, not dispersion.** The previous version
+     * asked for member inflation dispersion at 2.4 *and* fragmentation at 290
+     * basis points at once, which measured over 360 mandates is satisfied on
+     * 0.0 % of meetings and fired 0 times in 60 — so the game announced an
+     * ending it could not reach. The argument for what replaced it is in
+     * `COUNCIL`'s own doc comment: dispersion is a fact about the member
+     * economies, and what ended careers in 2011 was a policy a part of the
+     * Council could not accept being held anyway.
+     *
+     * Read off `state.councilDissent`, which `applyPolicyPackage` advances
+     * when a third of the committee dissents and resets when the room comes
+     * back behind the chair.
+     */
+    const held = state.councilDissent
 
     if (held >= COUNCIL.meetingsToFail) {
       return {
@@ -733,24 +741,25 @@ export function evaluateEndConditions(
         triggered: 'council_lost',
         label: 'The Council was lost',
         summary:
-          `For ${COUNCIL.meetingsToFail} consecutive meetings the Governing Council ` +
-          `sat ${spread.toFixed(1)} points apart on inflation with spreads at ` +
-          `${latent.fragmentation.toFixed(0)} basis points. Nobody can remove you ` +
-          'and there is no second term to withhold — but a president who cannot ' +
-          'carry the room is finished all the same.',
+          `For ${held} consecutive meetings a third of the Governing Council voted ` +
+          'against the policy and said in the published record what it would have done ' +
+          'instead. Nobody can remove you and there is no second term to withhold — ' +
+          'but a president who holds a policy a bloc of the Council has refused, ' +
+          'meeting after meeting, is finished in substance whatever the Treaty says.',
         causalChain: buildCausalChain(state, 'council_lost'),
         warnings,
         breachCounters,
       }
     }
-    if (spread >= COUNCIL.watchDispersion) {
+    if (held >= COUNCIL.meetingsToWarn) {
       warnings.push({
         id: 'council_lost',
         label: 'The Council is straining',
         message:
-          `Members are ${spread.toFixed(1)} points apart on inflation. You cannot be ` +
-          'removed and you cannot be denied a second term. You can lose the room.',
-        severity: held > 0 ? 'severe' : 'watch',
+          `A bloc of the Council has voted against you at ${held} consecutive ` +
+          'meetings. You cannot be removed and you cannot be denied a second term. ' +
+          'You can lose the room — read what they wanted instead.',
+        severity: held >= COUNCIL.meetingsToFail - 1 ? 'severe' : 'watch',
         meetingsHeld: held,
         meetingsToTrigger: COUNCIL.meetingsToFail,
       })

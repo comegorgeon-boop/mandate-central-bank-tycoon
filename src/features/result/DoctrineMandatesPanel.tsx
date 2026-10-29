@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { RunSession, ScoreBreakdown } from '../../simulation/index.ts'
+import type { RunSession } from '../../simulation/index.ts'
 import type { Scoreboard } from '../game/doctrineScoreboard.ts'
 import { compareMandates } from './doctrineMandates.ts'
 
@@ -32,9 +32,6 @@ import { compareMandates } from './doctrineMandates.ts'
  * thing from an otherwise honest table.
  */
 
-/** Below which a gate, not the economy, is the main thing in the number. */
-const GATE_BIT = 0.6
-
 /**
  * The one thing worth knowing about how a school's mandate ended.
  *
@@ -48,31 +45,36 @@ const GATE_BIT = 0.6
  * rule, followed without judgement, is erratic — which is a sharper lesson and
  * the opposite of the one the bare number teaches.
  */
+/**
+ * The one line under each school's total.
+ *
+ * It used to quote the two multiplicative gates from the graded score, which
+ * is a sentence about a formula the player no longer sees. The banked total is
+ * length × quality, so what it wants beside it is exactly those two: how long
+ * the school lasted and what it banked a meeting. A school that out-totals
+ * another by serving twice as long at half the rate is a different kind of
+ * mandate, and the pair says so where the total alone does not.
+ */
 function whyThatScore(entry: {
   readonly completed: boolean
   readonly endedLabel: string | null
   readonly meetings: number
+  readonly perMeeting: number
   readonly spoke: number
-  readonly score: { readonly conductGate: number; readonly priceStabilityGate: number }
 }): string {
-  if (!entry.completed) return entry.endedLabel ?? `ended at ${entry.meetings}`
-  if (entry.spoke === 0) return 'held throughout'
-  if (entry.score.conductGate < GATE_BIT) {
-    return `steadiness ×${entry.score.conductGate.toFixed(2)}`
+  if (entry.spoke === 0) return 'never had standing'
+  const rate = `${entry.perMeeting} a meeting`
+  if (!entry.completed) {
+    return `${entry.endedLabel ?? `ended at ${entry.meetings}`} · ${rate}`
   }
-  if (entry.score.priceStabilityGate < GATE_BIT) {
-    return `price gate ×${entry.score.priceStabilityGate.toFixed(2)}`
-  }
-  return `${entry.meetings} meetings`
+  return `${entry.meetings} meetings · ${rate}`
 }
 
 export function DoctrineMandatesPanel({
   session,
-  score,
   board,
 }: {
   readonly session: RunSession
-  readonly score: ScoreBreakdown
   /** The meeting-by-meeting record kept while the mandate was played. */
   readonly board: Scoreboard
 }) {
@@ -81,12 +83,12 @@ export function DoctrineMandatesPanel({
   // itself is a missing panel, never a missing screen.
   const comparison = useMemo(() => {
     try {
-      return compareMandates(session, score)
+      return compareMandates(session)
     } catch (error) {
       console.error('The doctrine comparison could not be built', error)
       return null
     }
-  }, [session, score])
+  }, [session])
   if (comparison === null) return null
 
   const beaten =
@@ -132,7 +134,7 @@ export function DoctrineMandatesPanel({
           <tbody>
             {comparison.mandates.map((entry) => {
               const record = board.records[entry.doctrine.id]
-              const ahead = entry.score.score > comparison.player
+              const ahead = entry.banked > comparison.player
               return (
                 <tr
                   key={entry.doctrine.id}
@@ -171,7 +173,7 @@ export function DoctrineMandatesPanel({
                       ahead ? 'font-semibold text-accent-strong' : 'text-ink'
                     }`}
                   >
-                    {entry.score.score.toLocaleString('en-US')}
+                    {entry.banked.toLocaleString('en-US')}
                     <span className="block text-xs font-normal tabular-nums text-ink-faint">
                       {whyThatScore(entry)}
                     </span>
@@ -203,10 +205,10 @@ export function DoctrineMandatesPanel({
         same shocks, judged four meetings later on the mandate&rsquo;s own loss.
         Its own mandate gave each school the policy rate and nothing else — the
         balance sheet was left alone and no guidance was issued, because none of
-        these is a theory about those. A multiplier under a score means a gate
-        took a large part of it rather than the economy did: steadiness ×0.20 is
-        a rule that reached a tolerable outcome by moving the rate far further
-        than the mandate allows. This is one draw. A rule that loses here may be the rule
+        these is a theory about those. Each total is points banked meeting by
+        meeting, so length and quality multiply: the line under it gives both
+        halves, because a school that out-totals another by serving twice as
+        long at half the rate ran a different kind of mandate. This is one draw. A rule that loses here may be the rule
         you want facing the next shock, which is the reason to know more than
         one of them.
       </p>

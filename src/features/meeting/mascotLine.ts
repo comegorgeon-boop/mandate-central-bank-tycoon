@@ -38,8 +38,8 @@ export function closingLine({
   completed,
   objectiveMet = false,
   objectiveMissed = false,
-  score,
-  maxScore,
+  perMeeting,
+  fullMarksPerMeeting,
   conductGate,
   supplyRegimeShare,
 }: {
@@ -47,8 +47,17 @@ export function closingLine({
   /** The tutorial's two endings, which are neither "served" nor "lost". */
   readonly objectiveMet?: boolean
   readonly objectiveMissed?: boolean
-  readonly score: number
-  readonly maxScore: number
+  /**
+   * Points banked per meeting served, against `BANKED.meetingPoints`.
+   *
+   * This was `score / maxScore` on the graded total, which is the number the
+   * player no longer sees — and which, being a path average, read a mandate
+   * that ended at meeting six as a good one. The banked *rate* is the honest
+   * equivalent of the same share: how well each meeting went, with the length
+   * already carried by the total beside it.
+   */
+  readonly perMeeting: number
+  readonly fullMarksPerMeeting: number
   readonly conductGate: number
   readonly supplyRegimeShare: number
 }): string {
@@ -73,12 +82,12 @@ export function closingLine({
     return 'Costs were pushed up from outside for much of that, and no rate removes the cause of that. What your rate did was hold the number below where it would otherwise have gone — which is the whole of what the instrument can do in that regime, and it is what the anchor and the damage were judged on.'
   }
 
-  const share = score / maxScore
+  const share = perMeeting / fullMarksPerMeeting
   if (share >= 0.75) {
     return 'A quiet mandate, which is the highest praise this job offers. Nobody writes about the decade the central bank got it right.'
   }
   if (share >= 0.5) {
     return 'Served in full, with the objective missed by more than you would like. That is most mandates, including the real ones.'
   }
-  return 'You reached the end, which is not nothing. The scorecard above says where it went; the charts say when.'
+  return 'You reached the end, which is not nothing. The objectives above say where the points went; the charts say when.'
 }

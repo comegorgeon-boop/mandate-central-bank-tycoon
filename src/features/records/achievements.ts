@@ -68,7 +68,15 @@ export interface AchievementContext {
    * and two achievements here are about the latter.
    */
   readonly decisions: readonly DecisionLogEntry[]
+  /**
+   * The component breakdown — the *explanation*, which several achievements
+   * are about ("the anchor never moved"), and which is what it is still for.
+   * Its total is not read here or anywhere the player can see: see
+   * `scoring/theScore.ts`.
+   */
   readonly score: ScoreBreakdown
+  /** What this mandate banked. The score. */
+  readonly banked: number
   /** The outcome id, e.g. `mandate_completed`. */
   readonly outcome: string
   /** How this mandate compared with the path history took, if it is historical. */
@@ -233,8 +241,16 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   {
     id: 'full_marks',
     name: 'Eight thousand',
-    note: 'Scored above 8,000 in any mandate.',
-    earned: (c) => c.score.score >= 8000,
+    note: 'Banked more than 8,000 points in one mandate.',
+    /*
+     * The name and the number survive the move from the graded total to the
+     * banked one, because 8,000 was always *derived* from the banked pace:
+     * `BANKED.meetingPoints` is 250 and a Fed term is 32 meetings, which is
+     * where `MAX_SCORE` came from in the first place. So this still means what
+     * it always meant — a full term held near its objectives — and now it
+     * means it on the number the player is actually shown.
+     */
+    earned: (c) => c.banked >= 8000,
   },
   {
     id: 'every_period',

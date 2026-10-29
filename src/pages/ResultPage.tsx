@@ -1,6 +1,6 @@
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
-  MAX_SCORE,
+  BANKED,
   SCENARIOS,
   getInstitution,
   type RunSession,
@@ -225,19 +225,34 @@ export default function ResultPage() {
         </div>
       </section>
 
+      {/*
+          **The scorecard explains; it does not score.**
+
+          This section used to open with its own four-line total out of
+          10,000, beside the banked figure at the top of the page — and the two
+          disagreed about whether competence beat passivity. A fourteen-year
+          mandate showed 5,437 banked and 1,741 here, and the records page
+          ranked on the second.
+
+          The decision was the player's and it was short: *"le score engrangé
+          est le score […] deux scores qui se contredisent, c'est pire que
+          n'importe lequel des deux."* So the total is gone and the components
+          stay, because they are the only thing that says *which objective* was
+          lost and by how much, which is what a report is for. The heading says
+          what it is now. See `simulation/scoring/theScore.ts`.
+      */}
       <section className="mt-10" aria-labelledby="score-heading">
         <h2 id="score-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
-          Scorecard
+          Where the points went
         </h2>
-        <p className="mt-2 text-4xl font-semibold tabular-nums text-ink">
-          {score.score.toLocaleString('en-US')}
-          <span className="ml-2 text-base font-normal text-ink-faint">
-            / {MAX_SCORE.toLocaleString('en-US')}
-          </span>
+        <p className="mt-1 text-sm text-ink-soft">
+          Each objective, how it went, and how much of the mandate it carries.
+          The score is the banked figure at the top of this page; this is what
+          it was made of.
         </p>
 
         <table className="mt-4 w-full border-collapse text-left text-sm">
-          <caption className="sr-only">Score components</caption>
+          <caption className="sr-only">What each objective contributed</caption>
           <thead>
             <tr className="border-b border-edge text-xs uppercase tracking-wide text-ink-faint">
               <th scope="col" className="py-2 pr-2 font-medium">Component</th>
@@ -266,13 +281,13 @@ export default function ResultPage() {
         </table>
 
         <p className="mt-3 text-xs text-ink-faint">
-          Weighted total {Math.round(score.weightedTotal * 100)} %, difficulty
-          multiplier ×{score.difficultyMultiplier.toFixed(2)}
+          Weighted {Math.round(score.weightedTotal * 100)} % across these
+          objectives
           {score.priceStabilityGate < 1 &&
-            `, price-stability gate ×${score.priceStabilityGate.toFixed(2)}`}
+            `, with a price-stability gate of ×${score.priceStabilityGate.toFixed(2)}`}
           {score.conductGate < 1 &&
-            `, conduct gate ×${score.conductGate.toFixed(2)}`}
-          . Scoring formula v{score.scoringVersion}, engine v{score.simulationVersion}.
+            `, with a steadiness gate of ×${score.conductGate.toFixed(2)}`}
+          . Engine v{score.simulationVersion}.
         </p>
       </section>
 
@@ -358,12 +373,12 @@ export default function ResultPage() {
           is: what I scored, how it compares with what I have done before, then
           who in the room turned out to be right. */}
       <AgainstYourselfPanel
-        score={score}
+        banked={banked.total}
         previousBest={previousBest}
         bucketLabel={bucketLabel(session)}
       />
 
-      <DoctrineMandatesPanel session={session} score={score} board={scoreboard} />
+      <DoctrineMandatesPanel session={session} board={scoreboard} />
 
       {/* Last, because it is the lightest thing on the page and the written
           account is the point. Whether the mandate beat the path history took
@@ -376,7 +391,7 @@ export default function ResultPage() {
         beatTheStandard={(() => {
           try {
             const standard = buildTheStandard(session, score)
-            return standard !== null && score.score > standard.replay.score.score
+            return standard !== null && banked.total > standard.replay.banked
           } catch {
             return false
           }
@@ -414,8 +429,8 @@ export default function ResultPage() {
             completed: outcome.status === 'completed',
             objectiveMet: outcome.triggered === 'objective_met',
             objectiveMissed: outcome.triggered === 'objective_missed',
-            score: score.score,
-            maxScore: MAX_SCORE,
+            perMeeting: banked.perMeeting,
+            fullMarksPerMeeting: BANKED.meetingPoints,
             conductGate: score.conductGate,
             supplyRegimeShare: score.supplyRegimeShare,
           })}

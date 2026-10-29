@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { RunSession, ScoreBreakdown } from '../../simulation/index.ts'
+import { theScore, type RunSession, type ScoreBreakdown } from '../../simulation/index.ts'
 import { ACHIEVEMENTS, earnedBy } from '../records/achievements.ts'
 import {
   readAchievements,
@@ -48,6 +48,7 @@ export function AchievementsPanel({
         state: session.state,
         decisions: session.decisions,
         score,
+        banked: theScore(session.state).total,
         outcome: session.outcome.triggered ?? 'mandate_completed',
         beatTheStandard,
         scenariosCompleted: scenariosCompleted(),

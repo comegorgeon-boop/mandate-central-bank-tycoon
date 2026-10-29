@@ -51,7 +51,7 @@ export {
   SUBSTEPS_PER_MEETING,
   YEARS_PER_MEETING,
 } from './config/time.ts'
-export { MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
+export { BANKED, MAX_SCORE, SCORE_WEIGHTS } from './config/scoring.ts'
 export { FISCAL } from './config/model.ts'
 export { fanReference, livingFan } from './policy/livingFan.ts'
 export type { LivingBand, LivingFan } from './policy/livingFan.ts'
@@ -250,6 +250,31 @@ export {
 
 // ---- Scoring --------------------------------------------------------------
 export { calculateScore, scoreBucketKey } from './scoring/calculateScore.ts'
+// The score. There is one — see the file's own argument.
+export { theScore, type TheScore } from './scoring/theScore.ts'
+// How long a mandate lasts, said once. See the file: two screens were quoting
+// lengths from two different dead structures.
+export {
+  difficultyLength,
+  isTutorial,
+  tenureSentence,
+  termOfOffice,
+} from './explain/tenureCopy.ts'
+// What the player is trying to do, in five lines. Direction, never decisions.
+export {
+  aimLine,
+  lagInMeetings,
+  orientation,
+  type OrientationPoint,
+} from './explain/orientation.ts'
+// The bulletin that takes the screen. Majors and the critical only — see the
+// file for why the gating is on transitions rather than on states.
+export {
+  readBulletin,
+  type Bulletin,
+  type BulletinKind,
+  type BulletinReading,
+} from './explain/bulletin.ts'
 export {
   tutorialExhausted,
   tutorialProgress,
