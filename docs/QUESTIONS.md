@@ -955,3 +955,73 @@ penalty on top of it would charge twice for one decision.
 appears 625 bp apart, the hawk argues at +500 and rebuts the labour economist
 by name, and the scoreboard reads live mid-mandate — "The rule 4 of 4", "The
 fiscal realist 0 of 2, agreed with you 2×".
+
+## 26. The figure budget, and the cap it landed on (MEASURED, APPLIED)
+
+> "ET MESURE-LE, comme on a fait pour les mots : COMBIEN DE CHIFFRES sont
+> visibles par défaut sur un écran de téléphone ? […] il nous faut le même
+> plafond pour les chiffres, et je veux qu'il soit bas."
+
+**Before: 30 on fed/medium, 31 on ecb/medium. After: 12 and 12.**
+`npm run check:figures`, phone width, steady meeting.
+
+The cap is **13**, and like the word cap it is a *measurement* with its
+accounting written into the tool:
+
+| | figures | asked for by |
+| --- | --- | --- |
+| the order line: the gap, the objective, where expectations sit | 3 | §1 — the order stays |
+| the three readings, each with its distance | 6 | §1 — "les trois chiffres" |
+| the rate this decision leaves | 1 | §1 — the dial |
+| the dial's own track: both ends and the step | 3 | §1 — the dial |
+
+**I set it at twelve first and that was wrong**, derived on paper before
+anything had been measured, and it budgeted nothing for the one thing §3 asks
+for by name: a lid that says *how many* has a figure in it. `CHOCS EN COURS —
+2` is the rule, and the 2 is the point.
+
+**Three real cuts, not exemptions**, because a budget that defines its problem
+away is not a budget:
+
+- the **banknote serial** — eight digits on the one screen whose complaint is
+  digits. The seal stays: a mark is a mark and a number is a number.
+- the **rate printed twice**, as `from 3.25` in the panel header beside the big
+  figure it repeated.
+- the **five-share legend**, which had been on both surfaces on the reasoning
+  that a list of labels is not prose. True, and the wrong budget.
+
+**The two cheapest cuts left**, if 13 is still too many. The dial's track
+labels are three figures and the handle already says where it is — but they are
+also what makes the ceiling a cost rather than a wall, which was decided
+deliberately two passes ago. The order line's objective is one figure and is
+the same number at every meeting of the mandate. Either is one commit.
+
+## 27. The fold's memory took three attempts (FIXED — all the same mistake)
+
+Worth its own entry because the three are one error wearing different clothes:
+**treating something the code did as something the player did.**
+
+1. **It wrote on every change of `open`.** A panel opened by its own
+   `defaultOpen` was stored as a preference, and then outlived the reason it
+   was open — the dispatches panel defaults open while it carries a guided
+   lesson, so the first three meetings of every mandate taught it to stay open
+   for the whole career.
+2. **It held its state.** `MeetingScreen` is described in its own comments as
+   remounted at every meeting; React *reconciles* it — same component, same
+   position — so `useState` does not re-initialise. The panel stayed open on
+   three-meeting-old information. An untouched panel now **derives** its state
+   from the default and the store on every render.
+3. **And `<details open={…}>` fires `toggle` on a programmatic change** exactly
+   as it does on a click, so React's own render was still being recorded. An
+   echo carries the value already being rendered and is now ignored.
+
+Found by printing `localStorage` beside every panel's open flag at every
+meeting of a walk: `store=["dispatches"]` after a run that never clicked a lid.
+A single screenshot had looked correct three times.
+
+`components/terminal/FoldedPanel.test.tsx` pins all four behaviours. Its own
+first version used `fireEvent.click` on the summary, which does nothing in
+jsdom — the native `<details>` behaviour is not implemented — so the test
+failed for a reason unrelated to the component. It now fires the sequence a
+browser actually produces, and the live path is verified by driving a real
+meeting.
